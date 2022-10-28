@@ -1,9 +1,18 @@
+from dataclasses import dataclass
 import numpy as np
 import vtk
 
 from src.visualization_pipeline.simple_pipeline import VisualisationPipeline
 
-box = (5.0, 5.0, 5.0)
+
+@dataclass
+class Point:
+    x: float = 0
+    y: float = 0
+    z: float = 0
+
+
+box = Point(5.0, 5.0, 5.0)
 density = 30
 n_points = 100000
 
@@ -15,8 +24,7 @@ def f(x, y, z):
 def generate_grid():
     grid = vtk.vtkImageData()
     grid.SetDimensions(density, density, density)
-    grid.SetOrigin(-box[0] / 2.0, -box[1] / 2.0, -box[2] / 2.0)
-    grid.SetSpacing(box[0] / density, box[1] / density, box[2] / density)
+    grid.SetSpacing(box.x / density, box.y / density, box.z / density)
     return grid
 
 
@@ -25,11 +33,11 @@ def generate_data():
     data.SetNumberOfValues(n_points)
 
     for i in range(density):
-        z = box[2] / density * i - box[2] / 2.0
+        z = box.z / density * i - box.z / 2.0
         for j in range(density):
-            y = box[1] / density * j - box[1] / 2.0
+            y = box.y / density * j - box.y / 2.0
             for k in range(density):
-                x = box[0] / density * k - box[0] / 2.0
+                x = box.x / density * k - box.x / 2.0
                 n = k + j * density + i * density * density
                 data.SetValue(n, f(x, y, z))
 
@@ -53,7 +61,6 @@ def generate_outline(contour):
 
 
 if __name__ == "__main__":
-
     grid = generate_grid()
     data = generate_data()
     contour = generate_contour(grid)
