@@ -161,3 +161,11 @@ Source -> Filter -> Mapper -> Actor -> Renderer
 * https://www.programcreek.com/python/index/480/vtk
 * https://www.cb.uu.se/~aht/Vis2014/
 * https://www.cs.sjtu.edu.cn/~shengbin/course/datavis/
+
+## Contributing
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+Please make sure to update tests as appropriate.
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)
