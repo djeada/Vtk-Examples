@@ -14,7 +14,7 @@ Python examples for the Visualization Toolkit (VTK).
 
 ### Installation
 
-* To install VTK on various platforms (Windows, Linux, macOS), visit the official download page for platform-specific installation guides: https://vtk.org/download/
+To install VTK on various platforms (Windows, Linux, macOS), visit the official download page for platform-specific installation guides: https://vtk.org/download/
 
 ### Basic Workflow
 
@@ -26,6 +26,41 @@ Python examples for the Visualization Toolkit (VTK).
 ## Repository Structure
 
 This repository contains examples and tutorials to help users get started with VTK in Python. Each subdirectory contains a specific topic, along with corresponding code examples.
+
+## Running Examples
+
+To run the examples in this repository, follow the steps below:
+
+### Setting Up the Environment
+
+1. Make sure to have a virtual environment set up for your project. You can use `virtualenv` or `conda` to create a virtual environment.
+2. Activate the virtual environment and install the necessary packages. For example:
+
+```
+pip install -r requirements.txt
+```
+
+### Running Individual Scripts
+
+To run an individual example script, navigate to the appropriate folder within the `src/` directory and execute the Python script using the command line. For example:
+
+```
+cd src/01_basic_shapes
+python circle.py
+```
+
+This will run the `circle.py` script, which creates a simple circle using VTK.
+
+### Using an IDE
+
+If you prefer to use an Integrated Development Environment (IDE) like Visual Studio Code or PyCharm, follow these steps:
+
+1. Open the IDE and load the project folder.
+2. Set up the Python interpreter for the project by selecting the virtual environment you created earlier.
+3. Open the example script you would like to run.
+4. Run the script using the IDE's built-in tools (e.g., the "Run" button or right-clicking on the script and selecting "Run").
+
+With the IDE, you can also set breakpoints, step through the code, and debug the example scripts as needed.
 
 ## References
 
