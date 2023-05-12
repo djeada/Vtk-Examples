@@ -2,15 +2,23 @@ import vtk
 
 
 class VisualisationPipeline:
-    def __init__(self, mappers):
+    def __init__(self, mappers, point_size=1, edges_visible=False):
         self.mappers = mappers
+        self.point_size = point_size
+        self.edges_visible = edges_visible
 
     def create_actors(self):
         actors = []
         for mapper in self.mappers:
             actor = vtk.vtkActor()
             actor.SetMapper(mapper)
+            actor.GetProperty().SetPointSize(self.point_size)
+            if self.edges_visible:
+                actor.GetProperty().SetEdgeVisibility(1)
+                actor.GetProperty().SetOpacity(0.5)
+                actor.GetProperty().BackfaceCullingOn()
             actors.append(actor)
+
         return actors
 
     def create_renderer(self, actors):
