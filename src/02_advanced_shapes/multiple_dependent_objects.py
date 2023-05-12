@@ -1,34 +1,57 @@
 import vtk
+from src.simple_pipeline import VisualisationPipeline
 
-from src.visualization_pipeline.simple_pipeline import VisualisationPipeline
+
+def create_cube_mapper(center, length):
+    cube_source = vtk.vtkCubeSource()
+    cube_source.SetCenter(center)
+    cube_source.SetXLength(length)
+    cube_source.SetYLength(length)
+    cube_source.SetZLength(length)
+
+    cube_mapper = vtk.vtkPolyDataMapper()
+    cube_mapper.SetInputConnection(cube_source.GetOutputPort())
+
+    return cube_mapper
 
 
-def setup_cone(height, radius, resolution):
-    cone = vtk.vtkConeSource()
-    cone.SetHeight(height)
-    cone.SetRadius(radius)
-    cone.SetResolution(resolution)
-    return cone
+def create_cone_mapper(center, height, radius, resolution=30):
+    cone_source = vtk.vtkConeSource()
+    cone_source.SetCenter(center)
+    cone_source.SetHeight(height)
+    cone_source.SetRadius(radius)
+    cone_source.SetResolution(resolution)
+
+    cone_mapper = vtk.vtkPolyDataMapper()
+    cone_mapper.SetInputConnection(cone_source.GetOutputPort())
+
+    return cone_mapper
 
 
 if __name__ == "__main__":
+    cube_mapper = create_cube_mapper(center=(0, 0, 0), length=1)
+    cone_mapper = create_cone_mapper(center=(0, 1.5, 0), height=1.5, radius=0.5)
 
-    # define sources
-    cone1 = setup_cone(5, 2, 10)
-    cone2 = setup_cone(3, 2, 5)
+    cube_actor = vtk.vtkActor()
+    cube_actor.SetMapper(cube_mapper)
 
-    # position and orientation
-    cone2.SetCenter(-2, 0, 0)
-    cone1.SetCenter(2, 0, 0)
-    cone1.SetDirection((0.0, 1.0, 0.0))
-    cone2.SetDirection((0.0, 1.0, 0.0))
+    cone_actor = vtk.vtkActor()
+    cone_actor.SetMapper(cone_mapper)
 
-    # define mapper
-    mappers = []
-    for cone in (cone1, cone2):
-        mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputConnection(cone.GetOutputPort())
-        mappers.append(mapper)
+    assembly = vtk.vtkAssembly()
+    assembly.AddPart(cube_actor)
+    assembly.AddPart(cone_actor)
 
-    pipeline = VisualisationPipeline(mappers)
-    pipeline.run()
+    renderer = vtk.vtkRenderer()
+    renderer.AddActor(assembly)
+    renderer.SetBackground(0, 0, 0)
+
+    window = vtk.vtkRenderWindow()
+    window.AddRenderer(renderer)
+    window.SetSize(800, 600)
+
+    interactor = vtk.vtkRenderWindowInteractor()
+    interactor.SetRenderWindow(window)
+    interactor.Initialize()
+
+    interactor.Start()

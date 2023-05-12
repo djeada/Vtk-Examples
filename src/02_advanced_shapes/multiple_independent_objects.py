@@ -1,9 +1,8 @@
 import random
-
 import vtk
 
 
-def setup_cone(height, radius, resolution):
+def create_cone(height, radius, resolution):
     cone = vtk.vtkConeSource()
     cone.SetHeight(height)
     cone.SetRadius(radius)
@@ -11,14 +10,29 @@ def setup_cone(height, radius, resolution):
     return cone
 
 
+def create_cube(length):
+    cube = vtk.vtkCubeSource()
+    cube.SetXLength(length)
+    cube.SetYLength(length)
+    cube.SetZLength(length)
+    return cube
+
+
+def create_sphere(radius, phi_resolution, theta_resolution):
+    sphere = vtk.vtkSphereSource()
+    sphere.SetRadius(radius)
+    sphere.SetPhiResolution(phi_resolution)
+    sphere.SetThetaResolution(theta_resolution)
+    return sphere
+
+
 if __name__ == "__main__":
-
     # define sources
-    cone1 = setup_cone(5, 2, 10)
-    cone2 = setup_cone(3, 2, 5)
-    cone3 = setup_cone(2, 2, 2)
+    cone = create_cone(height=5, radius=2, resolution=10)
+    cube = create_cube(length=5)
+    sphere = create_sphere(radius=3, phi_resolution=10, theta_resolution=10)
 
-    sources = (cone1, cone2, cone3)
+    sources = (cone, cube, sphere)
 
     mappers = []
     for source in sources:
@@ -42,13 +56,13 @@ if __name__ == "__main__":
         )  # x, y, width, height
         renderers.append(renderer)
 
-    coneWin = vtk.vtkRenderWindow()
-    coneWin.SetSize(800, 400)
+    renderWindow = vtk.vtkRenderWindow()
+    renderWindow.SetSize(800, 400)
 
     for renderer in renderers:
-        coneWin.AddRenderer(renderer)
+        renderWindow.AddRenderer(renderer)
 
-    iren = vtk.vtkRenderWindowInteractor()
-    iren.SetRenderWindow(coneWin)
-    iren.Initialize()
-    iren.Start()
+    interactor = vtk.vtkRenderWindowInteractor()
+    interactor.SetRenderWindow(renderWindow)
+    interactor.Initialize()
+    interactor.Start()

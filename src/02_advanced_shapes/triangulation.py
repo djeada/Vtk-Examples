@@ -1,53 +1,61 @@
+"""
+This module demonstrates triangulation in VTK. Triangulation is a process
+by which a surface or an object is divided into triangles. This is done
+because a triangle is a simple shape that is easy to render, and a complex
+shape can be represented as a collection of triangles.
+
+This example generates a set of random points and uses the vtkDelaunay2D
+filter to create a triangulation from those points. In addition, it also
+shows the edges of the triangulation.
+"""
+
 import vtk
+import random
 
-from src.visualization_pipeline.simple_pipeline import VisualisationPipeline
+# create a point cloud
+points = vtk.vtkPoints()
 
-# can be read from stl file
+# generate 25 random points
+for _ in range(25):
+    points.InsertNextPoint(random.uniform(-1, 1), random.uniform(-1, 1), 0)
 
+# create a polydata object
+input_polydata = vtk.vtkPolyData()
+input_polydata.SetPoints(points)
 
-def generate_data():
-    polydata = vtk.vtkSphereSource()
-    polydata.SetRadius(10)
-    polydata.SetThetaResolution(5)
-    polydata.SetPhiResolution(3)
-    polydata.Update()
-    return polydata
+# create a delaunay2D filter and set the input polydata
+delaunay = vtk.vtkDelaunay2D()
+delaunay.SetInputData(input_polydata)
+delaunay.Update()
 
+# create a triangle filter
+triangle_filter = vtk.vtkTriangleFilter()
+triangle_filter.SetInputConnection(delaunay.GetOutputPort())
+triangle_filter.PassLinesOn()
+triangle_filter.PassVertsOn()
+triangle_filter.Update()
 
-def remove_double_vertices(polydata):
-    clean_polydata = vtk.vtkCleanPolyData()
-    clean_polydata.SetInputData(polydata.GetOutput())
-    clean_polydata.Update()
-    return clean_polydata
+# create a mapper and actor for the triangulation
+mapper = vtk.vtkPolyDataMapper()
+mapper.SetInputConnection(triangle_filter.GetOutputPort())
 
+actor = vtk.vtkActor()
+actor.SetMapper(mapper)
+actor.GetProperty().SetRepresentationToWireframe()
 
-def create_normals(polydata):
-    normals = vtk.vtkPolyDataNormals()
-    normals.SetComputeCellNormals(1)
-    normals.SetInputData(polydata.GetOutput())
-    normals.SplittingOff()
-    normals.Update()
-    return normals
+# create a renderer and add the actor to it
+renderer = vtk.vtkRenderer()
+renderer.AddActor(actor)
+renderer.SetBackground(0, 0, 0)
 
+# create a render window and add the renderer to it
+render_window = vtk.vtkRenderWindow()
+render_window.AddRenderer(renderer)
 
-def triangulate_new_connecting_faces(normals):
-    polydata = vtk.vtkPolyData()
-    polydata.DeepCopy(normals.GetOutput())
-    triangle_filter = vtk.vtkTriangleFilter()
-    triangle_filter.SetInputData(polydata)
-    triangle_filter.Update()
-    return triangle_filter
+# create an interactor and connect it to the render window
+interactor = vtk.vtkRenderWindowInteractor()
+interactor.SetRenderWindow(render_window)
 
-
-if __name__ == "__main__":
-    polydata = generate_data()
-    polydata = remove_double_vertices(polydata)
-    normals = create_normals(polydata)
-    triangle_filter = triangulate_new_connecting_faces(normals)
-    data = triangle_filter.GetOutput()
-    # visualize
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputData(data)
-
-    pipeline = VisualisationPipeline([mapper], edges_visible=True)
-    pipeline.run()
+# initialize the interactor and start the rendering loop
+interactor.Initialize()
+interactor.Start()
