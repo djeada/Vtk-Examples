@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<VTKFile type="vtkMultiBlockDataSet" version="1.0" byte_order="LittleEndian" header_type="UInt32" compressor="vtkZLibDataCompressor">
+  <vtkMultiBlockDataSet>
+    <DataSet index="0" file="grid_of_triangles/grid_of_triangles_0.vtu"/>
+  </vtkMultiBlockDataSet>
+</VTKFile>
