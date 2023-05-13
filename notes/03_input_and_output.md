@@ -62,3 +62,19 @@ vtk_writer.SetFileName("output.vtk")
 # Write the output file
 vtk_writer.Write()
 ```
+
+##  Comparison between various readers and writers
+
+| Format    | Reader                     | Reader Output              | Writer                       | Writer Input             |
+|-----------|----------------------------|----------------------------|------------------------------|--------------------------|
+| STL       | vtkSTLReader               | vtkPolyData                | vtkSTLWriter                 | vtkPolyData              |
+| OBJ       | vtkOBJReader               | vtkPolyData                | vtkOBJWriter                 | vtkPolyData              |
+| VTK (old) | vtkUnstructuredGridReader  | vtkUnstructuredGrid        | vtkUnstructuredGridWriter    | vtkUnstructuredGrid      |
+|           | vtkStructuredGridReader    | vtkStructuredGrid          | vtkStructuredGridWriter      | vtkStructuredGrid        |
+|           | vtkPolyDataReader          | vtkPolyData                | vtkPolyDataWriter            | vtkPolyData              |
+|           | vtkRectilinearGridReader   | vtkRectilinearGrid         | vtkRectilinearGridWriter     | vtkRectilinearGrid       |
+|           | vtkStructuredPointsReader  | vtkStructuredPoints        | vtkStructuredPointsWriter    | vtkStructuredPoints      |
+| VTU       | vtkXMLUnstructuredGridReader | vtkUnstructuredGrid      | vtkXMLUnstructuredGridWriter | vtkUnstructuredGrid      |
+| VTM       | vtkXMLMultiBlockDataReader | vtkMultiBlockDataSet       | vtkXMLMultiBlockDataWriter   | vtkMultiBlockDataSet     |
+| OpenFOAM  | vtkOpenFOAMReader          | vtkMultiBlockDataSet       | NA                           | NA                       |
+| EnSight   | vtkEnSightGoldReader       | vtkMultiBlockDataSet       | NA                           | NA                       |
