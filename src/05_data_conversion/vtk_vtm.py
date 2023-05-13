@@ -1,30 +1,32 @@
-from vtkmodules.vtkRenderingCore import vtkDataSetMapper
+import vtk
 
-from src.io.read_vtk import read_vtk
-from src.io.read_vtm import read_vtm
-from src.io.write_vtm import write_vtm
-from src.visualization_pipeline.simple_pipeline import VisualisationPipeline
-
-input_file_name = "../../data/unstructured_grid.vtk"
-output_file_name = "example.vtm"
+from converter_interface import Converter
 
 
-def convert_vtk_to_vtm(input_file_name, output_file_name):
-    print(f"Attempting to convert {input_file_name} to {output_file_name}")
-    data = read_vtk(input_file_name)
-    write_vtm(output_file_name, data)
-    print(f"Conversion successful")
+class VTKtoVTMConverter(Converter):
+    def convert(self, input_filename: str, output_filename: str):
+        reader = vtk.vtkGenericDataObjectReader()
+        reader.SetFileName(input_filename)
+        reader.Update()
+
+        # Create a multiblock dataset and add the unstructured grid to it
+        mbds = vtk.vtkMultiBlockDataSet()
+        mbds.SetNumberOfBlocks(1)
+        mbds.SetBlock(0, reader.GetOutput())
+
+        writer = vtk.vtkXMLMultiBlockDataWriter()
+        writer.SetFileName(output_filename)
+        writer.SetInputData(mbds)
+        writer.Write()
 
 
-if __name__ == "__main__":
-    convert_vtk_to_vtm(input_file_name, output_file_name)
+class VTMtoVTKConverter(Converter):
+    def convert(self, input_filename: str, output_filename: str):
+        reader = vtk.vtkXMLMultiBlockDataReader()
+        reader.SetFileName(input_filename)
+        reader.Update()
 
-    # check the conversion result
-    output = read_vtm(output_file_name)
-
-    mapper = vtkDataSetMapper()
-    mapper.SetInputData(output)
-    mapper.SetScalarRange(output.GetScalarRange())
-
-    pipeline = VisualisationPipeline([mapper])
-    pipeline.run()
+        writer = vtk.vtkDataSetWriter()
+        writer.SetFileName(output_filename)
+        writer.SetInputConnection(reader.GetOutputPort())
+        writer.Write()
