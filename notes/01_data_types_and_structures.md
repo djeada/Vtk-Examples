@@ -2,7 +2,9 @@
 
 ### vtkDataObject
 * Base class for all data objects in VTK
-* Stores data and metadata, such as geometric and topological information
+* Stores data and metadata including:
+  - Geometric information: This pertains to the shape, position, and size of the data elements.
+  - Topological information: This refers to the connectivity of data elements, indicating how they are related or connected to each other. For instance, in a mesh, it can describe how points form lines or polygons.
 * Common subclasses include:
   - vtkImageData
   - vtkRectilinearGrid
@@ -41,31 +43,32 @@
                |--- vtkNonOverlappingAMR
 ```
 
+
 ### vtkImageData
 * Regular grid with fixed topology and uniform spacing between points
 * Useful for representing volumetric data, such as images or 3D scalar fields
-* Examples: CT scans, MRI scans
+* Examples: CT scans, MRI scans. In these applications, vtkImageData is used to store the pixel values at each point in the grid, which can then be visualized as a 3D image.
 
 ### vtkRectilinearGrid
 * Regular grid with fixed topology but non-uniform spacing between points
 * Useful for representing data with varying resolution along different axes
-* Examples: climate data, terrain elevation data
+* Examples: climate data (where resolution may vary with altitude), terrain elevation data (where resolution may vary with slope).
 
 ### vtkStructuredGrid
 * Curvilinear grid with fixed topology
 * Useful for representing data on a curvilinear coordinate system
-* Examples: fluid flow around objects, finite volume method simulations
+* Examples: fluid flow around objects (where the data is naturally curvilinear), finite volume method simulations (where the simulation domain is divided into a fixed number of cells).
 
 ### vtkPolydata
 * Represents a dataset of points, vertices, lines, polygons, and triangle strips
 * Useful for representing surface meshes and 3D models
-* Examples: 3D object models, terrain surfaces
+* Examples: 3D object models (such as a car or a building), terrain surfaces (such as a mountain or a valley).
 
 ### vtkUnstructuredGrid
 * Irregular grid with flexible topology
-* Can contain any kind of geometric primitive and mix different structures
-* Useful for representing complex geometries and adaptive meshes
-* Examples: finite element method simulations, complex 3D geometries
+* Can contain any kind of geometric primitive (basic shapes like points, lines, and polygons) and mix different structures
+* Useful for representing complex geometries and adaptive meshes (which can change based on the data)
+* Examples: finite element method simulations (where the simulation domain is complex and can change over time), complex 3D geometries (such as a human brain or an aircraft wing).
 
 ### Structured vs Unstructured Grid
 * Structured grids: regular grid with fixed topology
@@ -78,7 +81,7 @@
 ### Multiblock Dataset
 * A dataset containing multiple individual datasets
 * Useful for handling complex, hierarchical data structures
-* Examples: multi-domain simulations, multi-resolution data
+* Examples: multi-domain simulations (where each domain is represented by a different dataset), multi-resolution data (where different datasets represent different levels of detail).
 
 A vtkMultiBlockDataSet is a collection of datasets (blocks) organized in a hierarchical manner. Each block in a vtkMultiBlockDataSet can be an instance of vtkDataSet (or any of its subclasses) or another composite dataset. This allows for a very flexible organization of datasets. For example, you could have a vtkMultiBlockDataSet where one block is a vtkPolyData, another block is a vtkStructuredGrid, and yet another block is another vtkMultiBlockDataSet.
 
