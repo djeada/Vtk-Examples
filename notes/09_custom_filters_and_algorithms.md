@@ -22,7 +22,7 @@ Custom filters can serve a multitude of purposes, from implementing new visualiz
 - Creating a filter to compute the distance between two datasets.
 - Developing an innovative volume rendering technique.
 
-## Example: Creating a Custom VTK Filter
+## Example
 
 Here's an example of creating a custom filter that inherits from `vtkPolyDataAlgorithm`:
 
