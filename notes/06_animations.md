@@ -1,74 +1,80 @@
-## Animations and Time-Varying Data
+## Animations and Time-Varying Data in VTK
 
-### Overview
-* VTK provides tools for creating animations and visualizing time-varying data
-* Some popular techniques include:
-  - Keyframe Animation
-  - Temporal Data Visualization
-  - Animation Export
+VTK offers a set of tools to create animations and visualize time-varying data. This is particularly useful in scenarios such as:
+
+1. Keyframe Animation
+2. Temporal Data Visualization
+3. Animation Export
 
 ### Keyframe Animation
-* Keyframe animation: creating smooth transitions between different states of a visualization
-* Useful for visual storytelling or creating explanatory visualizations
-* Example classes:
-  - vtkAnimationCue: represents an animation sequence with start and end times
-  - vtkAnimationScene: manages multiple animation cues and orchestrates the animation playback
 
-### Temporal Data Visualization
-* Temporal data visualization: displaying data that varies over time
-* Useful for visualizing simulations, time series data, or dynamic systems
-* Example classes:
-  - vtkTemporalDataSet: represents a collection of datasets associated with different time steps
-  - vtkTemporalInterpolator: interpolates between datasets at different time steps to create smooth transitions
+Keyframe animation involves creating smooth transitions between different states of a visualization. This is particularly useful for visual storytelling or creating explanatory visualizations. 
 
-### Animation Export
-* Animation export: saving an animation as a video or image sequence
-* Allows for sharing or offline viewing of animations
-* Example classes:
-  - vtkWindowToImageFilter: captures the contents of a render window as an image
-  - vtkAVIWriter, vtkOggTheoraWriter, vtkFFMPEGWriter: save image sequences as video files
+The main classes involved in keyframe animation are:
 
-## Example: Keyframe Animation
+- `vtkAnimationCue`: This class represents an animation sequence with defined start and end times.
+- `vtkAnimationScene`: This class manages multiple animation cues and orchestrates the animation playback.
+
+A simple example of using these classes to animate a sphere's radius might look like this:
+
 ```python
-import vtk
+# Set up an animation scene
+animationScene = vtk.vtkAnimationScene()
+animationScene.SetModeToSequence()
+animationScene.SetLoop(0)
+animationScene.SetFrameRate(24)
 
-# Create a sphere source
-sphere = vtk.vtkSphereSource()
-sphere.SetRadius(1)
+# Set up an animation cue
+radiusCue = vtk.vtkAnimationCue()
+radiusCue.SetStartTime(0)
+radiusCue.SetEndTime(2)
+animationScene.AddCue(radiusCue)
+```
 
-# Create a mapper and actor for the sphere
-mapper = vtk.vtkPolyDataMapper()
-mapper.SetInputConnection(sphere.GetOutputPort())
+## Temporal Data Visualization
+
+Temporal data visualization involves displaying data that varies over time. This is particularly useful for visualizing simulations, time-series data, or dynamic systems.
+
+The classes most often used for this purpose are:
+
+- `vtkTemporalDataSet`: This class represents a collection of datasets associated with different time steps.
+- `vtkTemporalInterpolator`: This class interpolates between datasets at different time steps to create smooth transitions.
+
+A simple example of loading and visualizing a temporal dataset could be:
+
+```python
+# Load temporal dataset
+reader = vtk.vtkXMLMultiBlockDataReader()
+reader.SetFileName("data.vtm")
+reader.Update()
+
+# Create a mapper and actor
+mapper = vtk.vtkCompositePolyDataMapper2()
+mapper.SetInputConnection(reader.GetOutputPort())
 actor = vtk.vtkActor()
 actor.SetMapper(mapper)
+```
 
-# Set up the renderer and render window
-renderer = vtk.vtkRenderer()
-renderer.AddActor(actor)
-render_window = vtk.vtkRenderWindow()
-render_window.AddRenderer(renderer)
+## Animation Export
 
-# Create an animation scene
-animation_scene = vtk.vtkAnimationScene()
-animation_scene.SetModeToSequence()
-animation_scene.SetLoop(0)
-animation_scene.SetFrameRate(24)
+Animation export involves saving an animation as a video or image sequence. This can be useful for sharing animations or viewing them offline.
 
-# Create an animation cue for the sphere radius
-radius_cue = vtk.vtkAnimationCue()
-radius_cue.SetStartTime(0)
-radius_cue.SetEndTime(2)
-animation_scene.AddCue(radius_cue)
+The relevant classes for this purpose are:
 
-# Define the callback function for updating the sphere radius
-def update_sphere_radius(cue, event):
-    t = cue.GetAnimationTime()
-    sphere.SetRadius(1 + 0.5 * (1 + vtk.vtkMath.Sin(2 * vtk.vtkMath.Pi() * t)))
+- `vtkWindowToImageFilter`: This class captures the contents of a render window as an image.
+- `vtkAVIWriter`, `vtkOggTheoraWriter`, `vtkFFMPEGWriter`: These classes can save image sequences as video files.
 
-# Set up the callback and start the animation
-radius_cue.AddObserver("AnimationCueTickEvent", update_sphere_radius)
-animation_scene.Play()
+For example, to capture the current render window as an image:
 
-# Clean up the animation scene
-animation_scene.RemoveAllCues()
+```python
+# Set up window to image filter
+windowToImageFilter = vtk.vtkWindowToImageFilter()
+windowToImageFilter.SetInput(renderWindow)
+windowToImageFilter.Update()
+
+# Write the image to a file
+writer = vtk.vtkPNGWriter()
+writer.SetFileName("screenshot.png")
+writer.SetInputConnection(windowToImageFilter.GetOutputPort())
+writer.Write()
 ```
