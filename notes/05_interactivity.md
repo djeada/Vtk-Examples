@@ -1,4 +1,4 @@
-## Interactivity and User Interface in VTK
+## Interactivity and User Interface
 
 VTK comes equipped with a range of tools designed to help developers create interactive visualizations and user interfaces. Some of the popular techniques employed for this purpose include:
 
