@@ -1,39 +1,41 @@
-## Integration with Other Tools and Libraries
+## Integration of VTK with Other Tools and Libraries
 
-### Overview
-* VTK can be integrated with various other tools and libraries for enhanced functionality and ease of use
-* Some popular integrations include:
-  - ParaView
-  - VisIt
-  - ITK
-  - Python Visualization Libraries
+VTK is a versatile library that can be integrated with a wide range of other tools and libraries to further enhance its functionality and provide a more user-friendly interface. Some key integrations include:
+
+1. ParaView
+2. VisIt
+3. ITK
+4. Python Visualization Libraries
 
 ### ParaView
-* ParaView: an open-source, multi-platform data analysis and visualization application built on top of VTK
-* Provides a user-friendly interface for working with VTK pipelines and data
-* Offers additional features, such as parallel processing, animation, and scripting support
-* More information: https://www.paraview.org/
+
+ParaView is an open-source, multi-platform data analysis and visualization application that was built using VTK. ParaView provides a user-friendly interface that simplifies working with VTK pipelines and data. In addition, it offers extra features such as parallel processing, animation, and scripting support.
+
+For more details, visit the [official ParaView website](https://www.paraview.org/).
 
 ### VisIt
-* VisIt: an open-source, interactive, scalable visualization and analysis tool built on VTK
-* Designed for visualizing large, time-varying, and multi-dimensional data
-* Supports a wide variety of data formats and offers advanced visualization techniques
-* More information: https://visit.llnl.gov/
+
+VisIt is another open-source, interactive visualization and analysis tool that leverages VTK. It's particularly designed to handle large, time-varying, and multi-dimensional data. VisIt supports a vast variety of data formats and provides advanced visualization techniques.
+
+For more information, check out the [official VisIt website](https://visit.llnl.gov/).
 
 ### ITK
-* ITK (Insight Segmentation and Registration Toolkit): an open-source, cross-platform library for image analysis
-* Provides a large collection of image processing algorithms and segmentation techniques
-* Can be used in conjunction with VTK for processing and visualizing medical images
-* More information: https://itk.org/
+
+The Insight Segmentation and Registration Toolkit (ITK) is an open-source, cross-platform library dedicated to image analysis. It provides a wide collection of image processing algorithms and segmentation techniques. Coupled with VTK, ITK proves very effective for processing and visualizing medical images.
+
+Learn more on the [official ITK website](https://itk.org/).
 
 ### Python Visualization Libraries
-* VTK can be integrated with various Python visualization libraries, such as Matplotlib and Plotly
-* These libraries can be used for creating 2D plots, interactive visualizations, or web-based applications
-* Example integrations:
-  - vtkplotlib: a library that provides a Matplotlib-like interface for VTK (https://vtkplotlib.readthedocs.io/)
-  - pyvista: a library that simplifies 3D visualization and mesh analysis in Python using VTK (https://docs.pyvista.org/)
 
-## Example: Integrating VTK and Matplotlib
+VTK seamlessly integrates with various Python visualization libraries, including Matplotlib and Plotly. These libraries can be utilized for creating 2D plots, interactive visualizations, and web-based applications. Some popular integrations are:
+
+- **vtkplotlib**: A library that provides a Matplotlib-like interface for VTK. Check it out [here](https://vtkplotlib.readthedocs.io/).
+- **pyvista**: A library that simplifies 3D visualization and mesh analysis in Python using VTK. Visit their [official documentation](https://docs.pyvista.org/) for more.
+
+## Example: Integrating VTK with Matplotlib
+
+Here's an example showing how to integrate VTK with Matplotlib:
+
 ```python
 import vtk
 import numpy as np
@@ -44,20 +46,15 @@ sphere = vtk.vtkSphereSource()
 sphere.SetRadius(1)
 sphere.SetThetaResolution(100)
 sphere.SetPhiResolution(100)
+sphere.Update()
 
 # Extract the points and normals from the sphere
-points = vtk.vtkPoints()
-points.DeepCopy(sphere.GetOutput().GetPoints())
+points = sphere.GetOutput().GetPoints()
 normals = sphere.GetOutput().GetPointData().GetNormals()
 
 # Convert VTK points and normals to NumPy arrays
-num_points = points.GetNumberOfPoints()
-numpy_points = np.zeros((num_points, 3))
-numpy_normals = np.zeros((num_points, 3))
-
-for i in range(num_points):
-    numpy_points[i] = points.GetPoint(i)
-    numpy_normals[i] = normals.GetTuple(i)
+numpy_points = vtk.util.numpy_support.vtk_to_numpy(points.GetData())
+numpy_normals = vtk.util.numpy_support.vtk_to_numpy(normals.GetData())
 
 # Plot the points and normals using Matplotlib
 fig = plt.figure()
