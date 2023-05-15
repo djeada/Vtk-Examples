@@ -1,4 +1,4 @@
-## Performance Optimization and Parallelism in VTK
+## Performance Optimization and Parallelism
 
 In VTK, there are several techniques to optimize performance and leverage parallelism for your visualization applications. Here are some of them:
 
