@@ -1,4 +1,4 @@
-## Developing Custom VTK Filters and Algorithms
+## Developing Custom Filters and Algorithms
 
 - Custom filters can be seamlessly integrated into the VTK pipeline and used alongside built-in filters, offering a wide scope for implementing novel data processing or visualization techniques.
 - To create a custom filter, subclass an appropriate VTK filter base class, like `vtkAlgorithm`, `vtkPolyDataAlgorithm`, or `vtkImageDataAlgorithm`.
