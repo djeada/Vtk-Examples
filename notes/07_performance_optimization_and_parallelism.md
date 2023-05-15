@@ -1,6 +1,6 @@
 ## Performance Optimization and Parallelism
 
-In VTK, there are several techniques to optimize performance and leverage parallelism for your visualization applications. Here are some of them:
+There are several techniques to optimize performance and leverage parallelism for your visualization applications. Here are some of them:
 
 1. Level of Detail
 2. Culling
