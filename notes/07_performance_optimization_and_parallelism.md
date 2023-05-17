@@ -5,7 +5,6 @@ There are several techniques to optimize performance and leverage parallelism fo
 1. Level of Detail
 2. Culling
 3. Parallel Rendering and Processing
-4. Memory Management
 
 ## Level of Detail
 
