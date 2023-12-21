@@ -1,5 +1,25 @@
 """
-A multiblock dataset in VTK is a composite dataset that can store other datasets including other composite datasets. It is used to represent complex data where different regions can be meshed differently. It is also used to group multiple datasets into one.
+A multiblock dataset in VTK is a composite dataset that can store other datasets including other composite datasets. 
+  - It is used to represent complex data where different regions can be meshed differently. 
+  - It is also used to group multiple datasets into one.
+
+Workflow Overview:
+
+1. Geometric Source Creation:
+   - The process begins with the dynamic creation of various geometric shapes such as spheres, cylinders, cones, and cubes. 
+   - Each shape is generated based on specific parameters (like radius, height, and dimensions), illustrating how VTK can be used to create a wide range of 3D objects.
+
+2. Multiblock Dataset Assembly:
+   - Once individual geometric shapes are created, they are assembled into a vtkMultiBlockDataSet. 
+   - This dataset serves as a container that can hold multiple disparate data sources, showcasing its capability to manage complex collections of 3D objects.
+
+3. Conversion to PolyData:
+   - The vtkMultiBlockDataSet is then converted into vtkPolyData, a versatile format in VTK used for rendering and visualizing geometric data.
+   - This step is crucial as it transforms the multiblock dataset into a format that can be easily rendered by VTK's visualization pipeline.
+
+4. Visualization Pipeline:
+   - Finally, the polydata is fed into a pre-defined visualization pipeline, which is responsible for rendering the 3D objects on the screen.
+   - This pipeline not only displays the assembled 3D shapes but also allows for interactive exploration of the scene, such as zooming and rotating the objects.
 """
 
 import vtk
