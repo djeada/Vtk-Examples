@@ -43,14 +43,12 @@
                |--- vtkNonOverlappingAMR
 ```
 
-### Overview of VTK Data Structures
-
-#### vtkImageData
+### vtkImageData
 - **Description**: Represents a regular grid with fixed topology and uniform spacing between points.
 - **Applications**: Ideal for volumetric data like images or 3D scalar fields.
 - **Examples**: CT and MRI scans, where vtkImageData stores pixel values at each grid point for 3D visualization.
 
-#### vtkRectilinearGrid
+### vtkRectilinearGrid
 - **Description**: A regular grid with fixed topology but non-uniform spacing between points.
 - **Applications**: Suitable for data with varying resolution, like in climate or terrain elevation data.
 - **Examples**: Climate models with varying altitude resolution, or terrain data with resolution changing with slope.
@@ -60,23 +58,23 @@
 - **Applications**: Ideal for surface meshes and 3D models.
 - **Examples**: Models of 3D objects (e.g., vehicles, buildings), terrain surfaces (mountains, valleys).
 
-#### vtkStructuredGrid
+### vtkStructuredGrid
 - **Description**: Curvilinear grid maintaining fixed topology.
 - **Applications**: Best for data on curvilinear coordinate systems.
 - **Examples**: Fluid flow simulations around objects, finite volume method simulations with a fixed cell division.
 
-#### vtkUnstructuredGrid
+### vtkUnstructuredGrid
 - **Description**: An irregular grid with flexible topology, capable of containing various geometric primitives.
 - **Applications**: Suitable for complex geometries and adaptive meshes.
 - **Examples**: Finite element method simulations with complex, dynamic domains, models of intricate 3D geometries (human brain, aircraft wings).
 
-#### Structured vs Unstructured Grids
+### Structured vs Unstructured Grids
 - **Structured Grids**: Regular grids with fixed topology, easier to work with, more memory-efficient.
   - **Examples**: vtkImageData, vtkRectilinearGrid, vtkStructuredGrid.
 - **Unstructured Grids**: Irregular grids with flexible topology, more versatile but less efficient.
   - **Example**: vtkUnstructuredGrid.
 
-#### Multiblock Dataset
+### Multiblock Dataset
 - **Description**: A collection of multiple datasets, organized hierarchically.
 - **Applications**: Handles complex, hierarchical data structures effectively.
 - **Examples**: Multi-domain simulations (each domain as a separate dataset), multi-resolution data (datasets at different detail levels).
