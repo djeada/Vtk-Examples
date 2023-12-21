@@ -5,6 +5,31 @@ in VTK, you can store physical properties such as pressure, temperature, or any 
     Point Data: These are data attributes that are associated with the points of a dataset. For example, in a computational fluid dynamics (CFD) simulation, you might store the velocity vector at each point in the mesh as point data.
 
     Cell Data: These are data attributes that are associated with the cells of a dataset. For example, you might store the pressure or temperature within each cell of the mesh as cell data.
+
+Workflow Overview:
+
+1. Point Creation (create_points):
+   - Initializes a set of points in 3D space, laying the groundwork for constructing geometric shapes.
+   - In this case, points defining the corners of a quad are created.
+
+2. Quad Creation (create_quad):
+   - Utilizes the previously defined points to create a quad cell, a basic polygonal element.
+   - Demonstrates how cells are constructed from points to form geometric shapes.
+
+3. Scalar Field Attachment (attach_scalar_field):
+   - Attaches a scalar field to the points, assigning a random scalar value to each point.
+   - This highlights how to associate data with geometric entities in VTK.
+
+4. Vector Field Attachment (attach_vector_field):
+   - Similar to the scalar field, a random vector field is attached to the cells of the polydata.
+   - Shows the capability of VTK to handle complex data associations, including vectorial data.
+
+5. Polydata Assembly (create_polydata):
+   - Integrates the points and the quad cell into a vtkPolyData object, a versatile format for representing and manipulating geometric data in VTK.
+
+6. Visualization Process:
+   - The vtkPolyDataMapper maps the polydata to graphical primitives for rendering.
+   - A visualization pipeline, provided by the 'VisualisationPipeline' class, is employed to render the polydata, showcasing the scalar and vector fields attached to it.
 """
 import vtk
 import numpy as np
