@@ -43,60 +43,55 @@
                |--- vtkNonOverlappingAMR
 ```
 
+### Overview of VTK Data Structures
 
-### vtkImageData
-* Regular grid with fixed topology and uniform spacing between points
-* Useful for representing volumetric data, such as images or 3D scalar fields
-* Examples: CT scans, MRI scans. In these applications, vtkImageData is used to store the pixel values at each point in the grid, which can then be visualized as a 3D image.
+#### vtkImageData
+- **Description**: Represents a regular grid with fixed topology and uniform spacing between points.
+- **Applications**: Ideal for volumetric data like images or 3D scalar fields.
+- **Examples**: CT and MRI scans, where vtkImageData stores pixel values at each grid point for 3D visualization.
 
-### vtkRectilinearGrid
-* Regular grid with fixed topology but non-uniform spacing between points
-* Useful for representing data with varying resolution along different axes
-* Examples: climate data (where resolution may vary with altitude), terrain elevation data (where resolution may vary with slope).
+#### vtkRectilinearGrid
+- **Description**: A regular grid with fixed topology but non-uniform spacing between points.
+- **Applications**: Suitable for data with varying resolution, like in climate or terrain elevation data.
+- **Examples**: Climate models with varying altitude resolution, or terrain data with resolution changing with slope.
 
-### vtkStructuredGrid
-* Curvilinear grid with fixed topology
-* Useful for representing data on a curvilinear coordinate system
-* Examples: fluid flow around objects (where the data is naturally curvilinear), finite volume method simulations (where the simulation domain is divided into a fixed number of cells).
+#### vtkPolyData
+- **Description**: Represents a dataset comprising points, vertices, lines, polygons, and triangle strips.
+- **Applications**: Ideal for surface meshes and 3D models.
+- **Examples**: Models of 3D objects (e.g., vehicles, buildings), terrain surfaces (mountains, valleys).
 
-### vtkPolydata
-* Represents a dataset of points, vertices, lines, polygons, and triangle strips
-* Useful for representing surface meshes and 3D models
-* Examples: 3D object models (such as a car or a building), terrain surfaces (such as a mountain or a valley).
+#### vtkStructuredGrid
+- **Description**: Curvilinear grid maintaining fixed topology.
+- **Applications**: Best for data on curvilinear coordinate systems.
+- **Examples**: Fluid flow simulations around objects, finite volume method simulations with a fixed cell division.
 
-### vtkUnstructuredGrid
-* Irregular grid with flexible topology
-* Can contain any kind of geometric primitive (basic shapes like points, lines, and polygons) and mix different structures
-* Useful for representing complex geometries and adaptive meshes (which can change based on the data)
-* Examples: finite element method simulations (where the simulation domain is complex and can change over time), complex 3D geometries (such as a human brain or an aircraft wing).
+#### vtkUnstructuredGrid
+- **Description**: An irregular grid with flexible topology, capable of containing various geometric primitives.
+- **Applications**: Suitable for complex geometries and adaptive meshes.
+- **Examples**: Finite element method simulations with complex, dynamic domains, models of intricate 3D geometries (human brain, aircraft wings).
 
-### Structured vs Unstructured Grid
-* Structured grids: regular grid with fixed topology
-  - Easier to work with and more memory-efficient
-  - Examples: vtkImageData, vtkRectilinearGrid, vtkStructuredGrid
-* Unstructured grids: irregular grid with flexible topology
-  - More versatile, but harder to work with and less memory-efficient
-  - Example: vtkUnstructuredGrid
+#### Structured vs Unstructured Grids
+- **Structured Grids**: Regular grids with fixed topology, easier to work with, more memory-efficient.
+  - **Examples**: vtkImageData, vtkRectilinearGrid, vtkStructuredGrid.
+- **Unstructured Grids**: Irregular grids with flexible topology, more versatile but less efficient.
+  - **Example**: vtkUnstructuredGrid.
 
-### Multiblock Dataset
-* A dataset containing multiple individual datasets
-* Useful for handling complex, hierarchical data structures
-* Examples: multi-domain simulations (where each domain is represented by a different dataset), multi-resolution data (where different datasets represent different levels of detail).
+#### Multiblock Dataset
+- **Description**: A collection of multiple datasets, organized hierarchically.
+- **Applications**: Handles complex, hierarchical data structures effectively.
+- **Examples**: Multi-domain simulations (each domain as a separate dataset), multi-resolution data (datasets at different detail levels).
 
-A vtkMultiBlockDataSet is a collection of datasets (blocks) organized in a hierarchical manner. Each block in a vtkMultiBlockDataSet can be an instance of vtkDataSet (or any of its subclasses) or another composite dataset. This allows for a very flexible organization of datasets. For example, you could have a vtkMultiBlockDataSet where one block is a vtkPolyData, another block is a vtkStructuredGrid, and yet another block is another vtkMultiBlockDataSet.
-
-This structure is particularly useful in large simulations where data may be divided into blocks. Each block could represent a different region of the simulation domain or different components of a complex system. The use of composite datasets allows VTK to handle such complex, hierarchical, multi-part datasets in a consistent way.
+A `vtkMultiBlockDataSet` organizes datasets (or blocks) hierarchically. Each block can be a vtkDataSet subclass or another composite dataset, allowing versatile dataset organization. For instance, a vtkMultiBlockDataSet might contain blocks like vtkPolyData, vtkStructuredGrid, and even another vtkMultiBlockDataSet. This structure is invaluable in large-scale simulations where data is segmented into blocks representing different simulation areas or system components, enabling VTK to manage complex, multi-part datasets coherently.
 
 ### Choosing the Right Data Structure
 * Consider the geometry, topology, and resolution of your data
 * The choice of data structure affects memory usage, processing time, and ease of use
 * Some data structures can be converted to others, but not always without loss of information
 
-| VTK Data Object | Purpose | Complexity | Flexibility | Efficiency |
-| --- | --- | --- | --- | --- |
-| PolyData | Represents polygonal data. Commonly used to represent 3D surfaces. | Moderate. Consists of polygons and polylines, can be easily manipulated. | High. Can represent complex and arbitrary shapes. | High. Stores only the data necessary to represent the shape. |
-| Structured Grids | Represents a 3D grid of points where the connectivity is implicitly defined. | Low. The data structure is simple and regular, easy to navigate. | Low. Limited to regular grid shapes. | High for regular data, but not efficient for irregular data. |
-| Unstructured Grids | Represents an arbitrary collection of cells. Used for complex, irregular shapes that cannot be represented with simpler data types. | High. Requires explicit definition of the connectivity between points. | High. Can represent any shape, regular or irregular. | Low to Moderate. Storage and computational efficiency depend on the complexity of the shapes. |
-| Structured Points (ImageData) | Represents a regularly spaced 3D grid of points. Connectivity is implicitly defined. | Low. The data structure is simple, regular and easy to navigate. | Low. Limited to regular grid shapes. | Very High. Extremely efficient for regular data due to implicit connectivity. |
-| Rectilinear Grids | Represents a 3D grid of points where spacing can vary along each axis but connectivity is implicitly defined. | Moderate. Allows for variable spacing but maintains a regular structure. | Moderate. More flexible than regular grids but less flexible than unstructured grids. | High. More efficient than unstructured grids for data that fits its structure. |
-
+| VTK Data Object       | Purpose and Use Cases                                                                 | Complexity                                                                                   | Flexibility                                                                                           | Efficiency                                                                                                  |
+|-----------------------|---------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| PolyData              | Ideal for representing 3D surfaces and complex shapes like sculptures or terrain models. | Moderate: Comprised of polygons and polylines, allowing for manipulation and detailing.      | High: Excellent for complex, arbitrary shapes including intricate surface details.                   | High: Efficiently stores data specific to the shape, omitting unnecessary information.                      |
+| Structured Grids      | Suitable for 3D grid-based data like volumetric images or regular spatial data.         | Low: Simple, regular structure with implicit connectivity, making it straightforward to handle. | Low: Confined to regular grid shapes, limiting its application to uniformly structured data.          | High for regular data: Efficiently handles uniformly spaced data but less suitable for irregular datasets. |
+| Unstructured Grids    | Used for complex, irregular shapes like biological structures or geological formations. | High: Requires detailed definition of point connectivity, accommodating intricate geometries.   | High: Extremely versatile, capable of representing any shape, be it regular or irregular.             | Low to Moderate: Efficiency varies with the shape's complexity; generally less efficient than structured grids. |
+| Structured Points (ImageData) | Perfect for regularly spaced data such as medical imaging (CT, MRI scans) or 3D textures. | Low: Simple and regular, with implicit connectivity for easy navigation.                       | Low: Restricted to regular grid shapes, ideal for uniformly spaced data.                             | Very High: Optimal for regular data thanks to implicit connectivity and uniform structure.                   |
+| Rectilinear Grids     | Appropriate for data with variable resolution, like atmospheric or oceanic datasets.      | Moderate: Allows variable spacing while maintaining a regular grid structure.                  | Moderate: More adaptable than regular grids but less so than unstructured grids.                      | High: More efficient than unstructured grids for data that aligns with its variable but regular structure.  |
