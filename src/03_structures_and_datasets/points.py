@@ -9,49 +9,68 @@ import numpy as np
 
 from src.simple_pipeline import VisualisationPipeline
 
-# Create a vtkPoints object.
-points = vtk.vtkPoints()
+def create_vtk_points():
+    """
+    Create a vtkPoints object and insert some points.
+    """
+    points = vtk.vtkPoints()
+    points.InsertNextPoint(0.0, 0.0, 0.0)
+    points.InsertNextPoint(1.0, 0.0, 0.0)
+    points.InsertNextPoint(0.0, 1.0, 0.0)
+    return points
 
-# Insert some points.
-points.InsertNextPoint(0.0, 0.0, 0.0)
-points.InsertNextPoint(1.0, 0.0, 0.0)
-points.InsertNextPoint(0.0, 1.0, 0.0)
+def print_points_info(points):
+    """
+    Print information about the vtkPoints object.
+    """
+    print("Number of points:", points.GetNumberOfPoints())
+    for i in range(points.GetNumberOfPoints()):
+        point = points.GetPoint(i)
+        print(f"Point {i}: {point}")
 
-# Print the number of points.
-print("Number of points:", points.GetNumberOfPoints())
+def vtk_points_to_numpy(points):
+    """
+    Convert vtkPoints to a NumPy array.
+    """
+    return vtk_np.vtk_to_numpy(points.GetData())
 
-# Retrieve the points.
-for i in range(points.GetNumberOfPoints()):
-    point = points.GetPoint(i)
-    print(f"Point {i}: {point}")
+def numpy_to_vtk_points(numpy_array):
+    """
+    Convert a NumPy array to vtkPoints.
+    """
+    vtk_points = vtk.vtkPoints()
+    vtk_points.SetData(vtk_np.numpy_to_vtk(numpy_array))
+    return vtk_points
 
-# Convert the vtkPoints object to a numpy array.
-numpy_points = vtk_np.vtk_to_numpy(points.GetData())
-print("Numpy array:\n", numpy_points)
+def create_and_visualize_polydata(points):
+    """
+    Create polydata from vtkPoints and visualize them.
+    """
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(points)
 
-# Convert a numpy array to vtkPoints.
-new_numpy_points = np.array([[0.0, 0.0, 1.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]])
-new_vtk_points = vtk.vtkPoints()
-new_vtk_points.SetData(vtk_np.numpy_to_vtk(new_numpy_points))
-print("New vtkPoints:")
-for i in range(new_vtk_points.GetNumberOfPoints()):
-    point = new_vtk_points.GetPoint(i)
-    print(f"Point {i}: {point}")
+    glyphFilter = vtk.vtkVertexGlyphFilter()
+    glyphFilter.SetInputData(polydata)
+    glyphFilter.Update()
 
-# Create polydata to store everything
-polydata = vtk.vtkPolyData()
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(glyphFilter.GetOutputPort())
 
-# Add the points to the dataset
-polydata.SetPoints(points)
+    pipeline = VisualisationPipeline(mappers=[mapper], point_size=30)
+    pipeline.run()
 
-# Glyph the points to make them visible
-glyphFilter = vtk.vtkVertexGlyphFilter()
-glyphFilter.SetInputData(polydata)
-glyphFilter.Update()
+def main():
+    vtk_points = create_vtk_points()
+    print_points_info(vtk_points)
 
-# Create a mapper and actor
-mapper = vtk.vtkPolyDataMapper()
-mapper.SetInputConnection(glyphFilter.GetOutputPort())
+    numpy_points = vtk_points_to_numpy(vtk_points)
+    print("Numpy array:\n", numpy_points)
 
-pipeline = VisualisationPipeline(mappers=[mapper], point_size=30)
-pipeline.run()
+    new_numpy_points = np.array([[0.0, 0.0, 1.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]])
+    new_vtk_points = numpy_to_vtk_points(new_numpy_points)
+    print_points_info(new_vtk_points)
+
+    create_and_visualize_polydata(vtk_points)
+
+if __name__ == "__main__":
+    main()
