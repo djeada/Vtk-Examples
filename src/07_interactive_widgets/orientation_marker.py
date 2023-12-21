@@ -1,62 +1,83 @@
 import vtk
+from vtkmodules.vtkRenderingCore import vtkRenderer, vtkRenderWindow, vtkRenderWindowInteractor
+from vtkmodules.vtkFiltersSources import vtkPlaneSource
+from vtkmodules.vtkRenderingCore import vtkActor, vtkPolyDataMapper
+from vtkmodules.vtkInteractionWidgets import vtkBoxWidget
+from vtkmodules.vtkCommonTransforms import vtkTransform
 
-# Create two vtkPlaneSource
-plane1 = vtk.vtkPlaneSource()
-plane1.SetXResolution(10)
-plane1.SetYResolution(10)
+def create_plane_actor(color: tuple) -> vtk.vtkActor:
+    """
+    Create a plane actor with specified color.
 
-plane2 = vtk.vtkPlaneSource()
-plane2.SetXResolution(10)
-plane2.SetYResolution(10)
+    Args:
+        color (tuple): A tuple of three float values representing RGB color.
 
-# Define two vtkPolyDataMappers and vtkActor
-mapper1 = vtk.vtkPolyDataMapper()
-mapper1.SetInputConnection(plane1.GetOutputPort())
-actor1 = vtk.vtkActor()
-actor1.SetMapper(mapper1)
-actor1.GetProperty().SetColor(1, 0, 0)  # Set the color of plane1 to red
+    Returns:
+        vtk.vtkActor: An actor representing a colored plane.
+    """
+    plane = vtkPlaneSource()
+    plane.SetXResolution(10)
+    plane.SetYResolution(10)
 
-mapper2 = vtk.vtkPolyDataMapper()
-mapper2.SetInputConnection(plane2.GetOutputPort())
-actor2 = vtk.vtkActor()
-actor2.SetMapper(mapper2)
-actor2.GetProperty().SetColor(0, 0, 1)  # Set the color of plane2 to blue
+    mapper = vtkPolyDataMapper()
+    mapper.SetInputConnection(plane.GetOutputPort())
 
-# Define a vtkRenderer and add the two actors
-renderer = vtk.vtkRenderer()
-renderer.AddActor(actor1)
-renderer.AddActor(actor2)
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    actor.GetProperty().SetColor(color)
 
-# Create a render window
-render_window = vtk.vtkRenderWindow()
-render_window.AddRenderer(renderer)
+    return actor
 
-# Create a render window interactor
-render_window_interactor = vtk.vtkRenderWindowInteractor()
-render_window_interactor.SetRenderWindow(render_window)
-
-# The callback function to modify the plane when the widget is manipulated
 def plane_widget_callback(obj, event):
-    transform = vtk.vtkTransform()
+    """
+    Callback function to modify the plane when the widget is manipulated.
+
+    Args:
+        obj: The object associated with the callback.
+        event: The event triggering the callback.
+    """
+    transform = vtkTransform()
     obj.GetTransform(transform)
     matrix = transform.GetMatrix()
     obj.GetProp3D().SetUserMatrix(matrix)
 
+def setup_interaction(plane_actor: vtk.vtkActor, render_window_interactor: vtk.vtkRenderWindowInteractor):
+    """
+    Set up interaction widget for a plane actor.
 
-# Add the custom box widget for the two planes
-plane_widget1 = vtk.vtkBoxWidget()
-plane_widget1.SetInteractor(render_window_interactor)
-plane_widget1.SetProp3D(actor1)
-plane_widget1.On()
-plane_widget1.AddObserver("InteractionEvent", plane_widget_callback)
+    Args:
+        plane_actor (vtk.vtkActor): The plane actor to interact with.
+        render_window_interactor (vtk.vtkRenderWindowInteractor): The render window interactor.
+    """
+    plane_widget = vtkBoxWidget()
+    plane_widget.SetInteractor(render_window_interactor)
+    plane_widget.SetProp3D(plane_actor)
+    plane_widget.On()
+    plane_widget.AddObserver("InteractionEvent", plane_widget_callback)
 
-plane_widget2 = vtk.vtkBoxWidget()
-plane_widget2.SetInteractor(render_window_interactor)
-plane_widget2.SetProp3D(actor2)
-plane_widget2.On()
-plane_widget2.AddObserver("InteractionEvent", plane_widget_callback)
+# Main execution
+if __name__ == "__main__":
+    # Create two plane actors with different colors
+    red_plane_actor = create_plane_actor((1, 0, 0))
+    blue_plane_actor = create_plane_actor((0, 0, 1))
 
-# Initialize and start the interactor
-render_window_interactor.Initialize()
-render_window.Render()
-render_window_interactor.Start()
+    # Define a vtkRenderer and add the two actors
+    renderer = vtkRenderer()
+    renderer.AddActor(red_plane_actor)
+    renderer.AddActor(blue_plane_actor)
+
+    # Create and set up render window and interactor
+    render_window = vtkRenderWindow()
+    render_window.AddRenderer(renderer)
+
+    render_window_interactor = vtkRenderWindowInteractor()
+    render_window_interactor.SetRenderWindow(render_window)
+
+    # Set up interaction for both planes
+    setup_interaction(red_plane_actor, render_window_interactor)
+    setup_interaction(blue_plane_actor, render_window_interactor)
+
+    # Initialize and start the interactor
+    render_window_interactor.Initialize()
+    render_window.Render()
+    render_window_interactor.Start()
