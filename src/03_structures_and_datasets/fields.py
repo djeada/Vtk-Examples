@@ -11,50 +11,79 @@ import numpy as np
 
 from src.simple_pipeline import VisualisationPipeline
 
-# Create the points
-points = vtk.vtkPoints()
-points.InsertNextPoint(0, 0, 0)  # Point 0
-points.InsertNextPoint(1, 0, 0)  # Point 1
-points.InsertNextPoint(0, 1, 0)  # Point 2
-points.InsertNextPoint(1, 1, 0)  # Point 3
+def create_points():
+    """
+    Create a set of points for the polydata.
+    """
+    points = vtk.vtkPoints()
+    points.InsertNextPoint(0, 0, 0)
+    points.InsertNextPoint(1, 0, 0)
+    points.InsertNextPoint(0, 1, 0)
+    points.InsertNextPoint(1, 1, 0)
+    return points
 
-# Create a quad cell
-quad = vtk.vtkQuad()
-quad.GetPointIds().SetId(0, 0)  # the first point of the quad is point 0
-quad.GetPointIds().SetId(1, 1)  # the second point is point 1
-quad.GetPointIds().SetId(2, 3)  # the third point is point 3
-quad.GetPointIds().SetId(3, 2)  # the fourth point is point 2
+def create_quad(points):
+    """
+    Create a quad cell using the provided points.
+    """
+    quad = vtk.vtkQuad()
+    # Assign points to the quad corners
+    quad.GetPointIds().SetId(0, 0)
+    quad.GetPointIds().SetId(1, 1)
+    quad.GetPointIds().SetId(2, 3)
+    quad.GetPointIds().SetId(3, 2)
+    return quad
 
-# Create a cell array and add the cells to it
-cells = vtk.vtkCellArray()
-cells.InsertNextCell(quad)
+def attach_scalar_field(points):
+    """
+    Attach a random scalar field to the points.
+    """
+    scalars = vtk.vtkFloatArray()
+    scalars.SetName("Scalars")
+    for i in range(points.GetNumberOfPoints()):
+        scalars.InsertNextValue(np.random.rand())
+    return scalars
 
-# Create polydata to hold the points and cells
-polydata = vtk.vtkPolyData()
-polydata.SetPoints(points)
-polydata.SetPolys(cells)
+def attach_vector_field(cells):
+    """
+    Attach a random vector field to the cells.
+    """
+    vectors = vtk.vtkFloatArray()
+    vectors.SetNumberOfComponents(3)
+    vectors.SetName("Vectors")
+    for i in range(cells.GetNumberOfCells()):
+        vectors.InsertNextTuple3(np.random.rand(), np.random.rand(), np.random.rand())
+    return vectors
 
-# Attach a scalar field to the points
-scalars = vtk.vtkFloatArray()
-scalars.SetName("Scalars")  # This name will be used later for coloring
-for i in range(points.GetNumberOfPoints()):
-    scalars.InsertNextValue(np.random.rand())
-polydata.GetPointData().SetScalars(scalars)
+def create_polydata(points, quad):
+    """
+    Create polydata to hold the points and cells.
+    """
+    cells = vtk.vtkCellArray()
+    cells.InsertNextCell(quad)
 
-# Attach a vector field to the cells
-vectors = vtk.vtkFloatArray()
-vectors.SetNumberOfComponents(3)  # We have 3D vectors
-vectors.SetName("Vectors")  # This name will be used later for coloring
-for i in range(cells.GetNumberOfCells()):
-    vectors.InsertNextTuple3(np.random.rand(), np.random.rand(), np.random.rand())
-polydata.GetCellData().SetVectors(vectors)
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(points)
+    polydata.SetPolys(cells)
+    return polydata, cells
 
-# Visualizing the fields
-mapper = vtk.vtkPolyDataMapper()
-mapper.SetInputData(polydata)
-mapper.SetScalarModeToUsePointData()  # Color by the scalar data
-mapper.SetColorModeToMapScalars()  # Color by the scalar data
-mapper.SelectColorArray("Scalars")  # Color by the scalar data
+def main():
+    points = create_points()
+    quad = create_quad(points)
+    polydata, cells = create_polydata(points, quad)
 
-pipeline = VisualisationPipeline(mappers=[mapper])
-pipeline.run()
+    polydata.GetPointData().SetScalars(attach_scalar_field(points))
+    polydata.GetCellData().SetVectors(attach_vector_field(cells))
+
+    # Visualizing the fields
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputData(polydata)
+    mapper.SetScalarModeToUsePointData()
+    mapper.SetColorModeToMapScalars()
+    mapper.SelectColorArray("Scalars")
+
+    pipeline = VisualisationPipeline(mappers=[mapper])
+    pipeline.run()
+
+if __name__ == "__main__":
+    main()
