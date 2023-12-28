@@ -1,84 +1,95 @@
+"""
+This module demonstrates the visualization of a dipole field in a three-dimensional space using the Visualization Toolkit (VTK). A dipole field is a vector field that is typically created by two equal but opposite charges separated by a distance.
+
+Workflow:
+1. Generate a structured grid of points in a 3D space.
+2. Calculate the dipole field vectors at each point in the grid.
+3. Combine these points and vectors into a vtkStructuredGrid object.
+4. Create seed points for streamline initiation.
+5. Generate streamlines representing the flow lines of the dipole field using vtkStreamTracer.
+6. Visualize these streamlines using vtkPolyDataMapper, vtkActor, and vtkRenderer.
+
+Mathematics:
+- The dipole field at a point in space is calculated using the formula for the electric field due to point charges. The field due to each charge is \vec{E} = \frac{q \vec{r}}{4 \pi \epsilon_0 r^3}, where \vec{r} is the position vector relative to the charge, q is the charge magnitude, and \epsilon_0 is the vacuum permittivity.
+- The net field at any point is the vector sum of the fields due to both charges.
+- Streamlines are generated using vtkStreamTracer, which integrates the vector field to trace the paths of particles in the flow.
+"""
 import numpy as np
 import vtk
 
-# Define the number of seed points
-NUMBER_OF_SEED_POINTS = 30
 
-# Create a grid of points.
-points = vtk.vtkPoints()
-for i in np.linspace(-10, 10, 21):
-    for j in np.linspace(-10, 10, 21):
-        for k in np.linspace(-10, 10, 21):
-            points.InsertNextPoint(i, j, k)
+class DipoleFieldVisualization:
+    def __init__(self, num_seed_points=30):
+        self.num_seed_points = num_seed_points
+        self.grid = self.create_structured_grid()
+        self.seeds = self.create_seeds()
+        self.streamer = self.create_streamlines()
 
-# Create vectors at each point to represent a dipole field.
-vectors = vtk.vtkDoubleArray()
-vectors.SetNumberOfComponents(3)
-vectors.SetNumberOfTuples(points.GetNumberOfPoints())
-for i in range(points.GetNumberOfPoints()):
-    x, y, z = points.GetPoint(i)
-    r1 = (
-        np.sqrt((x - 1) ** 2 + y ** 2 + z ** 2) + 1e-2
-    )  # Add a small number to avoid division by zero.
-    r2 = (
-        np.sqrt((x + 1) ** 2 + y ** 2 + z ** 2) + 1e-2
-    )  # Add a small number to avoid division by zero.
-    vectors.SetTuple3(
-        i,
-        (x - 1) / r1 ** 3 - (x + 1) / r2 ** 3,
-        y / r1 ** 3 - y / r2 ** 3,
-        z / r1 ** 3 - z / r2 ** 3,
-    )  # Dipole field.
+    def create_structured_grid(self):
+        points, vectors = self.generate_points_and_vectors()
+        grid = vtk.vtkStructuredGrid()
+        grid.SetDimensions(21, 21, 21)
+        grid.SetPoints(points)
+        grid.GetPointData().SetVectors(vectors)
+        return grid
 
-# Combine the points and vectors into a structured grid.
-grid = vtk.vtkStructuredGrid()
-grid.SetDimensions(21, 21, 21)
-grid.SetPoints(points)
-grid.GetPointData().SetVectors(vectors)
+    def generate_points_and_vectors(self):
+        points = vtk.vtkPoints()
+        vectors = vtk.vtkDoubleArray()
+        vectors.SetNumberOfComponents(3)
 
-# Seed the streamlines at the points along the x-axis.
-seeds = vtk.vtkPointSource()
-seeds.SetCenter(0, 0, 0)
-seeds.SetRadius(10)  # The radius of the spherical shell where the seeds are placed.
-seeds.SetNumberOfPoints(NUMBER_OF_SEED_POINTS)
+        for i in np.linspace(-10, 10, 21):
+            for j in np.linspace(-10, 10, 21):
+                for k in np.linspace(-10, 10, 21):
+                    points.InsertNextPoint(i, j, k)
+                    x, y, z = i, j, k
+                    r1 = np.sqrt((x - 1) ** 2 + y ** 2 + z ** 2) + 1e-2
+                    r2 = np.sqrt((x + 1) ** 2 + y ** 2 + z ** 2) + 1e-2
+                    vectors.InsertNextTuple3(
+                        (x - 1) / r1 ** 3 - (x + 1) / r2 ** 3,
+                        y / r1 ** 3 - y / r2 ** 3,
+                        z / r1 ** 3 - z / r2 ** 3,
+                    )
 
-# Create the streamlines.
-streamer = vtk.vtkStreamTracer()
-streamer.SetInputData(grid)
-streamer.SetSourceConnection(seeds.GetOutputPort())
-streamer.SetMaximumPropagation(500)  # Increase this to let the streamlines go further.
-streamer.SetIntegrationStepUnit(vtk.vtkStreamTracer.LENGTH_UNIT)
-streamer.SetInitialIntegrationStep(0.1)  # Increased step size
-streamer.SetIntegrationDirectionToBoth()
-streamer.SetComputeVorticity(False)
+        return points, vectors
 
-# Visualize the streamlines.
-mapper = vtk.vtkPolyDataMapper()
-mapper.SetInputConnection(streamer.GetOutputPort())
-actor = vtk.vtkActor()
-actor.SetMapper(mapper)
+    def create_seeds(self):
+        seeds = vtk.vtkPointSource()
+        seeds.SetCenter(0, 0, 0)
+        seeds.SetRadius(10)
+        seeds.SetNumberOfPoints(self.num_seed_points)
+        return seeds
 
-renderer = vtk.vtkRenderer()
-renderer.AddActor(actor)
-renderer.SetBackground(0, 0, 0)
+    def create_streamlines(self):
+        streamer = vtk.vtkStreamTracer()
+        streamer.SetInputData(self.grid)
+        streamer.SetSourceConnection(self.seeds.GetOutputPort())
+        streamer.SetMaximumPropagation(500)
+        streamer.SetIntegrationStepUnit(vtk.vtkStreamTracer.LENGTH_UNIT)
+        streamer.SetInitialIntegrationStep(0.1)
+        streamer.SetIntegrationDirectionToBoth()
+        streamer.SetComputeVorticity(False)
+        return streamer
 
-# Create a glyph source (a sphere)
-glyph_source = vtk.vtkSphereSource()
-glyph_source.SetRadius(0.5)
+    def visualize(self):
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputConnection(self.streamer.GetOutputPort())
+        actor = vtk.vtkActor()
+        actor.SetMapper(mapper)
 
-# Define the points where the sources are located
-source_points = vtk.vtkPoints()
-source_points.InsertNextPoint(-5, 0, 0)  # location of the first source
-source_points.InsertNextPoint(5, 0, 0)  # location of the second source
+        renderer = vtk.vtkRenderer()
+        renderer.AddActor(actor)
+        renderer.SetBackground(0, 0, 0)
 
-# Create a polydata object
-source_polydata = vtk.vtkPolyData()
-source_polydata.SetPoints(source_points)
+        render_window = vtk.vtkRenderWindow()
+        render_window.AddRenderer(renderer)
 
-render_window = vtk.vtkRenderWindow()
-render_window.AddRenderer(renderer)
+        interactor = vtk.vtkRenderWindowInteractor()
+        interactor.SetRenderWindow(render_window)
+        interactor.Initialize()
+        interactor.Start()
 
-interactor = vtk.vtkRenderWindowInteractor()
-interactor.SetRenderWindow(render_window)
-interactor.Initialize()
-interactor.Start()
+
+if __name__ == "__main__":
+    visualization = DipoleFieldVisualization()
+    visualization.visualize()

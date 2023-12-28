@@ -1,9 +1,13 @@
+from typing import List, Tuple
+
 import vtk
 
-from src.simple_pipeline import VisualisationPipeline
+from src.common.simple_pipeline import VisualisationPipeline
 
 
-def create_triangle_mapper(points):
+def create_triangle_mapper(
+    points: List[Tuple[float, float, float]]
+) -> vtk.vtkPolyDataMapper:
     triangle = vtk.vtkTriangle()
     triangle.GetPointIds().SetId(0, 0)
     triangle.GetPointIds().SetId(1, 1)
@@ -28,8 +32,12 @@ def create_triangle_mapper(points):
 
 if __name__ == "__main__":
     # Create triangles with different vertex positions
-    triangle_mapper1 = create_triangle_mapper([(0, 0, 0), (1, 0, 0), (0.5, 1, 0)])
-    triangle_mapper2 = create_triangle_mapper([(3, 0, 0), (4, 0, 0), (3.5, 1, 0)])
+    triangle_mapper1 = create_triangle_mapper(
+        [(0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.5, 1.0, 0.0)]
+    )
+    triangle_mapper2 = create_triangle_mapper(
+        [(3.0, 0.0, 0.0), (4.0, 0.0, 0.0), (3.5, 1.0, 0.0)]
+    )
 
     # Display the triangles
     pipeline = VisualisationPipeline(mappers=[triangle_mapper1, triangle_mapper2])

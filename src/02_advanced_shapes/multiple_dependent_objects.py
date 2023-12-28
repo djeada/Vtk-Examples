@@ -1,7 +1,7 @@
 import vtk
 
 
-def create_cube_mapper(center, length):
+def create_cube_mapper(center: tuple, length: float) -> vtk.vtkPolyDataMapper:
     cube_source = vtk.vtkCubeSource()
     cube_source.SetCenter(center)
     cube_source.SetXLength(length)
@@ -14,7 +14,9 @@ def create_cube_mapper(center, length):
     return cube_mapper
 
 
-def create_cone_mapper(center, height, radius, resolution=30):
+def create_cone_mapper(
+    center: tuple, height: float, radius: float, resolution: int = 30
+) -> vtk.vtkPolyDataMapper:
     cone_source = vtk.vtkConeSource()
     cone_source.SetCenter(center)
     cone_source.SetHeight(height)
@@ -28,7 +30,7 @@ def create_cone_mapper(center, height, radius, resolution=30):
 
 
 if __name__ == "__main__":
-    cube_mapper = create_cube_mapper(center=(0, 0, 0), length=1)
+    cube_mapper = create_cube_mapper(center=(0, 0, 0), length=1.0)
     cone_mapper = create_cone_mapper(center=(0, 1.5, 0), height=1.5, radius=0.5)
 
     cube_actor = vtk.vtkActor()

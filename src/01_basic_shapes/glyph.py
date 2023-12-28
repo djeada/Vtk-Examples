@@ -1,6 +1,6 @@
 import vtk
 
-from src.simple_pipeline import VisualisationPipeline
+from src.common.simple_pipeline import VisualisationPipeline
 
 
 def create_arrow_glyphs(vector_field):

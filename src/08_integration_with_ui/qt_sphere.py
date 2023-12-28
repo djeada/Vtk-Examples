@@ -1,8 +1,9 @@
 import sys
 
-import vtk
-from PyQt6 import QtCore, QtWidgets
+import vtkmodules.all as vtk
+from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
+    QApplication,
     QColorDialog,
     QMainWindow,
     QPushButton,
@@ -11,18 +12,17 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from vtkmodules.vtkFiltersSources import vtkSphereSource
-from vtkmodules.vtkRenderingCore import vtkActor, vtkPolyDataMapper, vtkRenderer
 
 
-class CustomActor(vtkActor):
-    def __init__(self, source=vtkSphereSource()):
-        self.source = source
+class CustomActor(vtk.vtkActor):
+    def __init__(self, source=None):
+        super().__init__()
+        self.source = source or vtk.vtkSphereSource()
         self.color = (0.1, 0.8, 0.5)  # Default color
         self.update_mapper()
 
     def update_mapper(self):
-        mapper = vtkPolyDataMapper()
+        mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputConnection(self.source.GetOutputPort())
         self.SetMapper(mapper)
         self.SetPosition(0.2, 0.2, 0.6)
@@ -34,7 +34,7 @@ class CustomActor(vtkActor):
         self.update_mapper()
 
     def update_color(self, color):
-        self.color = (color.red() / 255, color.green() / 255, color.blue() / 255)
+        self.color = (color.redF(), color.greenF(), color.blueF())
         self.GetProperty().SetColor(self.color)
 
 
@@ -55,7 +55,7 @@ class VtkDisplay(QWidget):
         self.color_button = QPushButton("Change color")
         layout.addWidget(self.color_button)
 
-        self.renderer = vtkRenderer()
+        self.renderer = vtk.vtkRenderer()
         self.vtk_display.GetRenderWindow().AddRenderer(self.renderer)
         self.interactor = self.vtk_display.GetRenderWindow().GetInteractor()
 
@@ -69,7 +69,7 @@ class VtkDisplay(QWidget):
         self.interactor.Initialize()
 
     def change_radius(self, value):
-        self.actor.update_radius(value)
+        self.actor.update_radius(value / 12)
         self.vtk_display.GetRenderWindow().Render()
 
     def change_color(self):
@@ -80,8 +80,7 @@ class VtkDisplay(QWidget):
 
 
 if __name__ == "__main__":
-    app = QtWidgets.QApplication([])
-
+    app = QApplication(sys.argv)
     window = QMainWindow()
     widget = VtkDisplay()
     window.setCentralWidget(widget)

@@ -23,13 +23,16 @@ Workflow Overview:
 """
 
 import random
+from typing import Tuple
 
 import vtk
 
 from src.common.simple_pipeline import VisualisationPipeline
 
 
-def create_random_sphere(center, radius):
+def create_random_sphere(
+    center: Tuple[float, float, float], radius: float
+) -> vtk.vtkSphereSource:
     """
     Create a sphere source with specified center and radius.
 
@@ -47,7 +50,9 @@ def create_random_sphere(center, radius):
     return sphere
 
 
-def create_random_spheres_mapper(n_spheres, box_size, sphere_radius=0.2):
+def create_random_spheres_mapper(
+    n_spheres: int, box_size: float, sphere_radius: float = 0.2
+) -> vtk.vtkPolyDataMapper:
     """
     Create a mapper for a set of randomly positioned spheres within a box.
 
@@ -77,7 +82,7 @@ def create_random_spheres_mapper(n_spheres, box_size, sphere_radius=0.2):
     return mapper
 
 
-def create_enclosing_box_mapper(box_size):
+def create_enclosing_box_mapper(box_size: float) -> vtk.vtkPolyDataMapper:
     """
     Create a mapper for an enclosing box.
 

@@ -1,9 +1,16 @@
+from typing import Tuple
+
 import vtk
 
-from src.simple_pipeline import VisualisationPipeline
+from src.common.simple_pipeline import VisualisationPipeline
 
 
-def create_cylinder_mapper(radius, height, center, resolution=100):
+def create_cylinder_mapper(
+    radius: float,
+    height: float,
+    center: Tuple[float, float, float],
+    resolution: int = 100,
+) -> vtk.vtkPolyDataMapper:
     cylinder = vtk.vtkCylinderSource()
     cylinder.SetRadius(radius)
     cylinder.SetHeight(height)
@@ -18,8 +25,12 @@ def create_cylinder_mapper(radius, height, center, resolution=100):
 
 if __name__ == "__main__":
     # Create cylinders with different radius, height, and center
-    cylinder_mapper1 = create_cylinder_mapper(radius=1, height=2, center=(0, 0, 0))
-    cylinder_mapper2 = create_cylinder_mapper(radius=1.5, height=3, center=(4, 0, 0))
+    cylinder_mapper1 = create_cylinder_mapper(
+        radius=1.0, height=2.0, center=(0.0, 0.0, 0.0)
+    )
+    cylinder_mapper2 = create_cylinder_mapper(
+        radius=1.5, height=3.0, center=(4.0, 0.0, 0.0)
+    )
 
     # Display the cylinders
     pipeline = VisualisationPipeline(mappers=[cylinder_mapper1, cylinder_mapper2])

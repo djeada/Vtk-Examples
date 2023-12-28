@@ -91,7 +91,7 @@ def main():
 
     # Create a mapper
     mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputConnection(polydata.GetOutputPort())
+    mapper.SetInputData(polydata)
 
     # Run the visualization pipeline
     pipeline = VisualisationPipeline(mappers=[mapper], point_size=30)

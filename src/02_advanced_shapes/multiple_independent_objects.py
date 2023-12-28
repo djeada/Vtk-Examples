@@ -1,9 +1,10 @@
 import random
 
 import vtk
+from vtkmodules.util.numpy_support import vtk_to_numpy
 
 
-def create_cone(height, radius, resolution):
+def create_cone(height: float, radius: float, resolution: int) -> vtk.vtkConeSource:
     cone = vtk.vtkConeSource()
     cone.SetHeight(height)
     cone.SetRadius(radius)
@@ -11,7 +12,7 @@ def create_cone(height, radius, resolution):
     return cone
 
 
-def create_cube(length):
+def create_cube(length: float) -> vtk.vtkCubeSource:
     cube = vtk.vtkCubeSource()
     cube.SetXLength(length)
     cube.SetYLength(length)
@@ -19,7 +20,9 @@ def create_cube(length):
     return cube
 
 
-def create_sphere(radius, phi_resolution, theta_resolution):
+def create_sphere(
+    radius: float, phi_resolution: int, theta_resolution: int
+) -> vtk.vtkSphereSource:
     sphere = vtk.vtkSphereSource()
     sphere.SetRadius(radius)
     sphere.SetPhiResolution(phi_resolution)
@@ -29,9 +32,9 @@ def create_sphere(radius, phi_resolution, theta_resolution):
 
 if __name__ == "__main__":
     # define sources
-    cone = create_cone(height=5, radius=2, resolution=10)
-    cube = create_cube(length=5)
-    sphere = create_sphere(radius=3, phi_resolution=10, theta_resolution=10)
+    cone = create_cone(height=5.0, radius=2.0, resolution=10)
+    cube = create_cube(length=5.0)
+    sphere = create_sphere(radius=3.0, phi_resolution=10, theta_resolution=10)
 
     sources = (cone, cube, sphere)
 

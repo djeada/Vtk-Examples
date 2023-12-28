@@ -36,6 +36,8 @@ The module serves as an educational example to illustrate the basic components a
 """
 import vtk
 
+from src.common.simple_pipeline import VisualisationPipeline
+
 
 def create_points():
     """
@@ -72,41 +74,16 @@ def create_polydata(points, triangle):
     return polydata
 
 
-def create_visualization_components(polydata):
-    """
-    Create and return the mapper, actor, renderer, and window for visualization.
-    """
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputData(polydata)
-
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-
-    renderer = vtk.vtkRenderer()
-    renderer.AddActor(actor)
-
-    window = vtk.vtkRenderWindow()
-    window.AddRenderer(renderer)
-
-    return mapper, actor, renderer, window
-
-
-def start_visualization(window):
-    """
-    Initialize and start the interactor for the visualization.
-    """
-    interactor = vtk.vtkRenderWindowInteractor()
-    interactor.SetRenderWindow(window)
-    interactor.Initialize()
-    interactor.Start()
-
-
 def main():
     points = create_points()
     triangle = create_triangle()
     polydata = create_polydata(points, triangle)
-    mapper, actor, renderer, window = create_visualization_components(polydata)
-    start_visualization(window)
+
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputData(polydata)
+
+    pipeline = VisualisationPipeline(mappers=[mapper])
+    pipeline.run()
 
 
 if __name__ == "__main__":

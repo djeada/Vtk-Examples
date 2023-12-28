@@ -1,9 +1,11 @@
+from typing import List
+
 import vtk
 
-from src.simple_pipeline import VisualisationPipeline
+from src.common.simple_pipeline import VisualisationPipeline
 
 
-def create_cube_mapper(bounds):
+def create_cube_mapper(bounds: List[float]) -> vtk.vtkPolyDataMapper:
     cube = vtk.vtkCubeSource()
     cube.SetBounds(bounds)
 
@@ -15,8 +17,8 @@ def create_cube_mapper(bounds):
 
 if __name__ == "__main__":
     # Create cubes with different bounds
-    cube_mapper1 = create_cube_mapper(bounds=[0, 1, 0, 1, 0, 1])
-    cube_mapper2 = create_cube_mapper(bounds=[2, 4, 0, 1, 0, 1])
+    cube_mapper1 = create_cube_mapper(bounds=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0])
+    cube_mapper2 = create_cube_mapper(bounds=[2.0, 4.0, 0.0, 1.0, 0.0, 1.0])
 
     # Display the cubes
     pipeline = VisualisationPipeline(mappers=[cube_mapper1, cube_mapper2])
