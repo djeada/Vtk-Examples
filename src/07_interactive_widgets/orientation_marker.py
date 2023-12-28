@@ -3,7 +3,6 @@ from vtkmodules.vtkCommonTransforms import vtkTransform
 from vtkmodules.vtkFiltersSources import vtkPlaneSource
 from vtkmodules.vtkInteractionWidgets import vtkBoxWidget
 from vtkmodules.vtkRenderingCore import (
-    vtkActor,
     vtkPolyDataMapper,
     vtkRenderer,
     vtkRenderWindow,

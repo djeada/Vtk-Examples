@@ -1,8 +1,7 @@
 import vtk
 from vtkmodules.vtkCommonCore import vtkCommand
 from vtkmodules.vtkFiltersSources import vtkSphereSource
-from vtkmodules.vtkInteractionWidgets import vtkSliderWidget
-from vtkmodules.vtkRenderingAnnotation import vtkSliderRepresentation2D
+from vtkmodules.vtkInteractionWidgets import vtkSliderRepresentation2D, vtkSliderWidget
 from vtkmodules.vtkRenderingCore import (
     vtkActor,
     vtkPolyDataMapper,
