@@ -1,5 +1,6 @@
 import vtk
-from src.simple_pipeline import VisualisationPipeline
+
+from src.common.simple_pipeline import VisualisationPipeline
 
 
 def create_cone_mapper(radius, height, center, resolution=100):

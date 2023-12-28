@@ -24,7 +24,7 @@ Workflow Overview:
 
 import vtk
 
-from src.simple_pipeline import VisualisationPipeline
+from src.common.simple_pipeline import VisualisationPipeline
 
 
 def create_geometric_source(source_type, **params):
@@ -55,6 +55,7 @@ def create_geometric_source(source_type, **params):
     source.Update()
     return source.GetOutput()
 
+
 def create_multiblock_dataset(sources):
     """
     Create a multiblock dataset from a list of VTK data sources.
@@ -65,6 +66,7 @@ def create_multiblock_dataset(sources):
         multiBlock.SetBlock(i, source)
     return multiBlock
 
+
 def convert_to_polydata(multiBlock):
     """
     Convert the multiblock dataset to polydata.
@@ -73,6 +75,7 @@ def convert_to_polydata(multiBlock):
     geometryFilter.SetInputDataObject(multiBlock)
     geometryFilter.Update()
     return geometryFilter.GetOutput()
+
 
 def main():
     # Create various geometric sources
@@ -93,6 +96,7 @@ def main():
     # Run the visualization pipeline
     pipeline = VisualisationPipeline(mappers=[mapper], point_size=30)
     pipeline.run()
+
 
 if __name__ == "__main__":
     main()

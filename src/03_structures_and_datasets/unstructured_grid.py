@@ -24,9 +24,11 @@ Key Components and Workflow:
 
 """
 
-import vtk
 import numpy as np
-from src.simple_pipeline import VisualisationPipeline
+import vtk
+
+from src.common.simple_pipeline import VisualisationPipeline
+
 
 def create_hexahedron():
     """
@@ -37,6 +39,7 @@ def create_hexahedron():
         hexahedron.GetPointIds().SetId(i, i)
     return hexahedron
 
+
 def create_tetrahedron():
     """
     Create and return a tetrahedron cell.
@@ -45,6 +48,7 @@ def create_tetrahedron():
     for i in range(4):
         tetrahedron.GetPointIds().SetId(i, i + 8)
     return tetrahedron
+
 
 def create_points():
     """
@@ -61,6 +65,7 @@ def create_points():
     points.InsertNextPoint(2, 2, 3)
     return points
 
+
 def create_unstructured_grid(points, hexahedron, tetrahedron):
     """
     Create and return an unstructured grid containing the hexahedron and tetrahedron.
@@ -70,6 +75,7 @@ def create_unstructured_grid(points, hexahedron, tetrahedron):
     ugrid.InsertNextCell(hexahedron.GetCellType(), hexahedron.GetPointIds())
     ugrid.InsertNextCell(tetrahedron.GetCellType(), tetrahedron.GetPointIds())
     return ugrid
+
 
 def attach_fields_to_grid(ugrid, points):
     """
@@ -90,6 +96,7 @@ def attach_fields_to_grid(ugrid, points):
         vectors.InsertNextTuple3(np.random.rand(), np.random.rand(), np.random.rand())
     ugrid.GetCellData().SetVectors(vectors)
 
+
 def visualize_unstructured_grid(ugrid):
     """
     Visualize the unstructured grid with scalar and vector fields.
@@ -103,6 +110,7 @@ def visualize_unstructured_grid(ugrid):
     pipeline = VisualisationPipeline(mappers=[mapper], point_size=30)
     pipeline.run()
 
+
 def main():
     hexahedron = create_hexahedron()
     tetrahedron = create_tetrahedron()
@@ -110,6 +118,7 @@ def main():
     ugrid = create_unstructured_grid(points, hexahedron, tetrahedron)
     attach_fields_to_grid(ugrid, points)
     visualize_unstructured_grid(ugrid)
+
 
 if __name__ == "__main__":
     main()

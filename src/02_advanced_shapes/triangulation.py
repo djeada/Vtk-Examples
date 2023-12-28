@@ -9,8 +9,9 @@ filter to create a triangulation from those points. In addition, it also
 shows the edges of the triangulation.
 """
 
-import vtk
 import random
+
+import vtk
 
 # create a point cloud
 points = vtk.vtkPoints()

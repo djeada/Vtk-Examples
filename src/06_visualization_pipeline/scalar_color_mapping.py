@@ -1,5 +1,5 @@
-import vtk
 import numpy as np
+import vtk
 
 # Create a 3D grid of points, each with a scalar value
 dims = (20, 20, 20)

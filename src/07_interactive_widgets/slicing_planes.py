@@ -1,11 +1,15 @@
 import vtk
-from vtkmodules.vtkImagingCore import vtkImageReslice
-from vtkmodules.vtkCommonDataModel import vtkPlane
-from vtkmodules.vtkRenderingCore import (
-    vtkRenderer, vtkRenderWindow, vtkRenderWindowInteractor, vtkImageActor
-)
 from vtkmodules.vtkCommonCore import vtkLookupTable
+from vtkmodules.vtkCommonDataModel import vtkPlane
 from vtkmodules.vtkImagingColor import vtkImageMapToColors
+from vtkmodules.vtkImagingCore import vtkImageReslice
+from vtkmodules.vtkRenderingCore import (
+    vtkImageActor,
+    vtkRenderer,
+    vtkRenderWindow,
+    vtkRenderWindowInteractor,
+)
+
 
 class VolumeSlicer:
     def __init__(self, volume: vtk.vtkVolume):
@@ -60,6 +64,7 @@ class VolumeSlicer:
 
         return actor
 
+
 def setup_render_window():
     """
     Set up the render window and renderer.
@@ -71,6 +76,7 @@ def setup_render_window():
     render_window = vtkRenderWindow()
     render_window.AddRenderer(renderer)
     return render_window, renderer
+
 
 def main():
     # Load a volume dataset (replace with actual volume loading code)
@@ -97,6 +103,7 @@ def main():
     interactor.SetRenderWindow(render_window)
     render_window.Render()
     interactor.Start()
+
 
 if __name__ == "__main__":
     main()

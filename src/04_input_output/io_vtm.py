@@ -1,6 +1,6 @@
 import vtk
 
-from src.simple_pipeline import VisualisationPipeline
+from src.common.simple_pipeline import VisualisationPipeline
 
 FILE_NAME = "../../data/vtms/grid_of_triangles.vtm"
 

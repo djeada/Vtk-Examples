@@ -3,7 +3,8 @@ The cells in VTK represent a topology or a type of connectivity between points. 
 """
 import vtk
 
-from src.simple_pipeline import VisualisationPipeline
+from src.common.simple_pipeline import VisualisationPipeline
+
 
 def create_points():
     """
@@ -16,6 +17,7 @@ def create_points():
     points.InsertNextPoint(1, 1, 0)
     return points
 
+
 def create_triangle():
     """
     Create a triangle cell.
@@ -25,6 +27,7 @@ def create_triangle():
     triangle.GetPointIds().SetId(1, 1)
     triangle.GetPointIds().SetId(2, 2)
     return triangle
+
 
 def create_quad():
     """
@@ -37,6 +40,7 @@ def create_quad():
     quad.GetPointIds().SetId(3, 2)
     return quad
 
+
 def create_cell_array(triangle, quad):
     """
     Create a cell array and add the cells to it.
@@ -46,6 +50,7 @@ def create_cell_array(triangle, quad):
     cells.InsertNextCell(quad)
     return cells
 
+
 def create_polydata(points, cells):
     """
     Create polydata to hold the points and cells.
@@ -54,6 +59,7 @@ def create_polydata(points, cells):
     polydata.SetPoints(points)
     polydata.SetPolys(cells)
     return polydata
+
 
 def extract_and_print_cell_info(polydata):
     """
@@ -67,6 +73,7 @@ def extract_and_print_cell_info(polydata):
             point_id = cell.GetPointId(j)
             x, y, z = polydata.GetPoint(point_id)
             print(f"    Point {j}: ({x}, {y}, {z})")
+
 
 def main():
     points = create_points()
@@ -84,6 +91,7 @@ def main():
     # Display the geometry
     pipeline = VisualisationPipeline(mappers=[mapper], edges_visible=True)
     pipeline.run()
+
 
 if __name__ == "__main__":
     main()

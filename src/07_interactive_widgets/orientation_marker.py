@@ -1,9 +1,15 @@
 import vtk
-from vtkmodules.vtkRenderingCore import vtkRenderer, vtkRenderWindow, vtkRenderWindowInteractor
-from vtkmodules.vtkFiltersSources import vtkPlaneSource
-from vtkmodules.vtkRenderingCore import vtkActor, vtkPolyDataMapper
-from vtkmodules.vtkInteractionWidgets import vtkBoxWidget
 from vtkmodules.vtkCommonTransforms import vtkTransform
+from vtkmodules.vtkFiltersSources import vtkPlaneSource
+from vtkmodules.vtkInteractionWidgets import vtkBoxWidget
+from vtkmodules.vtkRenderingCore import (
+    vtkActor,
+    vtkPolyDataMapper,
+    vtkRenderer,
+    vtkRenderWindow,
+    vtkRenderWindowInteractor,
+)
+
 
 def create_plane_actor(color: tuple) -> vtk.vtkActor:
     """
@@ -28,6 +34,7 @@ def create_plane_actor(color: tuple) -> vtk.vtkActor:
 
     return actor
 
+
 def plane_widget_callback(obj, event):
     """
     Callback function to modify the plane when the widget is manipulated.
@@ -41,7 +48,10 @@ def plane_widget_callback(obj, event):
     matrix = transform.GetMatrix()
     obj.GetProp3D().SetUserMatrix(matrix)
 
-def setup_interaction(plane_actor: vtk.vtkActor, render_window_interactor: vtk.vtkRenderWindowInteractor):
+
+def setup_interaction(
+    plane_actor: vtk.vtkActor, render_window_interactor: vtk.vtkRenderWindowInteractor
+):
     """
     Set up interaction widget for a plane actor.
 
@@ -54,6 +64,7 @@ def setup_interaction(plane_actor: vtk.vtkActor, render_window_interactor: vtk.v
     plane_widget.SetProp3D(plane_actor)
     plane_widget.On()
     plane_widget.AddObserver("InteractionEvent", plane_widget_callback)
+
 
 # Main execution
 if __name__ == "__main__":

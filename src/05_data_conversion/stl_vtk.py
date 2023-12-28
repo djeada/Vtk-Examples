@@ -1,5 +1,4 @@
 import vtk
-
 from converter_interface import Converter
 
 

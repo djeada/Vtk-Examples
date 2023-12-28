@@ -1,4 +1,5 @@
 import vtk
+
 from src.simple_pipeline import VisualisationPipeline
 
 

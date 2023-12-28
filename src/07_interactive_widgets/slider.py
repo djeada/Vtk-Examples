@@ -1,9 +1,16 @@
 import vtk
-from vtkmodules.vtkRenderingCore import vtkRenderer, vtkRenderWindow, vtkRenderWindowInteractor, vtkActor, vtkPolyDataMapper
+from vtkmodules.vtkCommonCore import vtkCommand
 from vtkmodules.vtkFiltersSources import vtkSphereSource
 from vtkmodules.vtkInteractionWidgets import vtkSliderWidget
-from vtkmodules.vtkCommonCore import vtkCommand
 from vtkmodules.vtkRenderingAnnotation import vtkSliderRepresentation2D
+from vtkmodules.vtkRenderingCore import (
+    vtkActor,
+    vtkPolyDataMapper,
+    vtkRenderer,
+    vtkRenderWindow,
+    vtkRenderWindowInteractor,
+)
+
 
 def create_sphere_actor(center: tuple, radius: float, color: tuple) -> vtkActor:
     """
@@ -31,7 +38,10 @@ def create_sphere_actor(center: tuple, radius: float, color: tuple) -> vtkActor:
 
     return actor, sphere_source
 
-def setup_slider_widget(interactor: vtkRenderWindowInteractor, callback_func) -> vtkSliderWidget:
+
+def setup_slider_widget(
+    interactor: vtkRenderWindowInteractor, callback_func
+) -> vtkSliderWidget:
     """
     Set up a slider widget for interaction.
 
@@ -65,6 +75,7 @@ def setup_slider_widget(interactor: vtkRenderWindowInteractor, callback_func) ->
 
     return slider_widget
 
+
 def update_sphere_size(obj, event):
     """
     Callback function to update the sphere size when the slider is moved.
@@ -77,6 +88,7 @@ def update_sphere_size(obj, event):
     sphere1.SetRadius(value)
     sphere1.Modified()
     render_window.Render()
+
 
 if __name__ == "__main__":
     render_window = vtkRenderWindow()

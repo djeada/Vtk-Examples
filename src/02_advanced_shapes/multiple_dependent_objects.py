@@ -1,5 +1,4 @@
 import vtk
-from src.simple_pipeline import VisualisationPipeline
 
 
 def create_cube_mapper(center, length):

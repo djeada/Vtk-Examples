@@ -1,5 +1,5 @@
-import vtk
 import numpy as np
+import vtk
 
 # Define the number of seed points
 NUMBER_OF_SEED_POINTS = 30

@@ -1,5 +1,6 @@
-import vtk
 import math
+
+import vtk
 
 # Create a VTK renderer and render window
 renderer = vtk.vtkRenderer()

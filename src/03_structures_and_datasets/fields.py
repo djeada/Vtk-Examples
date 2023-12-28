@@ -31,10 +31,11 @@ Workflow Overview:
    - The vtkPolyDataMapper maps the polydata to graphical primitives for rendering.
    - A visualization pipeline, provided by the 'VisualisationPipeline' class, is employed to render the polydata, showcasing the scalar and vector fields attached to it.
 """
-import vtk
 import numpy as np
+import vtk
 
-from src.simple_pipeline import VisualisationPipeline
+from src.common.simple_pipeline import VisualisationPipeline
+
 
 def create_points():
     """
@@ -46,6 +47,7 @@ def create_points():
     points.InsertNextPoint(0, 1, 0)
     points.InsertNextPoint(1, 1, 0)
     return points
+
 
 def create_quad(points):
     """
@@ -59,6 +61,7 @@ def create_quad(points):
     quad.GetPointIds().SetId(3, 2)
     return quad
 
+
 def attach_scalar_field(points):
     """
     Attach a random scalar field to the points.
@@ -68,6 +71,7 @@ def attach_scalar_field(points):
     for i in range(points.GetNumberOfPoints()):
         scalars.InsertNextValue(np.random.rand())
     return scalars
+
 
 def attach_vector_field(cells):
     """
@@ -80,6 +84,7 @@ def attach_vector_field(cells):
         vectors.InsertNextTuple3(np.random.rand(), np.random.rand(), np.random.rand())
     return vectors
 
+
 def create_polydata(points, quad):
     """
     Create polydata to hold the points and cells.
@@ -91,6 +96,7 @@ def create_polydata(points, quad):
     polydata.SetPoints(points)
     polydata.SetPolys(cells)
     return polydata, cells
+
 
 def main():
     points = create_points()
@@ -109,6 +115,7 @@ def main():
 
     pipeline = VisualisationPipeline(mappers=[mapper])
     pipeline.run()
+
 
 if __name__ == "__main__":
     main()

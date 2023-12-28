@@ -1,7 +1,7 @@
 import vtk
 from vtkmodules.vtkCommonDataModel import vtkMultiBlockDataSet
 
-from src.simple_pipeline import VisualisationPipeline
+from src.common.simple_pipeline import VisualisationPipeline
 
 FILE_NAME = "../../data/exodus/tetrahedron.exo"
 

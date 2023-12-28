@@ -1,6 +1,6 @@
 import vtk
 
-from src.simple_pipeline import VisualisationPipeline
+from src.common.simple_pipeline import VisualisationPipeline
 
 FOAM_CASE_PATH = "../../data/open_foam/temp.case"
 

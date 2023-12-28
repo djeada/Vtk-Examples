@@ -22,9 +22,12 @@ Workflow Overview:
    - Both the random spheres and the enclosing box are visualized together, providing context and enhancing the perception of the 3D space.
 """
 
-import vtk
 import random
-from src.simple_pipeline import VisualisationPipeline
+
+import vtk
+
+from src.common.simple_pipeline import VisualisationPipeline
+
 
 def create_random_sphere(center, radius):
     """
@@ -42,6 +45,7 @@ def create_random_sphere(center, radius):
     sphere.SetRadius(radius)
     sphere.Update()
     return sphere
+
 
 def create_random_spheres_mapper(n_spheres, box_size, sphere_radius=0.2):
     """
@@ -61,7 +65,7 @@ def create_random_spheres_mapper(n_spheres, box_size, sphere_radius=0.2):
         center = (
             random.uniform(-box_size / 2, box_size / 2),
             random.uniform(-box_size / 2, box_size / 2),
-            random.uniform(-box_size / 2, box_size / 2)
+            random.uniform(-box_size / 2, box_size / 2),
         )
         sphere = create_random_sphere(center, sphere_radius)
         append_filter.AddInputConnection(sphere.GetOutputPort())
@@ -71,6 +75,7 @@ def create_random_spheres_mapper(n_spheres, box_size, sphere_radius=0.2):
     mapper = vtk.vtkPolyDataMapper()
     mapper.SetInputConnection(append_filter.GetOutputPort())
     return mapper
+
 
 def create_enclosing_box_mapper(box_size):
     """
@@ -94,6 +99,7 @@ def create_enclosing_box_mapper(box_size):
     mapper = vtk.vtkPolyDataMapper()
     mapper.SetInputConnection(outline.GetOutputPort())
     return mapper
+
 
 if __name__ == "__main__":
     n_spheres = 50

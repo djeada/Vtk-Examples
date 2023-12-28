@@ -18,9 +18,9 @@ Workflow Overview:
 """
 
 import vtk
-import numpy as np
 
-from src.simple_pipeline import VisualisationPipeline
+from src.common.simple_pipeline import VisualisationPipeline
+
 
 def create_structured_grid(nx, ny, nz):
     """
@@ -40,9 +40,10 @@ def create_structured_grid(nx, ny, nz):
         for j in range(ny):
             for i in range(nx):
                 points.InsertNextPoint(i, j, k)
-    
+
     structuredGrid.SetPoints(points)
     return structuredGrid
+
 
 def visualize_structured_grid(structuredGrid):
     """
@@ -58,6 +59,7 @@ def visualize_structured_grid(structuredGrid):
     pipeline = VisualisationPipeline(mappers=[mapper], edges_visible=True)
     pipeline.run()
 
+
 def main():
     # Define dimensions for the structured grid
     nx, ny, nz = 6, 6, 2
@@ -65,6 +67,7 @@ def main():
     # Create and visualize the structured grid
     structuredGrid = create_structured_grid(nx, ny, nz)
     visualize_structured_grid(structuredGrid)
+
 
 if __name__ == "__main__":
     main()

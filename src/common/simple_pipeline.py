@@ -2,7 +2,14 @@ import vtk
 
 
 class VisualisationPipeline:
-    def __init__(self, mappers, point_size=1, edges_visible=False, background_color=(0, 0, 0), window_title="VTK Visualization"):
+    def __init__(
+        self,
+        mappers,
+        point_size=1,
+        edges_visible=False,
+        background_color=(0, 0, 0),
+        window_title="VTK Visualization",
+    ):
         """
         Initialize the visualization pipeline with specified parameters.
 
@@ -67,7 +74,7 @@ class VisualisationPipeline:
         window = vtk.vtkRenderWindow()
         window.AddRenderer(renderer)
         window.SetSize(800, 600)
-        window.SetTitle(self.window_title)
+        # window.SetTitle(self.window_title)
         return window
 
     def create_interactor(self, window):

@@ -1,7 +1,9 @@
+from typing import Tuple
+
 import numpy as np
 import vtk
 from vtk.util.numpy_support import numpy_to_vtk
-from typing import Tuple
+
 
 def create_vector_field(grid_size: int = 20) -> np.ndarray:
     """
@@ -14,8 +16,12 @@ def create_vector_field(grid_size: int = 20) -> np.ndarray:
         np.ndarray: A 3D numpy array representing the vector field.
     """
     spacing = 0.1  # Spacing between points in the grid
-    x, y, z = np.linspace(-1, 1, grid_size), np.linspace(-1, 1, grid_size), np.linspace(-1, 1, grid_size)
-    x, y, z = np.meshgrid(x, y, z, indexing='ij')
+    x, y, z = (
+        np.linspace(-1, 1, grid_size),
+        np.linspace(-1, 1, grid_size),
+        np.linspace(-1, 1, grid_size),
+    )
+    x, y, z = np.meshgrid(x, y, z, indexing="ij")
 
     # Create a rotational vector field
     u = -np.sin(np.pi * y) * np.cos(np.pi * z)
@@ -23,6 +29,7 @@ def create_vector_field(grid_size: int = 20) -> np.ndarray:
     w = np.zeros_like(u)
 
     return np.stack((u, v, w), axis=-1)
+
 
 def create_structured_grid(vectors: np.ndarray) -> vtk.vtkStructuredGrid:
     """
@@ -51,6 +58,7 @@ def create_structured_grid(vectors: np.ndarray) -> vtk.vtkStructuredGrid:
     structured_grid.SetPoints(points)
     structured_grid.GetPointData().SetVectors(vtk_vectors)
     return structured_grid
+
 
 def visualize_vector_field(structured_grid: vtk.vtkStructuredGrid):
     """
@@ -81,10 +89,12 @@ def visualize_vector_field(structured_grid: vtk.vtkStructuredGrid):
     render_window.Render()
     interactor.Start()
 
+
 def main():
     vectors = create_vector_field()
     structured_grid = create_structured_grid(vectors)
     visualize_vector_field(structured_grid)
+
 
 if __name__ == "__main__":
     main()

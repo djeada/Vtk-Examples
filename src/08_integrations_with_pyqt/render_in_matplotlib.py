@@ -1,5 +1,5 @@
-import vtk
 import matplotlib.pyplot as plt
+import vtk
 from vtkmodules.util import numpy_support
 
 # Create a sphere

@@ -1,14 +1,14 @@
 import sys
 
 import vtk
-from PyQt6 import QtWidgets, QtCore
+from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import (
-    QWidget,
-    QMainWindow,
-    QVBoxLayout,
-    QSlider,
-    QPushButton,
     QColorDialog,
+    QMainWindow,
+    QPushButton,
+    QSlider,
+    QVBoxLayout,
+    QWidget,
 )
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from vtkmodules.vtkFiltersSources import vtkSphereSource

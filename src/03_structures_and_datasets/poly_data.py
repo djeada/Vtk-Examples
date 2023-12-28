@@ -42,20 +42,22 @@ def create_points():
     Create and return a vtkPoints object with predefined points.
     """
     points = vtk.vtkPoints()
-    points.InsertNextPoint([0.0, 0.0, 0.0])   # Point 1
-    points.InsertNextPoint([1.0, 0.0, 0.0])   # Point 2
-    points.InsertNextPoint([0.5, 0.866, 0.0]) # Point 3
+    points.InsertNextPoint([0.0, 0.0, 0.0])  # Point 1
+    points.InsertNextPoint([1.0, 0.0, 0.0])  # Point 2
+    points.InsertNextPoint([0.5, 0.866, 0.0])  # Point 3
     return points
+
 
 def create_triangle():
     """
     Create and return a vtkTriangle.
     """
     triangle = vtk.vtkTriangle()
-    triangle.GetPointIds().SetId(0, 0) # Vertex 1
-    triangle.GetPointIds().SetId(1, 1) # Vertex 2
-    triangle.GetPointIds().SetId(2, 2) # Vertex 3
+    triangle.GetPointIds().SetId(0, 0)  # Vertex 1
+    triangle.GetPointIds().SetId(1, 1)  # Vertex 2
+    triangle.GetPointIds().SetId(2, 2)  # Vertex 3
     return triangle
+
 
 def create_polydata(points, triangle):
     """
@@ -68,6 +70,7 @@ def create_polydata(points, triangle):
     polydata.SetPoints(points)
     polydata.SetPolys(triangles)
     return polydata
+
 
 def create_visualization_components(polydata):
     """
@@ -87,6 +90,7 @@ def create_visualization_components(polydata):
 
     return mapper, actor, renderer, window
 
+
 def start_visualization(window):
     """
     Initialize and start the interactor for the visualization.
@@ -96,12 +100,14 @@ def start_visualization(window):
     interactor.Initialize()
     interactor.Start()
 
+
 def main():
     points = create_points()
     triangle = create_triangle()
     polydata = create_polydata(points, triangle)
     mapper, actor, renderer, window = create_visualization_components(polydata)
     start_visualization(window)
+
 
 if __name__ == "__main__":
     main()
