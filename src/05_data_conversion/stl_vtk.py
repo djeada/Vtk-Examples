@@ -8,7 +8,10 @@ class VtkToStlConverter(Converter):
         if not input_filename or not output_filename:
             raise ValueError("Input and output filenames must be provided.")
 
-        if not (input_filename.lower().endswith('.vtk') and output_filename.lower().endswith('.stl')):
+        if not (
+            input_filename.lower().endswith(".vtk")
+            and output_filename.lower().endswith(".stl")
+        ):
             raise ValueError("Invalid file extensions. Expected '.vtk' and '.stl'.")
 
         try:
@@ -22,17 +25,23 @@ class VtkToStlConverter(Converter):
             writer.SetFileName(output_filename)
             writer.SetInputConnection(reader.GetOutputPort())
             writer.Write()
-            logging.info(f"Conversion successful: {input_filename} to {output_filename}")
+            logging.info(
+                f"Conversion successful: {input_filename} to {output_filename}"
+            )
         except Exception as e:
             logging.error(f"Error during conversion: {e}")
             raise
+
 
 class StlToVtkConverter(Converter):
     def convert(self, input_filename: str, output_filename: str):
         if not input_filename or not output_filename:
             raise ValueError("Input and output filenames must be provided.")
 
-        if not (input_filename.lower().endswith('.stl') and output_filename.lower().endswith('.vtk')):
+        if not (
+            input_filename.lower().endswith(".stl")
+            and output_filename.lower().endswith(".vtk")
+        ):
             raise ValueError("Invalid file extensions. Expected '.stl' and '.vtk'.")
 
         try:
@@ -46,7 +55,9 @@ class StlToVtkConverter(Converter):
             writer.SetFileName(output_filename)
             writer.SetInputConnection(reader.GetOutputPort())
             writer.Write()
-            logging.info(f"Conversion successful: {input_filename} to {output_filename}")
+            logging.info(
+                f"Conversion successful: {input_filename} to {output_filename}"
+            )
         except Exception as e:
             logging.error(f"Error during conversion: {e}")
             raise
