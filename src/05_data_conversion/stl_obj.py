@@ -1,8 +1,9 @@
 import vtk
+import logging
 from converter_interface import Converter
 
 
-class StlToObjConverter:
+class StlToObjConverter(Converter):
     def convert(self, input_filename: str, output_filename: str):
         if not input_filename or not output_filename:
             raise ValueError("Input and output filenames must be provided.")
