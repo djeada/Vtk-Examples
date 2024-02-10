@@ -1,5 +1,9 @@
 # VTK - Visualization Toolkit Python Examples
 
+VTK examples in Python.
+ 
+![Screenshot from 2024-02-10 21-38-23](https://github.com/djeada/VTK-Examples/assets/37275728/d843d55f-ab7a-4830-a762-34cc71041fdc)
+
 ## Overview
 
 - The Visualization Toolkit (VTK) is an advanced 3D graphics and visualization software library.
@@ -91,6 +95,7 @@
 | 6 | Teaches you how to use triangulation techniques in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/triangulation.py) |
 | 7 | Explores the world of volume rendering in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/volume_rendering.py) |
 | 8 | A comparison of different visualization techniques in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/visualization_techniques_comparison.py) |
+| 9 | Demonstrates how to visualize flow simulation data | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/flow_simulation_visualization.py) |
 
 ## Structures and Datasets
 
@@ -103,56 +108,72 @@
 | 5 | Covers the basics of poly data structures in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/poly_data.py) |
 | 6 | Teaches you how to work with structured grids | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/structured_grid.py) |
 | 7 | Guides you through the intricacies of unstructured grids | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/unstructured_grid.py) |
+| 8 | Introduction to structured mesh concepts in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/structured_mesh.py) |
+| 9 | Explores the creation and manipulation of unstructured meshes | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/unstructured_mesh.py) |
 
 ## Input and Output
 
 | Number | Description | Link |
 | --- | --- | --- |
-| 1 | Walkthrough of handling Exodus II files | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_exodus_ii.py) |
-| 2 | Introduction to working with OBJ files in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_obj.py) |
-| 3 | Tutorial on interacting with OpenFOAM files | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_openfoam.py) |
-| 4 | Learn to read and write STL files with vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_stl.py) |
-| 5 | Overview of handling VTK file format | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtk.py) |
-| 6 | Guides you through the usage of VTM file format | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtm.py) |
-| 7 | Explores handling VTU file formats with vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtu.py) |
+| 1 | Introduction to working with OBJ files in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_obj.py) |
+| 2 | Learn to read and write STL files with vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_stl.py) |
+| 3 | Overview of handling VTK file format | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtk.py) |
+| 4 | Guides you through the usage of VTM file format | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtm.py) |
+| 5 | Explores handling VTU file formats with vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtu.py) |
+| 6 | Walkthrough of handling Exodus II files | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_exodus_ii.py) |
+| 7 | Tutorial on interacting with OpenFOAM files | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_openfoam.py) |
 
 ## Data Conversion
 
 | Number | Description | Link |
 | --- | --- | --- |
 | 1 | Interface for data conversion utilities | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/converter_interface.py) |
-| 2 | Teaches conversion between STL and OBJ formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/stl_obj.py) |
-| 3 | Learn to convert between STL and VTK formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/stl_vtk.py) |
-| 4 | Demonstrates conversion between VTK and OBJ formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/vtk_obj.py) |
+| 2 | Learn to convert between STL and VTK formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/stl_vtk.py) |
+| 3 | Demonstrates conversion between VTK and OBJ formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/vtk_obj.py) |
+| 4 | Teaches conversion between STL and OBJ formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/stl_obj.py) |
 | 5 | Shows you how to convert between VTK and VTM formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/vtk_vtm.py) |
 | 6 | Guides you through the conversion between VTK and VTU formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/vtk_vtu.py) |
-
 ## Visualization Pipeline
 
 | Number | Description | Link |
 | --- | --- | --- |
 | 1 | Shows handling multiple objects in the actor-mapper setup | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/actor_mapper_multiple_objects.py) |
 | 2 | Teaches you how to add text labels in your visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/adding_text_labels.py) |
-| 3 | Walks you through creating camera movements | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/camera_movement.py) |
-| 4 | Shows various filters in action in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/filters_in_action.py) |
-| 5 | Guides you through creating lighting and shadows in your visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/lighting_and_shadows.py) |
-| 6 | Shows you how to animate your visualization pipeline | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/pipeline_animation.py) |
-| 7 | Demonstrates scalar color mapping in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/scalar_color_mapping.py) |
+| 3 | Demonstrates scalar color mapping in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/scalar_color_mapping.py) |
+| 4 | Walks you through creating camera movements | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/camera_movement.py) |
+| 5 | Shows various filters in action in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/filters_in_action.py) |
+| 6 | Guides you through creating lighting and shadows in your visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/lighting_and_shadows.py) |
+| 7 | Shows you how to animate your visualization pipeline | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/pipeline_animation.py) |
 
 ## Interactive Widgets
 
 | Number | Description | Link |
 | --- | --- | --- |
 | 1 | Guides you to use the orientation marker widget | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/orientation_marker.py) |
-| 2 | Learn to create slicing planes in your visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/slicing_planes.py) |
-| 3 | Tutorial on creating and using sliders in your visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/slider.py) |
+| 2 | Tutorial on creating and using sliders in your visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/slider.py) |
+| 3 | Learn how to interact with simple buttons in your visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/simple_button.py) |
+| 4 | Demonstrates creating interactive planes intersection | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/planes_intersection.py) |
 
-## Integrations with external tools
+## Integrations with External Tools
 
 | Number | Description | Link |
 | --- | --- | --- |
-| 1 | Learn to create a 3D window with PyQt | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/08_integrations_with_pyqt/3d_window.py) |
-| 2 | Shows you how to render vtk in matplotlib | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/08_integrations_with_pyqt/render_in_matplotlib.py) |
+| 1 | Learn to integrate VTK with Qt to create a 3D sphere visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/08_integration_with_ui/qt_sphere.py) |
+| 2 | Demonstrates the use of Matplotlib for creating a 3D sphere using VTK | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/08_integration_with_ui/matplotlib_sphere.py) |
+| 3 | Shows how to create surface plots using VTK and Matplotlib | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/08_integration_with_ui/matplotlib_surface_plot.py) |
+
+## Computational Fluid Dynamics (CFD)
+
+| Number | Description | Link |
+| --- | --- | --- |
+| 1 | 1D heat convection problems | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/heat_convection_solver_1d.py) |
+| 2 | 1D fixed end heat transfer | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/fixed_end_heat_transfer_1d.py) |
+| 3 | 1D convective end heat transfer | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/convective_end_heat_transfer_1d.py) |
+| 4 | 1D enhanced heat transfer | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/enhanced_heat_transfer_solver_1d.py) |
+| 5 | 2D heat conduction problems | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/heat_conduction_solver_2d.py) |
+| 6 | 2D enhanced heat transfer | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/enhanced_heat_transfer_solver_2d.py) |
+| 7 | Simple fluid flow | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/fluid_flow_simulator.py) |
+| 8 | Fluid flow around an obstacle | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/obstacle_flow_simulation.py) |
 
 ## References
 
