@@ -38,38 +38,46 @@ VTK examples in Python.
 
 ### Setting Up Your Environment
 
-1. **Creating a Virtual Environment:**
-   - Use tools like `virtualenv` or `conda` to create a virtual environment for your project.
-2. **Activating and Installing Dependencies:**
-   - Activate your environment and install required packages:
+To begin with your project, it's important to set up your environment properly. Here's how:
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+1. **Creating a Virtual Environment:**
+   - Use `virtualenv` or `conda` for isolating your project dependencies. This helps in managing packages specific to this project without affecting others.
+
+2. **Activating and Installing Dependencies:**
+   - Once the virtual environment is created, activate it. Then, install all the required packages using the following command:
+
+```
+pip install -r requirements.txt
+```
 
 ### Executing Scripts
 
-- To run an example script, navigate to the corresponding folder in the `src/` directory and use the command line to execute the script. For example:
+Running the scripts is straightforward. Just follow these steps:
 
-    ```bash
-    cd src/01_basic_shapes
-    python circle.py
-    ```
+- Navigate to the script's directory within the `src/` folder. For example, if you're looking to run a script about basic shapes:
 
-  - This command runs the `circle.py` script, demonstrating a simple circle visualization with VTK.
+```
+cd src/01_basic_shapes
+python circle.py
+```
+
+- The above command will execute the `circle.py` script, which demonstrates creating a simple circle using VTK.
 
 ### Using an Integrated Development Environment (IDE)
 
-- For users preferring IDEs like Visual Studio Code or PyCharm:
-  
-  1. **Project Setup:**
-     - Open your IDE and load the project folder.
-  2. **Interpreter Configuration:**
-     - Configure the Python interpreter to use the virtual environment you created.
-  3. **Running Scripts:**
-     - Open and run the desired script using the IDE's tools, such as the "Run" button.
-  4. **Debugging:**
-     - Use IDE features like breakpoints and step-through debugging for in-depth analysis of the example scripts.
+If you prefer using an IDE like Visual Studio Code or PyCharm, here's what you need to do:
+
+1. **Project Setup:**
+ - Open your chosen IDE and load the project folder. This will make all your project files accessible in one place.
+
+2. **Interpreter Configuration:**
+ - Configure the Python interpreter in your IDE to point to the virtual environment you created earlier. This ensures that your IDE uses the correct Python version and dependencies.
+
+3. **Running Scripts:**
+ - Select the script you want to run. Use your IDE's tools (often a "Run" button) to execute the script.
+
+4. **Debugging:**
+ - Leverage your IDE's debugging features like breakpoints and step-through debugging to analyze your scripts more closely.
 
 ## Basic Shapes
 
