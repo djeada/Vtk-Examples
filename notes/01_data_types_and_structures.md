@@ -64,7 +64,7 @@ III. Common subclasses include
 
 ![rectilinear_grid](https://github.com/djeada/Vtk-Examples/assets/37275728/1fd2f697-73aa-40aa-a319-302f37751b63)
 
-#### vtkPolyData
+### vtkPolyData
 
 - **Description**: Represents a dataset comprising points, vertices, lines, polygons, and triangle strips.
 - **Applications**: Ideal for surface meshes and 3D models.
