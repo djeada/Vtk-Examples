@@ -66,6 +66,8 @@ III. Common subclasses include
 - **Applications**: Ideal for surface meshes and 3D models.
 - **Examples**: Models of 3D objects (e.g., vehicles, buildings), terrain surfaces (mountains, valleys).
 
+![poly_data](https://github.com/djeada/VTK-Examples/assets/37275728/4c642d3b-ecd0-4397-9bdb-2e7a89095416)
+
 ### vtkStructuredGrid
 
 - **Description**: Curvilinear grid maintaining fixed topology.
@@ -96,6 +98,8 @@ III. Common subclasses include
 - **Description**: A collection of multiple datasets, organized hierarchically.
 - **Applications**: Handles complex, hierarchical data structures effectively.
 - **Examples**: Multi-domain simulations (each domain as a separate dataset), multi-resolution data (datasets at different detail levels).
+
+![multiblock_dataset](https://github.com/djeada/VTK-Examples/assets/37275728/7a373425-41b2-4a62-bf4b-7f40d40ba04a)
 
 A `vtkMultiBlockDataSet` organizes datasets (or blocks) hierarchically. Each block can be a vtkDataSet subclass or another composite dataset, allowing versatile dataset organization. For instance, a vtkMultiBlockDataSet might contain blocks like vtkPolyData, vtkStructuredGrid, and even another vtkMultiBlockDataSet. This structure is invaluable in large-scale simulations where data is segmented into blocks representing different simulation areas or system components, enabling VTK to manage complex, multi-part datasets coherently.
 
