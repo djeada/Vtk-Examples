@@ -76,40 +76,32 @@ II. **Converting VTK Images for Matplotlib**
 The following code demonstrates how to create a 3D representation of a sphere using VTK and then visualize it using Matplotlib. The visualization includes both the points of the sphere and their normals (vectors perpendicular to the sphere's surface at each point):
 
 ```python
-import vtk
-import numpy as np
 import matplotlib.pyplot as plt
+import vtkmodules.all as vtk
+from vtkmodules.util import numpy_support
 
-# Create a sphere source
+# Create a sphere
+sphere_radius = 1.0
+sphere_theta_resolution = 40
+sphere_phi_resolution = 40
+
 sphere = vtk.vtkSphereSource()
-sphere.SetRadius(1)
-sphere.SetThetaResolution(100)
-sphere.SetPhiResolution(100)
+sphere.SetRadius(sphere_radius)
+sphere.SetThetaResolution(sphere_theta_resolution)
+sphere.SetPhiResolution(sphere_phi_resolution)
 sphere.Update()
 
-# Extract the points and normals from the sphere
-points = sphere.GetOutput().GetPoints()
-normals = sphere.GetOutput().GetPointData().GetNormals()
+# Convert vtk to numpy
+vtk_array = sphere.GetOutput().GetPoints().GetData()
+numpy_array = numpy_support.vtk_to_numpy(vtk_array)
 
-# Convert VTK points and normals to NumPy arrays
-numpy_points = vtk.util.numpy_support.vtk_to_numpy(points.GetData())
-numpy_normals = vtk.util.numpy_support.vtk_to_numpy(normals.GetData())
+# Split the numpy array into x, y, z components for 3D plotting
+x, y, z = numpy_array[:, 0], numpy_array[:, 1], numpy_array[:, 2]
 
-# Plot the points and normals using Matplotlib
+# Plot the sphere using matplotlib
 fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-
-ax.quiver(numpy_points[:, 0], numpy_points[:, 1], numpy_points[:, 2],
-          numpy_normals[:, 0], numpy_normals[:, 1], numpy_normals[:, 2],
-          length=0.2, color='b', linewidth=0.5)
-
-ax.set_xlim([-1, 1])
-ax.set_ylim([-1, 1])
-ax.set_zlim([-1, 1])
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-
+ax = fig.add_subplot(111, projection="3d")
+ax.scatter(x, y, z, color="b", alpha=0.6, edgecolors="w", s=20)
 plt.show()
 ```
 
