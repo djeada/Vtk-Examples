@@ -54,11 +54,15 @@ III. Common subclasses include
 - **Applications**: Ideal for volumetric data like images or 3D scalar fields.
 - **Examples**: CT and MRI scans, where vtkImageData stores pixel values at each grid point for 3D visualization.
 
+![image_data](https://github.com/djeada/Vtk-Examples/assets/37275728/1dd504e1-9532-4863-bd88-29f03ca6e449)
+
 ### vtkRectilinearGrid
 
 - **Description**: A regular grid with fixed topology but non-uniform spacing between points.
 - **Applications**: Suitable for data with varying resolution, like in climate or terrain elevation data.
 - **Examples**: Climate models with varying altitude resolution, or terrain data with resolution changing with slope.
+
+![rectilinear_grid](https://github.com/djeada/Vtk-Examples/assets/37275728/1fd2f697-73aa-40aa-a319-302f37751b63)
 
 #### vtkPolyData
 
