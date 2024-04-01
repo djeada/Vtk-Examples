@@ -62,7 +62,7 @@ Example:
 </VTKFile>
 ```
 
-3. Third-Party File Formats
+III. Third-Party File Formats
 
 - **Scope**: VTK interfaces seamlessly with many popular 3D graphics and scientific visualization file formats.
 - **STL**: Predominantly used in 3D printing.
