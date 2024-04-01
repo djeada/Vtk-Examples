@@ -4,7 +4,7 @@ One of the key components of VTK is its extensive range of filters and algorithm
 
 I. Purpose and Functionality
 
-- Filters and algorithms in VTK are primarily used for processing, manipulating, and generating data objects. 
+- Filters and algorithms are primarily used for processing, manipulating, and generating data objects. 
 - They are capable of creating new data sets, extracting important features, or transforming existing data into a more useful format.
 
 II. Interaction with Data Connectivity
