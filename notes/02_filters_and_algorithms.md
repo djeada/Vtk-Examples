@@ -37,6 +37,7 @@ Examples:
 3. Points connected to form a complex structure, like a polygon
 
 ```
+polygon:
     *---*
    /     \
   *       *
