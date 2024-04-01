@@ -21,6 +21,8 @@ volume_property = vtk.vtkVolumeProperty()
 volume.SetProperty(volume_property)
 ```
 
+![volume](https://github.com/djeada/Vtk-Examples/assets/37275728/cec201b8-f89a-4791-a809-2aab6c796098)
+
 ### Streamlines and Pathlines
 
 These techniques are crucial for visualizing fluid flow or other vector fields. Streamlines illustrate the flow in steady vector fields by tracing the paths that particles would follow. Pathlines, on the other hand, are used for time-varying vector fields, showing particle trajectories over time.
@@ -36,6 +38,8 @@ import vtk
 stream_tracer = vtk.vtkStreamTracer()
 ```
 
+![streamlines](https://github.com/djeada/Vtk-Examples/assets/37275728/afa95302-2dde-4892-aa19-9b52b79e07cd)
+
 ### Glyphs and Oriented Glyphs
 
 Glyphs in VTK are small geometric objects (like arrows, cones, or spheres) used to represent and visualize complex data at discrete points in space. Regular glyphs are typically used for scalar data, while oriented glyphs are aligned according to vector or tensor data, making them ideal for visualizing directionality in the field.
@@ -50,6 +54,8 @@ import vtk
 # Create a glyph generator
 glyph_generator = vtk.vtkGlyph3D()
 ```
+
+![glyphs](https://github.com/djeada/Vtk-Examples/assets/37275728/b92cc007-f7d7-401c-9a38-b2974406dc2b)
 
 ### Contouring and Isosurfaces
 
@@ -67,3 +73,6 @@ import vtk
 contour_filter = vtk.vtkContourFilter()
 contour_filter.SetValue(0, iso_value)  # Set the iso-value
 ```
+
+![isosurface](https://github.com/djeada/Vtk-Examples/assets/37275728/85cc591c-3abc-4759-b375-9f9a7f690b9a)
+
