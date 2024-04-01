@@ -72,11 +72,15 @@ III. Common subclasses include
 - **Applications**: Best for data on curvilinear coordinate systems.
 - **Examples**: Fluid flow simulations around objects, finite volume method simulations with a fixed cell division.
 
+![structured_grid](https://github.com/djeada/VTK-Examples/assets/37275728/c55c5b5a-e6ae-45bc-aa3a-e591eda64e1d)
+
 ### vtkUnstructuredGrid
 
 - **Description**: An irregular grid with flexible topology, capable of containing various geometric primitives.
 - **Applications**: Suitable for complex geometries and adaptive meshes.
 - **Examples**: Finite element method simulations with complex, dynamic domains, models of intricate 3D geometries (human brain, aircraft wings).
+  
+![unstructured_grid](https://github.com/djeada/VTK-Examples/assets/37275728/aa34d289-5cc4-4611-bae3-368b3ac49ac4)
 
 ### Structured vs Unstructured Grids
 
