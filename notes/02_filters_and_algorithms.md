@@ -150,6 +150,8 @@ shrink_filter.SetShrinkFactor(0.8)
 shrink_filter.Update()
 ```
 
+![sphere_shrink](https://github.com/djeada/Vtk-Examples/assets/37275728/aa343642-994f-46d9-ae84-11474860df6b)
+
 ### Summary of VTK Algorithms and Filters
 
 | **Category**                | **Class Name**            | **Description**                                                   |
