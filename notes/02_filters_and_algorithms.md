@@ -45,12 +45,7 @@ polygon:
     *---*
 ```
 
-4. The topological filter changes how the points are connected:
-
-```
-Original: *---*---*---*
-After Topological Filter: *   *   *   *
-```
+![connectivity](https://github.com/djeada/Vtk-Examples/assets/37275728/f3a63ec5-0197-4aca-944c-6a5e61ae6878)
 
 ### Data Flow
 
