@@ -24,6 +24,8 @@ picker.Pick(10, 10, 0, renderer)
 pickedCell = picker.GetCellId()
 ```
 
+![picker](https://github.com/djeada/Vtk-Examples/assets/37275728/51f7b6ed-9086-4fae-b976-8ac0dc139be2)
+
 ## Cutting Planes
 
 Cutting planes are used to interactively slice through a 3D object, revealing its internal structure. This technique is particularly useful when you need to inspect the inner structure of complex objects.
@@ -44,6 +46,8 @@ cutter.SetCutFunction(plane)
 cutter.SetInputData(object)
 ```
 
+![plane_cutter](https://github.com/djeada/Vtk-Examples/assets/37275728/8d6e1588-f198-4ccf-b920-8a6762ea92ce)
+
 ## 3D Widgets
 
 3D widgets are interactive tools used for manipulating data or objects within a 3D scene. They can be used for tasks such as positioning lights or cameras, or adjusting clipping planes.
@@ -62,6 +66,8 @@ sliderWidget.SetInteractor(interactor)
 sliderWidget.SetRepresentation(sliderRep)
 sliderWidget.AddObserver("InteractionEvent", lambda obj, event: actor.GetProperty().SetOpacity(obj.GetRepresentation().GetValue()))
 ```
+
+![slider](https://github.com/djeada/Vtk-Examples/assets/37275728/bf595429-3a41-4e47-b996-36d216138cde)
 
 ## Event Handling and Callbacks
 
