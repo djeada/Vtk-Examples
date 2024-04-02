@@ -1,5 +1,7 @@
 ## Data Types and Structures
 
+VTK uses 3D geometries, including points, lines, polygons, and volumes. It handles images and volumetric data for 2D and 3D visualization. It works with scalar, vector, and tensor fields for complex data representation. Supports structured and unstructured grid types for various spatial data layouts. Includes support for time-series data and hierarchical datasets.
+    
 ### vtkDataObject
 
 I. Base class for all data objects in VTK
