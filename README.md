@@ -33,17 +33,13 @@ For getting VTK up and running on your system:
 
 To harness the power of VTK effectively, follow this basic workflow:
 
-1. **Data Input and Representation:**
-   - Your first step involves choosing the appropriate data structure for your dataset.
+1. **Data Input and Representation:** Your first step involves choosing the appropriate data structure for your dataset.
 
-2. **Data Manipulation and Processing:**
-   - Next, apply a variety of filters and algorithms to manipulate and process the data as needed.
+2. **Data Manipulation and Processing:** Next, apply a variety of filters and algorithms to manipulate and process the data as needed.
 
-3. **Visualization and Rendering:**
-   - For the visual representation of data, make use of mappers, actors, and renderers.
+3. **Visualization and Rendering:** For the visual representation of data, make use of mappers, actors, and renderers.
 
-4. **Interaction and Exporting:**
-   - Lastly, incorporate interactive elements into your visualization and utilize export functionalities as required.
+4. **Interaction and Exporting:** Lastly, incorporate interactive elements into your visualization and utilize export functionalities as required.
 
 ## Running the Examples
 
@@ -51,11 +47,9 @@ To harness the power of VTK effectively, follow this basic workflow:
 
 To begin with your project, it's important to set up your environment properly. Here's how:
 
-1. **Creating a Virtual Environment:**
-   - Use `virtualenv` or `conda` for isolating your project dependencies. This helps in managing packages specific to this project without affecting others.
+1. **Creating a Virtual Environment:** Use `virtualenv` or `conda` for isolating your project dependencies. This helps in managing packages specific to this project without affecting others.
 
-2. **Activating and Installing Dependencies:**
-   - Once the virtual environment is created, activate it. Then, install all the required packages using the following command:
+2. **Activating and Installing Dependencies:** Once the virtual environment is created, activate it. Then, install all the required packages using the following command:
 
 ```
 pip install -r requirements.txt
@@ -78,17 +72,13 @@ python circle.py
 
 If you prefer using an IDE like Visual Studio Code or PyCharm, here's what you need to do:
 
-1. **Project Setup:**
- - Open your chosen IDE and load the project folder. This will make all your project files accessible in one place.
+1. **Project Setup:** Open your chosen IDE and load the project folder. This will make all your project files accessible in one place.
 
-2. **Interpreter Configuration:**
- - Configure the Python interpreter in your IDE to point to the virtual environment you created earlier. This ensures that your IDE uses the correct Python version and dependencies.
+2. **Interpreter Configuration:** Configure the Python interpreter in your IDE to point to the virtual environment you created earlier. This ensures that your IDE uses the correct Python version and dependencies.
 
-3. **Running Scripts:**
- - Select the script you want to run. Use your IDE's tools (often a "Run" button) to execute the script.
+3. **Running Scripts:** Select the script you want to run. Use your IDE's tools (often a "Run" button) to execute the script.
 
-4. **Debugging:**
- - Leverage your IDE's debugging features like breakpoints and step-through debugging to analyze your scripts more closely.
+4. **Debugging:** Leverage your IDE's debugging features like breakpoints and step-through debugging to analyze your scripts more closely.
 
 ## Basic Shapes
 
