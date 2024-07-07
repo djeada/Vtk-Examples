@@ -125,6 +125,8 @@ II. Examples include:
 
 ## Example: Creating a Sphere Source and Applying a Shrink Filter
 
+In this example, we will demonstrate how to create a basic 3D object—a sphere—and then apply a shrink filter to modify its appearance. 
+
 ```python
 import vtk
 
@@ -146,6 +148,10 @@ shrink_filter.SetShrinkFactor(0.8)
 # Update the filter to generate the output
 shrink_filter.Update()
 ```
+
+We start by creating a `vtkSphereSource` object to generate a sphere with a radius of 1.0 units, which produces points connected to form a spherical surface. Then, we apply a `vtkShrinkFilter` to this sphere; this filter, connected to the sphere source's output, is set with a shrink factor of 0.8 to reduce the size of the sphere while maintaining its triangular connectivity. Finally, we update the filter to produce the shrunken sphere, resulting in a smaller yet structurally consistent 3D object. 
+
+Below is a visual representation of the shrunken sphere:
 
 ![sphere_shrink](https://github.com/djeada/Vtk-Examples/assets/37275728/aa343642-994f-46d9-ae84-11474860df6b)
 
