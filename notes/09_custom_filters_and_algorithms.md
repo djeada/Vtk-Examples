@@ -36,9 +36,9 @@ Custom filters must adhere to the VTK pipeline architecture and inherit from rel
 
 Custom filters can be designed to meet various specific needs in data processing and visualization. Some practical applications include:
 
-- **Custom Mesh Smoothing Algorithm:** Develop a filter that applies advanced smoothing techniques to 3D meshes, improving their appearance or preparing them for further analysis.
-- **Computing Distances Between Datasets:** Create a filter that calculates the distances between corresponding points in two different datasets. This is particularly useful in comparing deformations or changes over time.
-- **Innovative Volume Rendering Techniques:** Design a new volume rendering algorithm that offers better performance or visual quality for specific types of volumetric data, such as medical imaging or scientific simulations.
+- The development of a custom mesh smoothing algorithm involves creating a filter that applies advanced smoothing techniques to 3D meshes, which can significantly enhance their appearance or prepare them for further analysis. This process typically involves mathematical techniques to reduce noise and irregularities in the mesh surface, leading to a smoother and more visually appealing result.
+- Creating a filter for computing distances between datasets entails the calculation of distances between corresponding points in two different datasets. This technique is particularly useful in applications such as comparing deformations or changes over time in objects, which can be critical in fields like biomechanics, geology, and climate science. Accurate distance computation can provide insights into the nature and extent of these changes.
+- Designing innovative volume rendering techniques requires the development of a new algorithm that improves performance or visual quality for specific types of volumetric data. This is especially relevant for fields like medical imaging or scientific simulations, where high-quality visual representation of volumetric data is crucial. An effective volume rendering algorithm can lead to more accurate diagnoses in medical contexts or more precise interpretations of scientific data.
 
 ## Example: Creating a Custom Filter for Point Displacement
 
