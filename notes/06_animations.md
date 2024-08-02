@@ -183,7 +183,6 @@ In this example:
 - A callback function `update_time_step` is defined to update the dataset based on the current time step.
 - An animation cue is created to manage the animation timing.
 - The animation is played, and the render window interactor is started.
-Certainly! Here's an expanded version of the notes on animation export:
 
 ## Animation Export
 
