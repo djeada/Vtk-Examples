@@ -7,32 +7,32 @@ This process often involves converting data between formats, ensuring compatibil
 ASCII Diagram Illustrating a Typical Workflow  
 
 ```
-         +-----------------+
-         |  Data Sources   |  (Large HPC simulation, medical imaging, etc.)
-         +--------+--------+
-                  |
-                  v
-         +-----------------+
-         |       ITK       |  (Segmentation, registration, pre-processing)
-         +--------+--------+
-                  |
-                  v
-         +-----------------+
-         |       VTK       |  (3D rendering, advanced graphics)
-         +--------+--------+
-                  |
-                  v
-         +-----------------+
-         | Python Scripts  |  (pyvista, vtkplotlib, Matplotlib integration)
-         +--------+--------+
-                  |
-                  v
-         +-----------------+
-         |   Visualization |
-         |  (ParaView,     |
-         |   VisIt, GUI,   |
-         |   or inline)    |
-         +-----------------+
++-----------------+
+|  Data Sources   |  (Large HPC simulation, medical imaging, etc.)
++--------+--------+
+         |
+         v
++-----------------+
+|       ITK       |  (Segmentation, registration, pre-processing)
++--------+--------+
+         |
+         v
++-----------------+
+|       VTK       |  (3D rendering, advanced graphics)
++--------+--------+
+         |
+         v
++-----------------+
+| Python Scripts  |  (pyvista, vtkplotlib, Matplotlib integration)
++--------+--------+
+         |
+         v
++-----------------+
+|   Visualization |
+|  (ParaView,     |
+|   VisIt, GUI,   |
+|   or inline)    |
++-----------------+
 ```
 
 ### ParaView
@@ -157,24 +157,24 @@ HPC Integration with VTK is critical when data volumes and computational complex
 Parallel reading and rendering of data in VTK rely on mechanisms that partition the dataset into manageable pieces. Each piece is processed independently before final aggregation. ParaView and VisIt implement this parallel model under the hood, but custom applications can also harness the parallel version of VTK directly.
 
 ```
-         +--------------------------+
-         |    HPC Cluster Nodes    |   (Multiple CPU/GPU resources)
-         +------------+------------+
-                      |
-                      v
-         +--------------------------+
-         |  Distributed VTK Pipes  |   (Parallel data partitioning, computation)
-         +------------+------------+
-                      |
-                      v
-         +--------------------------+
-         |     Final Aggregation   |   (Combine partial results into full view)
-         +------------+------------+
-                      |
-                      v
-         +--------------------------+
-         |    Visualization GUI    |
-         +--------------------------+
++-------------------------+
+|    HPC Cluster Nodes    |   (Multiple CPU/GPU resources)
++------------+------------+
+             |
+             v
++-------------------------+
+|  Distributed VTK Pipes  |   (Parallel data partitioning, computation)
++------------+------------+
+             |
+             v
++-------------------------+
+|     Final Aggregation   |   (Combine partial results into full view)
++------------+------------+
+             |
+             v
++-------------------------+
+|    Visualization GUI    |
++-------------------------+
 ```
 
 A popular method for parallelizing is domain decomposition, where the spatial domain of the dataset is split among the nodes. For large 3D grids, users might use structured or unstructured partitioning. The structured approach divides an $N_x \times N_y \times N_z$ domain into subdomains of size $\frac{N_x}{p} \times N_y \times N_z$ if splitting along one dimension for $p$ processes. More sophisticated strategies might involve multi-dimensional splits or load balancing heuristics.
@@ -247,24 +247,24 @@ Extended Python integrations revolve around letting VTK cooperate with a spectru
 Small ASCII Diagram: Python Data Flow
 
 ```
-      +-----------------------------+
-      |   NumPy / SciPy / Pandas   |
-      +-------------+---------------+
-                    |
-                    v
-      +-----------------------------+
-      |      ML Libraries (TF)     |
-      +-------------+---------------+
-                    |
-                    v
-      +-----------------------------+
-      |           VTK              |
-      +-------------+---------------+
-                    |
-                    v
-      +-----------------------------+
-      |  Rendered Visualization    |
-      +-----------------------------+
++-----------------------------+
+|   NumPy / SciPy / Pandas    |
++-------------+---------------+
+           |
+           v
++-----------------------------+
+|      ML Libraries (TF)      |
++-------------+---------------+
+           |
+           v
++-----------------------------+
+|           VTK               |
++-------------+---------------+
+           |
+           v
++-----------------------------+
+|  Rendered Visualization     |
++-----------------------------+
 ```
 
 A possible use case might involve training a model to classify regions of interest in a 3D medical image. After classification, the resulting labels are transformed back into a vtkImageData structure for 3D rendering in VTK. This loop helps domain experts see how the ML model performs on actual volumetric scans, leading to faster iterative improvements.
