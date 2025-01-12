@@ -438,32 +438,32 @@ Whether or not you need MPI-based parallel rendering in VTK depends on your depl
 | Multi-core Machine (Shared Memory)| - Can still use MPI across cores, but often shared-memory parallelism (like threading with TBB, OpenMP, or Python multiprocessing) may suffice. <br>- For truly large data, MPI + `vtkParallelRenderManager` can be beneficial. |
 | Distributed System (Cluster/HPC)  | - Full MPI usage is required to span multiple nodes. <br>- `vtkMPIController` for communication and `vtkParallelRenderManager` for distributing/rendering the final image. <br>- Must handle data partitioning and load balancing. |
 
-### Practical Considerations
+#### Practical Considerations
 
 When scaling your application to multiple nodes or a large number of processes, pay attention to:
 
-#### Load Balancing  
+##### Load Balancing  
 
-- Static load balancing assigns tasks or data subsets to processes before execution, ensuring each node gets a predetermined workload (e.g., block-based decomposition of a mesh).  
-- Dynamic load balancing monitors workloads during runtime, redistributing tasks if some nodes finish earlier or deal with less complex geometry to ensure better resource utilization.  
+- **Static load balancing** assigns tasks or data subsets to processes before execution, ensuring each node gets a predetermined workload (e.g., a simple block-based decomposition of a mesh). This approach is straightforward to carry out and works well when the workload is uniformly distributed or predictable. However, it might lead to underutilized nodes if the actual workload deviates significantly from the initial estimate.  
+- **Dynamic load balancing** continuously or periodically monitors each node’s workload during runtime and redistributes tasks if some nodes finish earlier or encounter less complicated geometry. This can help maintain balanced use of resources across the cluster, improving overall throughput. However, dynamic approaches often introduce additional overhead for monitoring and redistributing work, so they should be used judiciously, especially when the cost of redistribution may outweigh its benefits.
 
-#### Data Distribution  
+##### Data Distribution  
 
-- Partitioning involves dividing the dataset (e.g., a volume or mesh) into smaller subsets, minimizing inter-process communication while maintaining efficiency.  
-- In replication, the entire dataset is stored on each node, reducing communication overhead but requiring significant memory resources.  
-- Decomposition distributes only subsets of the dataset to nodes, optimizing memory usage but necessitating effective communication for shared data or dependencies.  
-- Data locality prioritizes placing data near the processing nodes to reduce network latency and improve performance.
+- **Partitioning** involves dividing the dataset (e.g., a volume or mesh) into smaller logical or spatial subsets. The goal is to reduce the amount of inter-process communication needed while still allowing each node to work efficiently on its portion of the data. Careful partitioning can significantly improve scalability, but poor partition strategies can lead to load imbalance or increased network traffic.  
+- **Replication** stores the entire dataset on each node, drastically reducing communication overhead since all the necessary data is local. However, this method is memory-intensive, making it feasible only for smaller datasets or systems with very large memory capacities.  
+- **Decomposition** provides a compromise by distributing only subsets of the dataset (e.g., sub-volumes, partial meshes) to each node. This method optimizes memory usage and potentially balances computational loads, but requires effective communication mechanisms when data or dependencies span multiple nodes. If not managed properly, communication can become a bottleneck and offset the benefits of decomposition.  
+- **Data locality** focuses on placing data physically close to the nodes that process it. This can be achieved through careful assignment of tasks to nodes with corresponding data or by employing hardware features like non-uniform memory access (NUMA) controls. Proper data locality helps reduce network latency and improves performance, especially for data-intensive computations.
 
-#### Synchronization
+##### Synchronization
 
-- Barriers (e.g., `MPI_Barrier`) make sure all processes are at the same stage before proceeding.  
-- Collective Operations (e.g., `MPI_Bcast`, `MPI_Reduce`) allow coordinated sharing or reduction of data.  
-- Race Conditions: Make sure that no two processes overwrite shared data structures simultaneously.
+- **Barriers** (e.g., `MPI_Barrier`) make sure that all processes reach a certain point in the code before proceeding. This can be useful for maintaining consistent states across processes, such as at important algorithm phases or before collective I/O. Overusing barriers, however, can degrade performance by forcing faster processes to wait for slower ones.  
+- **Collective Operations** (e.g., `MPI_Bcast`, `MPI_Reduce`) provide coordinated and efficient ways to share or aggregate data among all processes. These operations are heavily optimized in most MPI implementations, but must be used carefully to avoid excessive synchronization overhead.  
+- **Race Conditions** occur when two or more processes attempt to modify shared data structures simultaneously in an uncontrolled manner. To avoid this, make sure proper synchronization through locking mechanisms, atomic operations, or careful data partitioning that prevents unwanted concurrent writes.
 
-### Error Handling
+##### Error Handling
 
-- Default Error Handler in MPI typically aborts the job on errors.  
-- Custom Error Handlers can be set for more graceful recovery (e.g., logging errors and continuing partial computations).
+- **Default Error Handler** in MPI typically aborts the entire job if an error occurs in any process. This ensures fast failure recognition but offers no opportunity for partial recovery or logging intermediate results.  
+- **Custom Error Handlers** can be set to catch and handle errors more gracefully. They allow you to log the error, attempt partial computations, or even dynamically reassign tasks if a process fails. This can be important in large-scale systems where maintaining some level of progress is preferable to aborting the entire job due to a single failure.
 
 #### Detailed Example with Tasks, Distribution, and Rendering
 
