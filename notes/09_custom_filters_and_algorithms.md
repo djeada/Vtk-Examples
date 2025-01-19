@@ -8,6 +8,7 @@ VTK comes with a broad range of built-in filters and classes that cover many com
 - Reuse existing VTK infrastructure for rendering, interaction, and I/O.
 - Use VTK’s optimized performance and memory management.
 - Keep your workflow consistent without needing to switch between external libraries.
+
 Below, we’ll walk through the fundamentals of how VTK processes data, the steps for building a custom filter, and a detailed example that demonstrates how you might carry out a distance-to-point calculation for polygonal data.
 
 ### Understanding the VTK Pipeline
@@ -88,7 +89,7 @@ When the distance for each point is computed, it’s often stored in a scalar ar
 
 #### Implementing the Custom Filter
 
-Below is an expanded Python example demonstrating how to carry out this custom distance filter for polygonal data. We’ll subclass `vtkPolyDataAlgorithm` and override the `RequestData()` method, where we do all our distance computations.
+Below is an example demonstrating how to carry out this custom distance filter for polygonal data. We’ll subclass `vtkPolyDataAlgorithm` and override the `RequestData()` method, where we do all our distance computations.
 
 ```python
 import vtk
@@ -189,7 +190,7 @@ Here’s a breakdown of what’s happening in `RequestData()`:
   
 #### Using the Custom Filter
 
-Below is an expanded usage example showing how to integrate this custom filter into a typical VTK pipeline. We’ll generate a simple sphere, apply our custom distance filter, and then visualize the results with a color map that reflects each point’s distance to the specified target.
+Below is an example showing how to integrate this custom filter into a typical VTK pipeline. We’ll generate a simple sphere, apply our custom distance filter, and then visualize the results with a color map that reflects each point’s distance to the specified target.
 
 ```python
 import vtk
@@ -242,4 +243,5 @@ interactor.Start()
 - The sphere will be displayed in the rendering window.
 - Each vertex on the sphere’s surface will be assigned a color based on how far it is from (0.5, 0.0, 0.0).
 - If you look closely, the point on the sphere closest to (0.5, 0.0, 0.0) will likely be tinted one color (e.g., blue), while the farthest point on the opposite side of the sphere might be another color (e.g., red), depending on the default color mapping.
+
 Feel free to adjust the target point or the resolution of the sphere to see how the distance calculations change.
