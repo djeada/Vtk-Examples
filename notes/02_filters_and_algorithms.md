@@ -59,8 +59,6 @@ polygon:
 +-------------+   +-----------+   +-------------+
 ```
 
-The task was to rewrite and expand the given points into normal human sentences, ensuring each key term appears naturally within the sentence and is bolded. Here is the revised and expanded version:
-
 ### vtkAlgorithm
 
 I. The class **vtkAlgorithm** serves as the foundational class for all algorithm types in the Visualization Toolkit (VTK), providing a standard structure for implementing various algorithms.
