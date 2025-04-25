@@ -238,7 +238,7 @@ Most VR and AR solutions require specialized hardware and software toolkits. Ste
 
 Extended Python integrations revolve around letting VTK cooperate with a spectrum of Python data analysis and machine learning packages. Libraries like NumPy, SciPy, and pandas make it simpler to perform advanced calculations, while scikit-learn or TensorFlow can run machine learning tasks. In these scenarios, data is often shifted between VTK data arrays and NumPy arrays using vtkmodules.util.numpy_support, ensuring minimal overhead in the conversion.
 
-Small ASCII Diagram: Python Data Flow
+Python Data Flow:
 
 ```
 +-----------------------------+
