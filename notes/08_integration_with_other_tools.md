@@ -535,6 +535,61 @@ IV. Visualize:
 - Use color maps to highlight high-population or high-pollution regions.  
 - Interactively rotate, zoom, or slice through the data to identify hotspots or patterns that might require further investigation.
 
+The ![script](https://github.com/djeada/Vtk-Examples/blob/main/src/08_integration_with_ui/geospatial_data.py) includes several key components:
+
+1. Data Generation and Processing:
+   
+```python
+def generate_sample_geospatial_data(n_points: int = 10000) -> pd.DataFrame:
+    """Generate synthetic geospatial data with realistic distributions."""
+    lat = np.random.normal(loc=0, scale=30, size=n_points)
+    lon = np.random.uniform(-180, 180, n_points)
+    # ... generate additional attributes
+    return pd.DataFrame({
+        'latitude': lat,
+        'longitude': lon,
+        'population_density': population_density,
+        'elevation': elevation,
+        'pollution_index': pollution_index
+    })
+```
+
+2. Coordinate Conversion:
+   
+```python
+def lat_lon_to_xyz(lat: float, lon: float, elevation: float = 0, radius: float = 6371000) -> Tuple[float, float, float]:
+    """Convert latitude and longitude to 3D coordinates."""
+    lat_rad = math.radians(lat)
+    lon_rad = math.radians(lon)
+    r = radius + elevation
+    x = r * math.cos(lat_rad) * math.cos(lon_rad)
+    y = r * math.cos(lat_rad) * math.sin(lon_rad)
+    z = r * math.sin(lat_rad)
+    return (x, y, z)
+```
+
+The visualization provides the following interactive features:
+
+- Left mouse button: Rotate the view
+- Middle mouse button: Pan the camera
+- Right mouse button: Zoom in/out
+- Key '1': Switch to population density visualization
+- Key '2': Switch to elevation visualization
+- Key '3': Switch to pollution index visualization
+
+The visualization creates an interactive 3D globe with data points colored by their attributes:
+
+![Geospatial Visualization](https://github.com/user-attachments/assets/0841ce23-34d0-4d0f-9fd3-d78b640dd697)
+
+*The image shows the Earth with data points colored by population density. Brighter colors indicate higher values.*
+
+- In a real-world scenario, replace the data generation with actual data loading from Spark-processed datasets
+- The example uses a simplified Earth representation; for production use, consider adding:
+  - Proper Earth texture mapping
+  - Terrain data
+  - Political boundaries
+  - More sophisticated data sampling techniques
+
 #### Advanced Use Cases
 
 I. Large-Scale Graph Analytics  
@@ -554,12 +609,221 @@ III. Time-Series Simulations
 - After aggregating or segmenting time steps, the results can be arranged as multiple frames in VTK, creating time-dependent animations.  
 - This approach is especially valuable in monitoring industrial equipment or weather patterns, offering a dynamic view of how systems evolve.
 
-#### Data Conversion Considerations
+### Data Conversion Considerations
 
-CSV or Parquet outputs are inherently tabular, so 3D structures must be reconstructed from columns (e.g., x, y, z). If the data includes connectivity (like mesh faces or graph edges), you’ll need additional columns or separate tables describing relationships between points.
+Some things are worth to keep in mind when converting large-scale distributed data from Spark/pandas formats to VTK visualization structures, with concrete examples and best practices.
 
-Even after Spark’s aggregation, the resulting dataset might still be large. You may need strategies such as downsampling, partitioning, or streaming subsets of data to keep memory usage under control when creating VTK objects.
+#### Tabular to 3D Structure Conversion
 
-Take care to preserve important metadata (e.g., time steps, measurement units, data types). This could be done via structured columns in Parquet or by tagging columns with descriptive names.
+Converting tabular data to 3D structures requires careful mapping of columns to spatial coordinates and attributes. The most common case is converting point cloud data, where each row represents a point with its coordinates and properties.
 
-If the data is extremely large, reading it in parallel is often more efficient. Tools like Dask or parallel pandas operations may help, though you’ll need to make sure the final VTK pipeline merges data consistently.
+##### Simple Point Cloud Example
+
+The following example demonstrates converting a temperature dataset from a pandas DataFrame to VTK points with associated scalar values:
+
+```python
+# Input DataFrame structure
+df = pd.DataFrame({
+    'x': [1.0, 2.0, 3.0],
+    'y': [0.5, 1.5, 2.5],
+    'z': [0.0, 1.0, 2.0],
+    'temperature': [298.15, 299.15, 300.15]
+})
+
+# Convert to VTK points
+points = vtk.vtkPoints()
+temperatures = vtk.vtkDoubleArray()
+temperatures.SetName("Temperature")
+
+for idx, row in df.iterrows():
+    points.InsertNextPoint(row['x'], row['y'], row['z'])
+    temperatures.InsertNextValue(row['temperature'])
+```
+
+This creates a VTK dataset with 3 points in 3D space, each with an associated temperature value. The temperature data is preserved as a named array that can be used for color mapping in visualization.
+
+For more complex geometries like meshes, we need to handle both vertex positions and their connectivity information. Here's how to handle mesh data:
+
+##### Mesh Connectivity Example
+
+When dealing with mesh data, we typically have two tables: one for vertex positions and another describing how these vertices connect to form faces:
+
+```python
+# Input DataFrames
+vertices_df = pd.DataFrame({
+    'vertex_id': [0, 1, 2, 3],
+    'x': [0.0, 1.0, 1.0, 0.0],
+    'y': [0.0, 0.0, 1.0, 1.0],
+    'z': [0.0, 0.0, 0.0, 0.0]
+})
+
+faces_df = pd.DataFrame({
+    'face_id': [0, 1],
+    'v1': [0, 1],
+    'v2': [1, 2],
+    'v3': [2, 3]
+})
+
+# Convert to VTK mesh
+points = vtk.vtkPoints()
+triangles = vtk.vtkCellArray()
+
+# Add points
+for idx, row in vertices_df.iterrows():
+    points.InsertNextPoint(row['x'], row['y'], row['z'])
+
+# Add triangles
+for idx, row in faces_df.iterrows():
+    triangle = vtk.vtkTriangle()
+    triangle.GetPointIds().SetId(0, int(row['v1']))
+    triangle.GetPointIds().SetId(1, int(row['v2']))
+    triangle.GetPointIds().SetId(2, int(row['v3']))
+    triangles.InsertNextCell(triangle)
+```
+
+Creates a triangulated surface consisting of 4 vertices and 2 triangular faces. This structure is suitable for surface rendering and can be extended with additional per-vertex or per-face attributes.
+
+#### Memory Management Strategies
+
+When working with large datasets, memory becomes a critical concern. Here are practical approaches to handle data that exceeds available RAM.
+
+##### Downsampling Strategy
+
+This example shows how to intelligently reduce dataset size while maintaining data distribution:
+
+```python
+# Original data
+full_df = pd.read_parquet("large_dataset.parquet")
+print(f"Original size: {len(full_df)} points")
+
+# Method 1: Systematic sampling
+sample_rate = 10
+downsampled_df = full_df.iloc[::sample_rate]
+
+# Method 2: Random sampling with size control
+max_points = 100000
+if len(full_df) > max_points:
+    downsampled_df = full_df.sample(n=max_points, random_state=42)
+
+print(f"Downsampled size: {len(downsampled_df)} points")
+```
+
+Reduces dataset size while preserving spatial distribution. For example, a 10 million point dataset might be reduced to 1 million points while maintaining overall data patterns.
+
+For datasets too large to load at once, streaming processing provides an effective solution:
+
+##### Streaming Processing
+
+This approach processes data in manageable chunks without loading the entire dataset into memory:
+
+```python
+# Process data in chunks
+chunk_size = 10000
+points = vtk.vtkPoints()
+temperatures = vtk.vtkDoubleArray()
+temperatures.SetName("Temperature")
+
+for chunk in pd.read_parquet("large_dataset.parquet", chunksize=chunk_size):
+    # Process each chunk
+    for idx, row in chunk.iterrows():
+        points.InsertNextPoint(row['x'], row['y'], row['z'])
+        temperatures.InsertNextValue(row['temperature'])
+        
+    print(f"Processed {points.GetNumberOfPoints()} points")
+```
+
+Allows processing of arbitrarily large datasets with constant memory usage. A 100GB dataset can be processed with only a few GB of RAM.
+
+#### Metadata Handling
+
+Preserving metadata is crucial for maintaining data context and enabling proper interpretation of values. Here's how to handle metadata systematically:
+
+##### Structured Metadata Storage
+
+This example demonstrates comprehensive metadata preservation through the Parquet format:
+
+```python
+# Save data with metadata
+metadata = {
+    'units': {
+        'length': 'meters',
+        'temperature': 'kelvin',
+        'pressure': 'pascal'
+    },
+    'time_step': '2025-04-25T10:55:51Z',
+    'coordinate_system': 'cartesian'
+}
+
+# Save DataFrame with metadata
+df.to_parquet(
+    "dataset.parquet",
+    engine='pyarrow',
+    metadata={'metadata': json.dumps(metadata)}
+)
+
+# Read and verify metadata
+read_df = pd.read_parquet("dataset.parquet")
+stored_metadata = json.loads(read_df.attrs['metadata'])
+print(f"Coordinate system: {stored_metadata['coordinate_system']}")
+print(f"Length unit: {stored_metadata['units']['length']}")
+```
+
+Creates a self-documenting dataset where units, coordinate systems, and temporal information are preserved and easily accessible.
+
+For cases where metadata must be encoded in the data structure itself:
+
+##### Self-Documenting Data Structure
+
+This approach embeds metadata directly in column names:
+
+```python
+# Clear column naming convention
+df = pd.DataFrame({
+    'position_x_meters': coordinates[:, 0],
+    'position_y_meters': coordinates[:, 1],
+    'position_z_meters': coordinates[:, 2],
+    'temperature_kelvin': temperatures,
+    'pressure_pascal': pressures,
+    'timestamp_utc': timestamps
+})
+```
+
+Creates an immediately interpretable dataset where units and meanings are clear from column names, reducing the chance of misinterpretation.
+
+#### Parallel Data Processing
+
+For large datasets, parallel processing can significantly improve conversion speed. Here's a practical implementation:
+
+##### Parallel Loading and Processing
+
+This example uses Dask to parallelize data loading and processing:
+
+```python
+import dask.dataframe as dd
+import multiprocessing
+
+# Define number of partitions based on CPU cores
+n_cores = multiprocessing.cpu_count()
+
+# Read data in parallel using Dask
+dask_df = dd.read_parquet(
+    "large_dataset.parquet",
+    engine='pyarrow',
+    num_partitions=n_cores
+)
+
+# Process partitions in parallel
+def process_partition(pdf):
+    # Convert partition to VTK points
+    points = vtk.vtkPoints()
+    for idx, row in pdf.iterrows():
+        points.InsertNextPoint(row['x'], row['y'], row['z'])
+    return points
+
+# Process and collect results
+results = dask_df.map_partitions(
+    process_partition
+).compute(scheduler='processes')
+```
+
+Achieves near-linear speedup with number of CPU cores. A conversion that takes 1 hour serially might complete in 15 minutes on a 4-core system.
