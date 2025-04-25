@@ -34,6 +34,7 @@ This module demonstrates the creation and visualization of a simple triangle usi
 
 The module serves as an educational example to illustrate the basic components and workflow in VTK for creating and displaying simple geometric shapes in 3D. It highlights the use of polydata as a versatile structure for representing and manipulating geometric data in VTK, which is a cornerstone for more complex 3D visualizations in scientific and engineering applications.
 """
+
 import vtk
 
 from src.common.simple_pipeline import VisualisationPipeline

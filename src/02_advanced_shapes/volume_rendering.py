@@ -15,6 +15,7 @@ Mathematics:
 - Color Transfer Function: Similar to opacity, this function maps scalar values to colors, allowing for visual differentiation based on the scalar value.
 - Volume Rendering: The process involves casting rays through the volume data and accumulating color and opacity along the way based on the transfer functions. The final image is a composite of these contributions, creating a 3D representation of the scalar field.
 """
+
 import vtk
 
 

@@ -73,9 +73,9 @@ def generate_flow_field(airfoil_geometry):
 
     # Initialize the vector field (flow primarily along x-axis)
     flow_vectors = np.zeros((grid_resolution, grid_resolution, grid_resolution, 3))
-    flow_vectors[
-        ..., 0
-    ] = 1  # Setting x-component of vectors to simulate horizontal flow
+    flow_vectors[..., 0] = (
+        1  # Setting x-component of vectors to simulate horizontal flow
+    )
 
     # This is a simple approximation and can be improved for more realistic simulations
     for i in range(grid_resolution):
@@ -134,7 +134,7 @@ def calculate_pressure_distribution(airfoil_geometry, flow_field):
 
     # Calculate pressure at each point using Bernoulli's equation
     # P = P_inf - 0.5 * rho * (V^2 - V_inf^2)
-    pressures = P_inf - 0.5 * rho * (speeds ** 2 - V_inf ** 2)
+    pressures = P_inf - 0.5 * rho * (speeds**2 - V_inf**2)
 
     # Ensure no negative pressures (optional, depending on your application)
     pressures = np.maximum(pressures, 0)

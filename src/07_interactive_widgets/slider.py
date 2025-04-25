@@ -1,5 +1,6 @@
 import vtk
 
+
 def main():
     # Create a sphere
     sphereSource = vtk.vtkSphereSource()
@@ -52,6 +53,7 @@ def main():
 
     # Start interaction
     renderWindowInteractor.Start()
+
 
 if __name__ == "__main__":
     main()

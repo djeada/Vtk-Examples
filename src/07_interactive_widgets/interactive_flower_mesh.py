@@ -37,7 +37,9 @@ def generate_flower_mesh(petal_count: int, points_per_petal: int) -> vtk.vtkPoly
     return poly_data
 
 
-def update_flower_mesh(petal_count: int, points_per_petal: int, actor: vtk.vtkActor) -> None:
+def update_flower_mesh(
+    petal_count: int, points_per_petal: int, actor: vtk.vtkActor
+) -> None:
     new_mesh = generate_flower_mesh(petal_count, points_per_petal)
     mapper = vtk.vtkPolyDataMapper()
     mapper.SetInputData(new_mesh)
@@ -51,7 +53,7 @@ def slider_callback(
     points_slider: vtk.vtkSliderWidget,
     actor: vtk.vtkActor,
     render_window: vtk.vtkRenderWindow,
-    text_actor: vtk.vtkTextActor
+    text_actor: vtk.vtkTextActor,
 ) -> None:
     petal_count = int(petal_slider.GetRepresentation().GetValue())
     points_per_petal = int(points_slider.GetRepresentation().GetValue())
@@ -66,7 +68,7 @@ def create_slider_widget(
     min_value: float,
     max_value: float,
     initial_value: float,
-    position: list[float]
+    position: list[float],
 ) -> vtk.vtkSliderWidget:
     slider_rep = vtk.vtkSliderRepresentation2D()
     slider_rep.SetMinimumValue(min_value)
@@ -124,17 +126,19 @@ if __name__ == "__main__":
     renderer.AddActor2D(text_actor)
 
     petal_slider = create_slider_widget(
-        "Petals", render_window_interactor, 1, 20, petal_count,
-        [0.1, 0.1, 0.4, 0.1]
+        "Petals", render_window_interactor, 1, 20, petal_count, [0.1, 0.1, 0.4, 0.1]
     )
     points_slider = create_slider_widget(
-        "Points", render_window_interactor, 10, 200, points_per_petal,
-        [0.1, 0.2, 0.4, 0.2]
+        "Points",
+        render_window_interactor,
+        10,
+        200,
+        points_per_petal,
+        [0.1, 0.2, 0.4, 0.2],
     )
 
     slider_callback_closure = lambda obj, event: slider_callback(
-        obj, event, petal_slider, points_slider, actor, render_window,
-        text_actor
+        obj, event, petal_slider, points_slider, actor, render_window, text_actor
     )
     petal_slider.AddObserver("EndInteractionEvent", slider_callback_closure)
     points_slider.AddObserver("EndInteractionEvent", slider_callback_closure)

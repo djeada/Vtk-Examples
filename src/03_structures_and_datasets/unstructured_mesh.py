@@ -130,6 +130,7 @@ actors = [
 for actor in actors:
     renderer.AddActor(actor)
 
+
 # Visibility toggle functions
 def toggle_visibility(actor):
     actor.SetVisibility(not actor.GetVisibility())

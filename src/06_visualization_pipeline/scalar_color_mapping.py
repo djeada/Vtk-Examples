@@ -9,7 +9,7 @@ z = np.linspace(-1.0, 1.0, dims[2])
 x, y, z = np.meshgrid(x, y, z, indexing="ij")
 
 # Create a scalar value for each point in the grid
-scalars = np.sqrt(x ** 2 + y ** 2 + z ** 2)
+scalars = np.sqrt(x**2 + y**2 + z**2)
 
 # Create a structured grid object and assign the points and scalars
 grid = vtk.vtkStructuredGrid()

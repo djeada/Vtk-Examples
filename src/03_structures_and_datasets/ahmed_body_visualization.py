@@ -18,8 +18,7 @@ def apply_scalar_values(geometry):
 
     num_points = geometry.GetNumberOfPoints()
     for i in range(num_points):
-        scalar_value = np.sin(
-            i / num_points * np.pi * 2) * 300  # Example values
+        scalar_value = np.sin(i / num_points * np.pi * 2) * 300  # Example values
         scalar_values.InsertNextValue(scalar_value)
 
     geometry.GetPointData().SetScalars(scalar_values)

@@ -14,6 +14,7 @@ Mathematics:
 - The net field at any point is the vector sum of the fields due to both charges.
 - Streamlines are generated using vtkStreamTracer, which integrates the vector field to trace the paths of particles in the flow.
 """
+
 import numpy as np
 import vtk
 
@@ -43,12 +44,12 @@ class DipoleFieldVisualization:
                 for k in np.linspace(-10, 10, 21):
                     points.InsertNextPoint(i, j, k)
                     x, y, z = i, j, k
-                    r1 = np.sqrt((x - 1) ** 2 + y ** 2 + z ** 2) + 1e-2
-                    r2 = np.sqrt((x + 1) ** 2 + y ** 2 + z ** 2) + 1e-2
+                    r1 = np.sqrt((x - 1) ** 2 + y**2 + z**2) + 1e-2
+                    r2 = np.sqrt((x + 1) ** 2 + y**2 + z**2) + 1e-2
                     vectors.InsertNextTuple3(
-                        (x - 1) / r1 ** 3 - (x + 1) / r2 ** 3,
-                        y / r1 ** 3 - y / r2 ** 3,
-                        z / r1 ** 3 - z / r2 ** 3,
+                        (x - 1) / r1**3 - (x + 1) / r2**3,
+                        y / r1**3 - y / r2**3,
+                        z / r1**3 - z / r2**3,
                     )
 
         return points, vectors

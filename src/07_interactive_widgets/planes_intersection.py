@@ -48,6 +48,7 @@ Usage Example:
 To use the module, define the parameters for the planes you wish to visualize and create an instance of PlaneIntersectionVisualizer.
 Call the visualize method to render the planes and their intersections in 3D space.
 """
+
 from itertools import combinations
 
 import numpy as np
@@ -93,7 +94,7 @@ class PlaneIntersectionVisualizer:
         return actor
 
     def compute_and_clip_intersections(self):
-        for (p1_params, p2_params) in combinations(self.plane_parameters, 2):
+        for p1_params, p2_params in combinations(self.plane_parameters, 2):
             line_point, line_dir = self.compute_plane_intersection(
                 *p1_params[:3], *p2_params[:3]
             )

@@ -53,7 +53,7 @@ def create_sample_data(dimensions: Tuple[int, int, int]) -> vtk.vtkImageData:
 
     # Efficiently fill the image data with scalar values using NumPy
     x, y, z = np.indices(dimensions)
-    values = np.sin(np.sqrt(x ** 2 + y ** 2 + z ** 2)).ravel()
+    values = np.sin(np.sqrt(x**2 + y**2 + z**2)).ravel()
 
     # Convert numpy array to VTK array
     scalars = vtk.vtkFloatArray()

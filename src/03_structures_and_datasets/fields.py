@@ -31,6 +31,7 @@ Workflow Overview:
    - The vtkPolyDataMapper maps the polydata to graphical primitives for rendering.
    - A visualization pipeline, provided by the 'VisualisationPipeline' class, is employed to render the polydata, showcasing the scalar and vector fields attached to it.
 """
+
 import numpy as np
 import vtk
 

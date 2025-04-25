@@ -3,6 +3,7 @@ n VTK, a point is a location in space. Points are used to define the geometry of
 
 To store and manipulate points, VTK provides the vtkPoints class. This class stores an array of 3D points, and provides methods for inserting points, retrieving points, and other point-related operations.
 """
+
 import numpy as np
 import vtk
 import vtk.util.numpy_support as vtk_np

@@ -1,14 +1,27 @@
 import vtk
 import numpy as np
 
+
 def naca0012(x):
-    """ Calculate the NACA 0012 airfoil shape. """
+    """Calculate the NACA 0012 airfoil shape."""
     m = 0
     p = 0
     t = 0.12
     c = 1.0
-    y_t = 5 * t * c * (0.2969 * np.sqrt(x/c) - 0.1260 * (x/c) - 0.3516 * (x/c)**2 + 0.2843 * (x/c)**3 - 0.1015 * (x/c)**4)
+    y_t = (
+        5
+        * t
+        * c
+        * (
+            0.2969 * np.sqrt(x / c)
+            - 0.1260 * (x / c)
+            - 0.3516 * (x / c) ** 2
+            + 0.2843 * (x / c) ** 3
+            - 0.1015 * (x / c) ** 4
+        )
+    )
     return y_t
+
 
 # Generate airfoil points
 x_coords = np.linspace(0, 1, 100)

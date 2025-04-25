@@ -19,6 +19,7 @@ Physics and Mathematics:
   d/dx(k * dT/dx) = -S, where T is the temperature.
 - This differential equation is discretized using the finite difference method, leading to a linear system of equations.
 """
+
 import numpy as np
 import vtk
 from matplotlib import pyplot as plt

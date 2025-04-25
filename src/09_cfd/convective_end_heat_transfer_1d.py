@@ -42,6 +42,7 @@ The TDMA solver efficiently solves tridiagonal systems of equations. The algorit
    For i = n-1 to 0:
        T[i] = (d[i] - a[i] * T[i+1]) / b[i]
 """
+
 from typing import List
 
 import matplotlib.pyplot as plt

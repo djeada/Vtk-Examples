@@ -2,7 +2,8 @@ from PIL import Image
 import numpy as np
 import vtk
 
-def create_gradient_image(width, height, filename='gradient_image.png'):
+
+def create_gradient_image(width, height, filename="gradient_image.png"):
     """
     Create a gradient image and save it.
     """
@@ -13,9 +14,11 @@ def create_gradient_image(width, height, filename='gradient_image.png'):
         gradient[i, :, 0] = 255 - color
         gradient[i, :, 1] = color
 
-    image = Image.fromarray(gradient, 'RGB')
+    image = Image.fromarray(gradient, "RGB")
     image.save(filename)
     return filename
+
+
 def load_image_as_vtk_image_data(filename):
     """
     Load an image and convert it into vtkImageData.
@@ -24,6 +27,7 @@ def load_image_as_vtk_image_data(filename):
     reader.SetFileName(filename)
     reader.Update()
     return reader.GetOutput()
+
 
 def visualize_vtk_image_data(vtk_image_data):
     """
@@ -55,10 +59,12 @@ def visualize_vtk_image_data(vtk_image_data):
     render_window.Render()
     render_window_interactor.Start()
 
+
 def main():
     filename = create_gradient_image(256, 256)
     vtk_image_data = load_image_as_vtk_image_data(filename)
     visualize_vtk_image_data(vtk_image_data)
+
 
 if __name__ == "__main__":
     main()

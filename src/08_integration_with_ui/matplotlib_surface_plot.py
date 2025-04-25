@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 x = np.linspace(-5, 5, 100)
 y = np.linspace(-5, 5, 100)
 X, Y = np.meshgrid(x, y)
-Z = (1 - X) ** 2 + 100 * (Y - X ** 2) ** 2  # Rosenbrock Function
+Z = (1 - X) ** 2 + 100 * (Y - X**2) ** 2  # Rosenbrock Function
 
 
 def create_surface_from_grid(x, y, z):

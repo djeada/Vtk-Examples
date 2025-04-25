@@ -3,6 +3,7 @@ import vtk
 
 from src.common.simple_pipeline import VisualisationPipeline
 
+
 def create_rectilinear_grid(x_coords, y_coords, z_coords):
     """
     Create and return a rectilinear grid.
@@ -30,6 +31,7 @@ def create_rectilinear_grid(x_coords, y_coords, z_coords):
 
     return rgrid
 
+
 def attach_fields_to_grid(rgrid):
     """
     Attach scalar and vector fields to the rectilinear grid.
@@ -50,6 +52,7 @@ def attach_fields_to_grid(rgrid):
         vectors.InsertNextTuple3(np.random.rand(), np.random.rand(), np.random.rand())
     rgrid.GetPointData().SetVectors(vectors)
 
+
 def visualize_rectilinear_grid(rgrid):
     """
     Visualize the rectilinear grid with scalar and vector fields.
@@ -66,6 +69,7 @@ def visualize_rectilinear_grid(rgrid):
     pipeline = VisualisationPipeline(mappers=[mapper], point_size=30)
     pipeline.run()
 
+
 def main():
     x_coords = np.linspace(0, 10, 11)
     y_coords = np.linspace(0, 5, 6)
@@ -73,6 +77,7 @@ def main():
     rgrid = create_rectilinear_grid(x_coords, y_coords, z_coords)
     attach_fields_to_grid(rgrid)
     visualize_rectilinear_grid(rgrid)
+
 
 if __name__ == "__main__":
     main()

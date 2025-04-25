@@ -2,7 +2,13 @@ import vtk
 import numpy as np
 from vtkmodules.vtkInteractionWidgets import vtkSliderWidget, vtkSliderRepresentation2D
 from vtkmodules.vtkFiltersSources import vtkCylinderSource
-from vtkmodules.vtkRenderingCore import vtkActor, vtkRenderer, vtkRenderWindow, vtkRenderWindowInteractor, vtkPolyDataMapper
+from vtkmodules.vtkRenderingCore import (
+    vtkActor,
+    vtkRenderer,
+    vtkRenderWindow,
+    vtkRenderWindowInteractor,
+    vtkPolyDataMapper,
+)
 from vtkmodules.vtkCommonColor import vtkNamedColors
 
 # Create the cylinder
@@ -16,7 +22,9 @@ cylinder.Update()
 points = cylinder.GetOutput().GetPoints()
 
 # Store the original point coordinates for reference
-original_points = np.array([points.GetPoint(i) for i in range(points.GetNumberOfPoints())])
+original_points = np.array(
+    [points.GetPoint(i) for i in range(points.GetNumberOfPoints())]
+)
 
 # Mapper
 cylinderMapper = vtkPolyDataMapper()
@@ -46,6 +54,7 @@ current_compression = 0
 current_torsion = 0
 current_shear = 0
 
+
 def apply_deformation():
     for i in range(points.GetNumberOfPoints()):
         x, y, z = original_points[i]
@@ -74,26 +83,31 @@ def apply_deformation():
     points.Modified()
     renderWindow.Render()
 
+
 # Slider callback functions
 def update_bending(obj, event):
     global current_bending
     current_bending = obj.GetRepresentation().GetValue()
     apply_deformation()
 
+
 def update_compression(obj, event):
     global current_compression
     current_compression = obj.GetRepresentation().GetValue()
     apply_deformation()
+
 
 def update_torsion(obj, event):
     global current_torsion
     current_torsion = obj.GetRepresentation().GetValue()
     apply_deformation()
 
+
 def update_shear(obj, event):
     global current_shear
     current_shear = obj.GetRepresentation().GetValue()
     apply_deformation()
+
 
 # Creating Sliders
 def create_slider(min_val, max_val, title, y_position):
@@ -105,7 +119,9 @@ def create_slider(min_val, max_val, title, y_position):
     sliderRep.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
     sliderRep.GetPoint1Coordinate().SetValue(0.01, y_position)  # Farther to the left
     sliderRep.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
-    sliderRep.GetPoint2Coordinate().SetValue(0.3, y_position)  # Enough distance from cylinder
+    sliderRep.GetPoint2Coordinate().SetValue(
+        0.3, y_position
+    )  # Enough distance from cylinder
 
     sliderWidget = vtkSliderWidget()
     sliderWidget.SetInteractor(renderWindowInteractor)
@@ -113,6 +129,7 @@ def create_slider(min_val, max_val, title, y_position):
     sliderWidget.EnabledOn()
 
     return sliderWidget
+
 
 # Adjusted positions for sliders to avoid overlapping
 bending_slider = create_slider(-30, 30, "Bending", 0.8)

@@ -25,8 +25,8 @@ def update_velocity(u, p, rho, mu, dx, dy, dt, ua, nx, ny):
             dpdy = (p[i - 1, j] - p[i + 1, j]) / (2 * dy)
 
             # Compute viscous term
-            viscous_term_x = mu * (u[i, j + 1] - 2 * u[i, j] + u[i, j - 1]) / dx ** 2
-            viscous_term_y = mu * (u[i + 1, j] - 2 * u[i, j] + u[i - 1, j]) / dy ** 2
+            viscous_term_x = mu * (u[i, j + 1] - 2 * u[i, j] + u[i, j - 1]) / dx**2
+            viscous_term_y = mu * (u[i + 1, j] - 2 * u[i, j] + u[i - 1, j]) / dy**2
 
             # Update velocity
             u_new[i, j] = u[i, j] + dt * (

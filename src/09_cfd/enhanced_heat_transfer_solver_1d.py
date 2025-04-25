@@ -12,6 +12,7 @@ The script models heat conduction in a rod, considering the linear heat conducti
 Mathematics:
 The heat conduction equation is discretized using the finite difference method, resulting in a linear system of equations with a tridiagonal matrix. The TDMA efficiently solves this system iteratively until the solution converges below a predefined residual tolerance.
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 import vtk

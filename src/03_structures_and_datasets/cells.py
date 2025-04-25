@@ -4,6 +4,7 @@ They do not hold any positional data of their own but refer to points which are 
 They can be of various types: for example, a line (connecting two points), a triangle (connecting three points),
 or a tetrahedron (connecting four points).
 """
+
 import math
 
 import vtk
