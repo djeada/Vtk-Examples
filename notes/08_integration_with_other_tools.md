@@ -228,7 +228,7 @@ VR and AR Integration with VTK is becoming more common due to the need for inter
 
 A typical VR pipeline relies on the same VTK rendering process but translates the user’s head and hand controller positions into transformations in the 3D scene. If $T$ is the transformation corresponding to the user’s headset position, the final rendering process applies the matrix
 
-$$\mathbf{M}_{\text{final}} = \mathbf{M}_{\text{view}} \times T$$
+$$M_{\text{final}} = M_{\text{view}} \times T$$
 
 where $\mathbf{M}_{\text{view}}$ is the standard view matrix and $T$ is updated in real time according to the user’s motion. AR extends this idea by integrating real-world camera images as the background, enabling overlay of VTK objects on real scenes.
 
