@@ -4,7 +4,7 @@ Creating custom filters and algorithms in the Visualization Toolkit (VTK) opens 
 
 VTK comes with a broad range of built-in filters and classes that cover many common visualization tasks, but there may be occasions when you need more specific functionality. For instance, you might need to process data from specialized scientific instruments, create a custom metric for point analysis, or experiment with novel geometry-manipulation algorithms. In these cases, developing a custom filter allows you to:
 
-- Seamlessly integrate your algorithm into the native VTK pipeline.
+- Easily integrate your algorithm into the native VTK pipeline.
 - Reuse existing VTK infrastructure for rendering, interaction, and I/O.
 - Use VTK’s optimized performance and memory management.
 - Keep your workflow consistent without needing to switch between external libraries.
@@ -187,61 +187,62 @@ Here’s a breakdown of what’s happening in `RequestData()`:
 - Distances are computed by iterating over each point and calculating its distance to the target point.  
 - The calculated distance array is attached to the output as part of the point data.  
 - The distance array is set as the active scalar to enable use in coloring or further pipeline processing.
-  
-#### Using the Custom Filter
 
-Below is an example showing how to integrate this custom filter into a typical VTK pipeline. We’ll generate a simple sphere, apply our custom distance filter, and then visualize the results with a color map that reflects each point’s distance to the specified target.
+#### Using the Custom Distance Filter
+
+This custom VTK filter calculates the Euclidean distance from each point in a vtkPolyData to a specified target point. Below is an example demonstrating how to use it with a sphere visualization.
+
+**Creating and configuring the distance filter:**
 
 ```python
-import vtk
+# Create a sphere source for demonstration
+sphere = vtk.vtkSphereSource()
+sphere.SetRadius(1.0)
+sphere.SetThetaResolution(30)
+sphere.SetPhiResolution(30)
+sphere.Update()
 
-# 1. Create a sphere source as an example input (the "source" of data).
-sphere_source = vtk.vtkSphereSource()
-sphere_source.SetThetaResolution(30)
-sphere_source.SetPhiResolution(30)
-sphere_source.Update()  # Force the source to generate data so we can use it immediately
-
-# 2. Instantiate the custom distance filter.
-distance_filter = DistanceToPointFilter()
-distance_filter.SetInputConnection(sphere_source.GetOutputPort())  # Connect the pipeline
-distance_filter.SetTargetPoint(0.5, 0.0, 0.0)  # Calculate distance to (0.5, 0.0, 0.0)
-
-# 3. Update the filter to perform the computation.
-distance_filter.Update()
-
-# 4. Create a mapper that takes the output from the distance filter.
-mapper = vtk.vtkPolyDataMapper()
-mapper.SetInputConnection(distance_filter.GetOutputPort())
-
-# Optionally, set the scalar range so that the colors reflect the min and max distances.
-# By default, mapper will use the active scalars to color the object.
-distance_range = distance_filter.GetOutput().GetPointData().GetScalars().GetRange()
-mapper.SetScalarRange(distance_range)
-
-# 5. Create an actor to represent the processed data in the 3D scene.
-actor = vtk.vtkActor()
-actor.SetMapper(mapper)
-
-# 6. Set up the rendering environment: renderer, render window, and interactor.
-renderer = vtk.vtkRenderer()
-render_window = vtk.vtkRenderWindow()
-render_window.AddRenderer(renderer)
-
-interactor = vtk.vtkRenderWindowInteractor()
-interactor.SetRenderWindow(render_window)
-
-# 7. Add the actor to the scene and set a background color.
-renderer.AddActor(actor)
-renderer.SetBackground(0.1, 0.2, 0.4)  # A dark blue-ish background
-
-# 8. Render and start the interaction loop.
-render_window.SetSize(800, 600)  # Set the window size for better visibility
-render_window.Render()
-interactor.Start()
+# Create and configure the distance filter
+filter = DistanceToPointFilter()
+filter.SetInputData(sphere.GetOutput())
+filter.SetTargetPoint(2.0, 0.0, 0.0)  # Target point outside the sphere
+output_data = filter.ProcessDataObject(sphere.GetOutput())
 ```
 
-- The sphere will be displayed in the rendering window.
-- Each vertex on the sphere’s surface will be assigned a color based on how far it is from (0.5, 0.0, 0.0).
-- If you look closely, the point on the sphere closest to (0.5, 0.0, 0.0) will likely be tinted one color (e.g., blue), while the farthest point on the opposite side of the sphere might be another color (e.g., red), depending on the default color mapping.
+**Setting up the visualization pipeline with color mapping:**
 
-Feel free to adjust the target point or the resolution of the sphere to see how the distance calculations change.
+```python
+# Create mapper and configure scalar visualization
+mapper = vtk.vtkPolyDataMapper()
+mapper.SetInputData(output_data)
+
+# Set up color mapping
+scalar_range = output_data.GetPointData().GetScalars().GetRange()
+lut = vtk.vtkLookupTable()
+lut.SetHueRange(0.667, 0.0)  # Blue to red color range
+lut.SetTableRange(scalar_range)
+lut.Build()
+mapper.SetLookupTable(lut)
+mapper.SetScalarRange(scalar_range)
+
+# Create actor and set up visualization
+actor = vtk.vtkActor()
+actor.SetMapper(mapper)
+```
+
+The output will look similar to the following:
+
+![Side by side comparison](https://github.com/user-attachments/assets/a7e0dd03-2a27-457f-bd9d-b500b61deac1)
+
+- Left: Original sphere  
+- Right: Sphere colored by distance from target point (2.0, 0.0, 0.0)
+- Blue: Points closer to the target
+- Red: Points farther from the target
+- Smooth gradient between based on actual distances
+- Computes Euclidean distance from each point to a target point
+- Stores distances as scalar values in the output's point data
+- Supports visualization with customizable color mapping
+- Works with any vtkPolyData input
+- Adjust the target point location to highlight different distance patterns
+- Modify the lookup table's hue range for different color schemes
+- Use the orientation widget to better understand spatial relationships
