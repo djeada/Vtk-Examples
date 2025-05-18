@@ -1,115 +1,129 @@
 ## Interactivity and User Interface
 
-VTK comes equipped with a range of tools designed to help developers create interactive visualizations and user interfaces. Some of the popular techniques employed for this purpose include:
+VTK supports interactive visualization through several core features that together form a powerful environment for exploratory data analysis. By combining low-level access to rendering primitives with high-level interactor and widget frameworks, VTK enables you to build applications where users can drill into complex datasets, modify display parameters in real time, and receive immediate visual feedback. These capabilities not only enhance user engagement but also accelerate the discovery of patterns and anomalies that might otherwise remain hidden in static views.
 
-1. Picking and Selection
-2. Cutting Planes
-3. 3D Widgets
-4. Event Handling and Callbacks
+### Picking and Selection
 
-## Picking and Selection
+Picking is the mechanism by which you map a screen-space event—such as a mouse click or drag—back to an element in your 3D scene, be it a point, cell, actor, or even a rendering layer. Selection builds upon picking by allowing you to extract or highlight subsets of data based on those picks or on more abstract criteria (e.g., cells whose scalar values fall within a given range). This dual capability gives users both precision ("Which vertex did I click?") and breadth ("Show me all cells above threshold X").
 
-Picking refers to the process of interactively selecting a particular object or point within the visualization. Selection, on the other hand, involves highlighting or extracting a subset of data based on certain defined criteria.
+VTK provides multiple picker classes to suit different needs:
 
-Here are two of the many classes VTK provides for this purpose:
+* `vtkCellPicker`: Targets individual cells or points by casting a ray from the view plane into the scene and returning the closest intersected cell or point.
+* `vtkWorldPointPicker`: Computes the world coordinates corresponding to a screen-space location, without necessarily snapping to the geometry.
+* `vtkExtractSelection`: Operates on the output of a picker (or other selection sources) to generate a new `vtkDataSet` consisting only of the selected elements.
 
-- `vtkCellPicker`: This class allows you to select cells or points within a 3D scene.
-- `vtkExtractSelection`: This class helps to extract a subset of data based on the selection criteria.
-
-For instance, to pick a cell within a 3D scene, you would use the `vtkCellPicker` class as follows:
+For example, to pick and report the ID of a cell under the cursor:
 
 ```python
 picker = vtk.vtkCellPicker()
-picker.Pick(10, 10, 0, renderer)
-pickedCell = picker.GetCellId()
+picker.SetTolerance(0.0005)  # Tighten or loosen as needed
+display_x, display_y = interactor.GetEventPosition()
+picker.Pick(display_x, display_y, 0, renderer)
+picked_cell_id = picker.GetCellId()
+print(f"User picked cell ID: {picked_cell_id}")
 ```
 
 ![picker](https://github.com/djeada/Vtk-Examples/assets/37275728/51f7b6ed-9086-4fae-b976-8ac0dc139be2)
 
-## Cutting Planes
+After picking, you can feed the result into a pipeline filter like `vtkExtractSelection` to visually outline the selection, compute statistics on the chosen subset, or export it for further analysis. By tuning the picker tolerance and combining multiple pick events, you can implement lasso-style or multi-object selection strategies that feel intuitive to end users.
 
-Cutting planes are used to interactively slice through a 3D object, revealing its internal structure. This technique is particularly useful when you need to inspect the inner structure of complex objects.
+### Cutting Planes
 
-The two important classes involved in this process are:
+Cutting planes allow users to slice through volumetric or surface datasets interactively, revealing internal features that would otherwise be occluded. By defining a geometric plane and intersecting it with your dataset, you can generate cross-sectional contours, expose hidden structures, and better understand spatial relationships. This technique is invaluable in fields like medical imaging (to inspect anatomical slices) and computational fluid dynamics (to examine interior flow patterns).
 
-- `vtkPlane`: This class is used to define a cutting plane.
-- `vtkCutter`: This class uses a vtkPlane to slice through an object.
+Classes in this workflow include:
 
-To illustrate, if we wanted to create a cutting plane through a 3D object, we might use:
+* `vtkPlane`: Encapsulates the geometric definition of a plane via an origin point and a normal vector.
+* `vtkCutter` (or alternatively `vtkClipFilter` for retaining one side): Accepts the plane as a cut function and computes the intersection of the plane with any input geometry.
+
+Example of constructing a simple planar cut:
 
 ```python
 plane = vtk.vtkPlane()
-plane.SetNormal(1, 0, 0)
+plane.SetOrigin(0, 0, 0)
+plane.SetNormal(1, 0, 0)  # Slice along the X-axis
 
 cutter = vtk.vtkCutter()
 cutter.SetCutFunction(plane)
-cutter.SetInputData(object)
+cutter.SetInputData(yourPolyData)  # Could be a mesh or volumetric slice
+cutter.Update()
+sliced_output = cutter.GetOutput()
 ```
 
 ![plane_cutter](https://github.com/djeada/Vtk-Examples/assets/37275728/8d6e1588-f198-4ccf-b920-8a6762ea92ce)
 
-## 3D Widgets
+Once you have the sliced geometry, you can map it to a `vtkPolyDataMapper` and apply custom coloring or contouring to highlight features of interest. By placing callbacks on widget interactions (see below), you can let users drag the plane through space and watch the internal view update in real time.
 
-3D widgets are interactive tools used for manipulating data or objects within a 3D scene. They can be used for tasks such as positioning lights or cameras, or adjusting clipping planes.
+### 3D Widgets
 
-Some common 3D widget classes include:
+VTK 3D widgets are self-contained interactive objects that encapsulate both representation (how they look) and behavior (how they respond to user actions). Unlike generic actors, widgets maintain their own event handling and state, making it straightforward to build UI controls directly into the 3D scene. Common use cases include manipulating clipping planes, adjusting lighting directions, or tuning scalar thresholds.
 
-- `vtkBoxWidget`: This widget allows for interactive resizing of a bounding box.
-- `vtkPlaneWidget`: This widget is used to manipulate a plane within a 3D scene.
-- `vtkSliderWidget`: This widget is used to adjust scalar values via a slider.
+Popular widget classes include:
 
-For instance, a vtkSliderWidget could be used to control the opacity of an actor like this:
+* `vtkBoxWidget`: Offers a resizable, draggable bounding box. Useful for region-of-interest selection or aligning data.
+* `vtkPlaneWidget`: Displays a plane that users can rotate, translate, and scale to define cutting or clipping surfaces.
+* `vtkSliderWidget`: Renders a 2D slider in the 3D view for continuous parameter adjustment (e.g., opacity, isovalue, time steps).
+
+A basic slider setup might look like this:
 
 ```python
+# Assume sliderRep is a vtkSliderRepresentation2D configured with a range and position
 sliderWidget = vtk.vtkSliderWidget()
 sliderWidget.SetInteractor(interactor)
 sliderWidget.SetRepresentation(sliderRep)
-sliderWidget.AddObserver("InteractionEvent", lambda obj, event: actor.GetProperty().SetOpacity(obj.GetRepresentation().GetValue()))
+sliderWidget.AddObserver(
+    "InteractionEvent",
+    lambda obj, evt: actor.GetProperty().SetOpacity(
+        obj.GetRepresentation().GetValue()
+    )
+)
+sliderWidget.EnabledOn()
 ```
 
 ![slider](https://github.com/djeada/Vtk-Examples/assets/37275728/bf595429-3a41-4e47-b996-36d216138cde)
 
-## Event Handling and Callbacks
+Because each widget handles its own rendering and event loop, you can mix multiple widget types in a single scene without complex interdependencies. This modularity makes it easy to extend or customize widgets—for instance, by subclassing `vtkAbstractWidget` or swapping out handle representations for a different look.
 
-Event handling involves responding to user input or other events within a VTK application, whereas callbacks are user-defined functions that get executed in response to specific events.
+### Event Handling and Callbacks
 
-Key classes for this purpose include:
+At the core of VTK’s interactivity is its event-driven architecture, where user inputs and render events generate notifications that you can intercept with callbacks. This model decouples application logic from the rendering loop, so you can inject your own code—whether to modify the camera, update data, or trigger external processes—whenever a specific event occurs.
 
-- `vtkRenderWindowInteractor`: This class manages user input and event handling.
-- `vtkCallbackCommand`: This class associates a user-defined callback function with a specific event.
+Classes include:
 
-### Mouse Events
+* `vtkRenderWindowInteractor`: Orchestrates the capture of mouse, keyboard, and timer events, dispatching them to registered observers.
+* `vtkCallbackCommand`: Binds a user-supplied function (the callback) to a particular event identifier (e.g., `LeftButtonPressEvent`).
 
-Mouse events can be captured and used to control aspects of the VTK visualization. The `vtkRenderWindowInteractor` class provides the functionality to handle mouse events.
+#### Mouse Events
 
-Here is an example of handling a mouse click event:
+Mouse events are central to navigation and selection in 3D scenes. The interactor translates low-level OS events into high-level VTK events (e.g., `LeftButtonPressEvent`, `MouseMoveEvent`). By adding observers on these events, you can implement custom behaviors such as drag‐to‐rotate, point annotation, or dynamic slicing. Interactor styles like `vtkInteractorStyleTrackballCamera` provide built-in camera controls, but you can layer additional observers for tasks like picking or drawing overlays:
 
 ```python
 def onMouseClick(obj, event):
-    x, y = obj.GetEventPosition()
-    print(f"Mouse clicked at coordinates {x}, {y}")
+    display_x, display_y = obj.GetEventPosition()
+    print(f"Mouse clicked at display coords: ({display_x}, {display_y})")
 
-interactorStyle = vtk.vtkInteractorStyleTrackballCamera()
-interactorStyle.AddObserver("LeftButtonPressEvent", onMouseClick)
-
+style = vtk.vtkInteractorStyleTrackballCamera()
+style.AddObserver("LeftButtonPressEvent", onMouseClick)
 interactor = vtk.vtkRenderWindowInteractor()
-interactor.SetInteractorStyle(interactorStyle)
+interactor.SetInteractorStyle(style)
 ```
 
-### Keyboard Input Events
+By converting screen‐space coordinates back to world‐space using pickers or camera transforms, you can precisely map mouse events to data points or geometry.
 
-Similarly, keyboard input events can also be captured using the vtkRenderWindowInteractor class. These events can be used to interact with the visualization or control the program flow.
+#### Keyboard Input Events
 
-Here is an example of handling a keyboard press event:
+Keyboard events let you offer shortcuts for common operations—toggling visibility, stepping through time series, adjusting scalar thresholds, or switching interaction modes. VTK generates `KeyPressEvent` and `KeyReleaseEvent`, reporting the symbolic name of the key pressed. You can bind callbacks to these events to streamline workflows:
 
 ```python
 def onKeyPress(obj, event):
     key = obj.GetKeySym()
-    print(f"Key {key} was pressed")
+    if key == 'w':
+        actor.GetProperty().SetRepresentationToWireframe()
+    elif key == 's':
+        actor.GetProperty().SetRepresentationToSurface()
+    print(f"Key pressed: {key}")
 
-interactorStyle = vtk.vtkInteractorStyleTrackballCamera()
-interactorStyle.AddObserver("KeyPressEvent", onKeyPress)
-
-interactor = vtk.vtkRenderWindowInteractor()
-interactor.SetInteractorStyle(interactorStyle)
+style.AddObserver("KeyPressEvent", onKeyPress)
 ```
+
+Because you can add multiple observers to the same event, you can maintain a clear separation of concerns: one callback for camera reset, another for data export, and yet another for UI state changes, all coexisting without interference.
