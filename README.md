@@ -4,6 +4,13 @@ Explore the world of 3D graphics and visualization with VTK examples in Python.
 
 ![Screenshot from 2024-02-10 21-38-23](https://github.com/djeada/VTK-Examples/assets/37275728/d843d55f-ab7a-4830-a762-34cc71041fdc)
 
+## Demo
+To watch the Short, just click on the thumbnail. That will open the YouTube Shorts player so you can view the video instantly. Enjoy!
+
+[![Watch the Short on YouTube](https://img.youtube.com/vi/Qgoh9NbNqdc/maxresdefault.jpg)](https://youtube.com/shorts/Qgoh9NbNqdc?feature=share)
+
+[![Watch the Short on YouTube](https://img.youtube.com/vi/0jAN9Q-GGCk/maxresdefault.jpg)](https://youtube.com/shorts/0jAN9Q-GGCk?feature=share)
+
 ## Overview
 
 The Visualization Toolkit, or VTK, is a cornerstone in the field of 3D graphics and scientific visualization:
