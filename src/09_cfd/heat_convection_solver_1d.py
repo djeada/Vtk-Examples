@@ -345,6 +345,245 @@ def create_flow_arrow(
     return actor
 
 
+def create_velocity_glyph_field(
+    L: float, radius: float, u: float, n_glyphs: int = 8
+) -> vtk.vtkActor:
+    """
+    Create a field of velocity arrows showing flow direction along the domain.
+
+    :param L: Domain length (float)
+    :param radius: Rod radius (float)
+    :param u: Flow velocity (float)
+    :param n_glyphs: Number of glyph arrows (int)
+    :return: vtkActor with velocity glyphs
+    """
+    # Create points for glyph positions
+    points = vtk.vtkPoints()
+    vectors = vtk.vtkFloatArray()
+    vectors.SetNumberOfComponents(3)
+    vectors.SetName("Velocity")
+
+    flow_dir = 1 if u >= 0 else -1
+    y_offset = radius * 2.0
+
+    for i in range(n_glyphs):
+        x_pos = L * (i + 0.5) / n_glyphs
+        points.InsertNextPoint(x_pos, y_offset, 0)
+        vectors.InsertNextTuple3(flow_dir * abs(u), 0, 0)
+
+    polyData = vtk.vtkPolyData()
+    polyData.SetPoints(points)
+    polyData.GetPointData().SetVectors(vectors)
+
+    # Create arrow glyph
+    arrow = vtk.vtkArrowSource()
+    arrow.SetTipResolution(16)
+    arrow.SetShaftResolution(16)
+
+    glyph = vtk.vtkGlyph3D()
+    glyph.SetSourceConnection(arrow.GetOutputPort())
+    glyph.SetInputData(polyData)
+    glyph.SetVectorModeToUseVector()
+    glyph.SetScaleModeToScaleByVector()
+    glyph.SetScaleFactor(0.08 * L / abs(u) if abs(u) > 0 else 0.08 * L)
+    glyph.Update()
+
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(glyph.GetOutputPort())
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    actor.GetProperty().SetColor(0.3, 0.7, 1.0)
+    actor.GetProperty().SetOpacity(0.8)
+
+    return actor
+
+
+def create_profile_curve_3d(
+    x: np.ndarray, phi: np.ndarray, y_offset: float, color: tuple, line_width: float = 3.0
+) -> vtk.vtkActor:
+    """
+    Create a 3D line showing the phi profile floating above/below the rod.
+
+    :param x: X-coordinate vector (numpy.ndarray)
+    :param phi: Scalar field values (numpy.ndarray)
+    :param y_offset: Y position offset (float)
+    :param color: Line color (r, g, b)
+    :param line_width: Width of the line (float)
+    :return: vtkActor for the profile curve
+    """
+    points = vtk.vtkPoints()
+    phi_min, phi_max = np.min(phi), np.max(phi)
+    phi_range = phi_max - phi_min if phi_max > phi_min else 1.0
+    L = x[-1] - x[0]
+    scale = 0.3 * L / phi_range
+
+    for i, (xi, phii) in enumerate(zip(x, phi)):
+        z = (phii - phi_min) * scale
+        points.InsertNextPoint(xi, y_offset, z)
+
+    # Create polyline
+    polyline = vtk.vtkPolyLine()
+    polyline.GetPointIds().SetNumberOfIds(len(x))
+    for i in range(len(x)):
+        polyline.GetPointIds().SetId(i, i)
+
+    cells = vtk.vtkCellArray()
+    cells.InsertNextCell(polyline)
+
+    polyData = vtk.vtkPolyData()
+    polyData.SetPoints(points)
+    polyData.SetLines(cells)
+
+    # Create tube filter for nicer appearance
+    tube = vtk.vtkTubeFilter()
+    tube.SetInputData(polyData)
+    tube.SetRadius(0.005 * L)
+    tube.SetNumberOfSides(12)
+    tube.Update()
+
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(tube.GetOutputPort())
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    actor.GetProperty().SetColor(color)
+    actor.GetProperty().SetSpecular(0.5)
+    actor.GetProperty().SetSpecularPower(30)
+
+    return actor
+
+
+def create_contour_bands(
+    rod_polydata: vtk.vtkPolyData, phi: np.ndarray, n_bands: int = 10
+) -> vtk.vtkActor:
+    """
+    Create contour bands on the rod surface.
+
+    :param rod_polydata: The rod polydata (vtkPolyData)
+    :param phi: Scalar field values (numpy.ndarray)
+    :param n_bands: Number of contour bands (int)
+    :return: vtkActor with contour lines
+    """
+    phi_min, phi_max = np.min(phi), np.max(phi)
+
+    # Create banded contour filter
+    contour = vtk.vtkBandedPolyDataContourFilter()
+    contour.SetInputData(rod_polydata)
+    contour.SetNumberOfContours(n_bands)
+    contour.GenerateValues(n_bands, phi_min, phi_max)
+    contour.SetGenerateContourEdges(True)
+    contour.Update()
+
+    # Create mapper for contour edges
+    edge_mapper = vtk.vtkPolyDataMapper()
+    edge_mapper.SetInputConnection(contour.GetOutputPort(1))
+    edge_mapper.ScalarVisibilityOff()
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(edge_mapper)
+    actor.GetProperty().SetColor(0.1, 0.1, 0.1)
+    actor.GetProperty().SetLineWidth(2.0)
+
+    return actor
+
+
+def create_particle_system(
+    L: float, radius: float, n_particles: int = 20
+) -> tuple:
+    """
+    Create a particle system for animation.
+
+    :param L: Domain length (float)
+    :param radius: Rod radius (float)
+    :param n_particles: Number of particles (int)
+    :return: Tuple of (points, actor, initial_positions)
+    """
+    points = vtk.vtkPoints()
+    initial_positions = []
+
+    for i in range(n_particles):
+        x = np.random.uniform(0, L)
+        y = np.random.uniform(-radius * 0.8, radius * 0.8)
+        z = np.random.uniform(-radius * 0.8, radius * 0.8)
+        # Ensure inside cylinder
+        while y * y + z * z > radius * radius * 0.64:
+            y = np.random.uniform(-radius * 0.8, radius * 0.8)
+            z = np.random.uniform(-radius * 0.8, radius * 0.8)
+        points.InsertNextPoint(x, y, z)
+        initial_positions.append([x, y, z])
+
+    polyData = vtk.vtkPolyData()
+    polyData.SetPoints(points)
+
+    # Create sphere glyphs for particles
+    sphere = vtk.vtkSphereSource()
+    sphere.SetRadius(radius * 0.08)
+    sphere.SetThetaResolution(8)
+    sphere.SetPhiResolution(8)
+
+    glyph = vtk.vtkGlyph3D()
+    glyph.SetSourceConnection(sphere.GetOutputPort())
+    glyph.SetInputData(polyData)
+    glyph.Update()
+
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(glyph.GetOutputPort())
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    actor.GetProperty().SetColor(1.0, 0.9, 0.2)  # Yellow particles
+    actor.GetProperty().SetOpacity(0.9)
+
+    return points, glyph, actor, initial_positions
+
+
+def create_equation_annotation(L: float, radius: float) -> vtk.vtkTextActor:
+    """
+    Create a text annotation showing the governing equation.
+
+    :param L: Domain length (float)
+    :param radius: Rod radius (float)
+    :return: vtkTextActor
+    """
+    text_actor = vtk.vtkTextActor()
+    text_actor.SetInput("Governing Equation:\nrho*u*(dphi/dx) = Gamma*(d2phi/dx2)")
+    text_actor.GetTextProperty().SetFontSize(14)
+    text_actor.GetTextProperty().SetColor(0.8, 0.8, 0.8)
+    text_actor.GetTextProperty().SetFontFamilyToCourier()
+    text_actor.SetPosition(10, 100)
+
+    return text_actor
+
+
+def create_legend_actor(
+    numerical_color: tuple, analytical_color: tuple
+) -> vtk.vtkLegendBoxActor:
+    """
+    Create a legend showing numerical vs analytical curves.
+
+    :param numerical_color: Color for numerical solution (r, g, b)
+    :param analytical_color: Color for analytical solution (r, g, b)
+    :return: vtkLegendBoxActor
+    """
+    legend = vtk.vtkLegendBoxActor()
+    legend.SetNumberOfEntries(2)
+
+    # Create small colored boxes for legend
+    sphere = vtk.vtkSphereSource()
+    sphere.Update()
+
+    legend.SetEntry(0, sphere.GetOutput(), "Numerical", numerical_color)
+    legend.SetEntry(1, sphere.GetOutput(), "Analytical", analytical_color)
+
+    legend.SetPosition(0.02, 0.85)
+    legend.SetWidth(0.15)
+    legend.SetHeight(0.12)
+    legend.GetProperty().SetColor(0.9, 0.9, 0.9)
+
+    return legend
+
+
 def create_boundary_annotation(
     text: str, position: tuple, color: tuple = (1, 1, 1)
 ) -> vtk.vtkBillboardTextActor3D:
@@ -369,42 +608,49 @@ def create_boundary_annotation(
 
 def vtk_3d_visualization(
     x: np.ndarray,
-    phi: np.ndarray,
+    phi_numerical: np.ndarray,
+    phi_analytical: np.ndarray,
     phi_0: float,
     phi_L: float,
     Pe: float,
     u: float,
+    Gamma: float,
     scheme_name: str,
-    title: str = "1D Convection-Diffusion",
+    title: str = "1D Convection-Diffusion Visualization",
 ):
     """
-    Create an advanced 3D visualization of the convection-diffusion solution.
+    Create an ambitious 3D visualization of the convection-diffusion solution.
 
     Features:
-    - 3D cylindrical representation with scalar field coloring
-    - End caps for the domain
-    - Flow direction arrows
+    - 3D cylindrical rod with scalar field coloring and contour bands
+    - Velocity glyph field showing flow direction
+    - 3D profile curves for numerical and analytical solutions
+    - Animated particles showing convection-diffusion transport
     - Boundary condition annotations
-    - Peclet number display
+    - Governing equation display
+    - Legend comparing numerical vs analytical
+    - Split viewport with profile comparison
 
     :param x: X-coordinate vector (numpy.ndarray)
-    :param phi: Scalar field values (numpy.ndarray)
+    :param phi_numerical: Numerical solution (numpy.ndarray)
+    :param phi_analytical: Analytical solution (numpy.ndarray)
     :param phi_0: Left boundary value (float)
     :param phi_L: Right boundary value (float)
     :param Pe: Peclet number (float)
     :param u: Flow velocity (float)
+    :param Gamma: Diffusion coefficient (float)
     :param scheme_name: Name of the discretization scheme (str)
     :param title: Window title (str)
     """
     L = x[-1] - x[0]
     radius = 0.08 * L
 
-    # Create 3D cylinder rod
-    rod_polydata, _ = create_cylinder_rod(x, phi, radius=radius)
+    # ========== Create 3D rod with scalar coloring ==========
+    rod_polydata, _ = create_cylinder_rod(x, phi_numerical, radius=radius)
 
     # Create end caps
-    left_cap = create_end_cap(x[0], phi[0], radius=radius)
-    right_cap = create_end_cap(x[-1], phi[-1], radius=radius)
+    left_cap = create_end_cap(x[0], phi_numerical[0], radius=radius)
+    right_cap = create_end_cap(x[-1], phi_numerical[-1], radius=radius)
 
     # Combine rod and caps
     append_filter = vtk.vtkAppendPolyData()
@@ -414,101 +660,152 @@ def vtk_3d_visualization(
     append_filter.Update()
 
     # Color map
-    color_map = create_color_map(phi)
+    phi_all = np.concatenate([phi_numerical, phi_analytical])
+    color_map = create_color_map(phi_all)
 
     # Rod mapper and actor
     rod_mapper = vtk.vtkPolyDataMapper()
     rod_mapper.SetInputData(append_filter.GetOutput())
     rod_mapper.SetLookupTable(color_map)
     rod_mapper.SetScalarModeToUsePointData()
-    rod_mapper.SetScalarRange(np.min(phi), np.max(phi))
+    rod_mapper.SetScalarRange(np.min(phi_all), np.max(phi_all))
 
     rod_actor = vtk.vtkActor()
     rod_actor.SetMapper(rod_mapper)
     rod_actor.GetProperty().SetInterpolationToPhong()
-    rod_actor.GetProperty().SetSpecular(0.3)
-    rod_actor.GetProperty().SetSpecularPower(20)
+    rod_actor.GetProperty().SetSpecular(0.4)
+    rod_actor.GetProperty().SetSpecularPower(30)
 
-    # Create flow direction arrow
-    flow_direction = 1 if u >= 0 else -1
-    arrow_y_offset = radius * 2.5
-    flow_arrow = create_flow_arrow(
-        start_pos=(L / 2 - 0.1 * L * flow_direction, arrow_y_offset, 0),
-        direction=(flow_direction, 0, 0),
-        scale=0.2 * L,
+    # ========== Contour bands on rod ==========
+    contour_actor = create_contour_bands(rod_polydata, phi_numerical, n_bands=8)
+
+    # ========== Velocity glyph field ==========
+    velocity_glyphs = create_velocity_glyph_field(L, radius, u, n_glyphs=10)
+
+    # ========== 3D Profile curves ==========
+    # Numerical solution curve (blue)
+    numerical_curve = create_profile_curve_3d(
+        x, phi_numerical, y_offset=-radius * 3.5, color=(0.2, 0.6, 1.0), line_width=4.0
+    )
+    # Analytical solution curve (red)
+    analytical_curve = create_profile_curve_3d(
+        x, phi_analytical, y_offset=-radius * 3.5, color=(1.0, 0.3, 0.3), line_width=4.0
     )
 
-    # Create boundary annotations
+    # ========== Particle system for animation ==========
+    particle_points, particle_glyph, particle_actor, initial_positions = \
+        create_particle_system(L, radius, n_particles=30)
+
+    # ========== Boundary annotations ==========
     annotation_offset = radius * 3
-    left_text = f"Inlet\nφ = {phi_0}"
-    right_text = f"Outlet\nφ = {phi_L}"
+    left_text = f"Inlet\nphi = {phi_0}"
+    right_text = f"Outlet\nphi = {phi_L}"
 
     left_annotation = create_boundary_annotation(
-        left_text, (x[0] - 0.12 * L, 0, annotation_offset), color=(0.3, 0.6, 1.0)
+        left_text, (x[0] - 0.15 * L, 0, annotation_offset), color=(0.3, 0.7, 1.0)
     )
     right_annotation = create_boundary_annotation(
-        right_text, (x[-1] + 0.12 * L, 0, annotation_offset), color=(1.0, 0.4, 0.4)
+        right_text, (x[-1] + 0.15 * L, 0, annotation_offset), color=(1.0, 0.5, 0.4)
     )
 
-    # Flow and Peclet number labels
+    # ========== Flow and physics labels ==========
+    flow_direction = 1 if u >= 0 else -1
+    arrow_y_offset = radius * 3.5
+
     flow_label = create_boundary_annotation(
-        f"Flow → (u = {u} m/s)" if u >= 0 else f"← Flow (u = {u} m/s)",
-        (L / 2, arrow_y_offset + radius, 0),
-        color=(0.2, 0.7, 1.0),
-    )
-    peclet_label = create_boundary_annotation(
-        f"Pe = {Pe:.1f}\n({scheme_name})",
-        (L / 2, -radius * 2.5, 0),
-        color=(0.9, 0.9, 0.3),
+        f"Flow --> u = {u} m/s" if u >= 0 else f"<-- Flow u = {u} m/s",
+        (L / 2, arrow_y_offset, 0),
+        color=(0.3, 0.8, 1.0),
     )
 
-    # Scalar bar
+    physics_label = create_boundary_annotation(
+        f"Pe = {Pe:.1f} | Gamma = {Gamma}\n{scheme_name} Scheme",
+        (L / 2, -radius * 5.5, 0),
+        color=(0.9, 0.9, 0.4),
+    )
+
+    # Profile legend label
+    profile_legend = create_boundary_annotation(
+        "-- Numerical (blue)\n-- Analytical (red)",
+        (L / 2, -radius * 7, 0),
+        color=(0.8, 0.8, 0.8),
+    )
+
+    # ========== Scalar bar ==========
     scalar_bar = vtk.vtkScalarBarActor()
     scalar_bar.SetLookupTable(color_map)
-    scalar_bar.SetTitle("Phi (Scalar)")
-    scalar_bar.SetNumberOfLabels(5)
-    scalar_bar.SetWidth(0.08)
-    scalar_bar.SetHeight(0.4)
-    scalar_bar.SetPosition(0.9, 0.3)
+    scalar_bar.SetTitle("Phi")
+    scalar_bar.SetNumberOfLabels(6)
+    scalar_bar.SetWidth(0.06)
+    scalar_bar.SetHeight(0.35)
+    scalar_bar.SetPosition(0.92, 0.32)
+    scalar_bar.GetTitleTextProperty().SetFontSize(12)
+    scalar_bar.GetLabelTextProperty().SetFontSize(10)
 
-    # Title annotation
+    # ========== Title and equation annotations ==========
     title_actor = vtk.vtkTextActor()
     title_actor.SetInput(title)
-    title_actor.GetTextProperty().SetFontSize(18)
+    title_actor.GetTextProperty().SetFontSize(22)
     title_actor.GetTextProperty().SetColor(1, 1, 1)
     title_actor.GetTextProperty().SetBold(True)
-    title_actor.SetPosition(10, 10)
+    title_actor.SetPosition(15, 15)
 
-    # Renderer setup
+    equation_actor = create_equation_annotation(L, radius)
+
+    # ========== Error metrics annotation ==========
+    max_error = np.max(np.abs(phi_numerical - phi_analytical))
+    error_text = vtk.vtkTextActor()
+    error_text.SetInput(f"Max Error: {max_error:.4e}")
+    error_text.GetTextProperty().SetFontSize(14)
+    error_text.GetTextProperty().SetColor(0.9, 0.7, 0.3)
+    error_text.SetPosition(15, 70)
+
+    # ========== Main renderer (3D view) ==========
     renderer = vtk.vtkRenderer()
+    renderer.SetViewport(0.0, 0.0, 1.0, 1.0)
+
+    # Add all actors
     renderer.AddActor(rod_actor)
-    renderer.AddActor(flow_arrow)
+    renderer.AddActor(contour_actor)
+    renderer.AddActor(velocity_glyphs)
+    renderer.AddActor(numerical_curve)
+    renderer.AddActor(analytical_curve)
+    renderer.AddActor(particle_actor)
     renderer.AddActor(left_annotation)
     renderer.AddActor(right_annotation)
     renderer.AddActor(flow_label)
-    renderer.AddActor(peclet_label)
+    renderer.AddActor(physics_label)
+    renderer.AddActor(profile_legend)
     renderer.AddActor2D(scalar_bar)
     renderer.AddActor2D(title_actor)
+    renderer.AddActor2D(equation_actor)
+    renderer.AddActor2D(error_text)
 
     # Gradient background
-    renderer.SetBackground(0.1, 0.1, 0.15)
-    renderer.SetBackground2(0.02, 0.02, 0.05)
+    renderer.SetBackground(0.08, 0.08, 0.12)
+    renderer.SetBackground2(0.02, 0.02, 0.04)
     renderer.GradientBackgroundOn()
 
-    # Lighting
-    light = vtk.vtkLight()
-    light.SetPosition(L / 2, L, L)
-    light.SetFocalPoint(L / 2, 0, 0)
-    light.SetIntensity(1.0)
-    renderer.AddLight(light)
+    # Enhanced lighting
+    light1 = vtk.vtkLight()
+    light1.SetPosition(L / 2, L, L)
+    light1.SetFocalPoint(L / 2, 0, 0)
+    light1.SetIntensity(0.8)
+    renderer.AddLight(light1)
 
-    # Render window
+    light2 = vtk.vtkLight()
+    light2.SetPosition(L / 2, -L, L / 2)
+    light2.SetFocalPoint(L / 2, 0, 0)
+    light2.SetIntensity(0.4)
+    renderer.AddLight(light2)
+
+    # ========== Render window ==========
     renderWindow = vtk.vtkRenderWindow()
     renderWindow.AddRenderer(renderer)
-    renderWindow.SetSize(1200, 700)
+    renderWindow.SetSize(1400, 800)
     renderWindow.SetWindowName(title)
 
-    # Interactor
+    # ========== Interactor ==========
     renderWindowInteractor = vtk.vtkRenderWindowInteractor()
     renderWindowInteractor.SetRenderWindow(renderWindow)
     renderWindowInteractor.Initialize()
@@ -516,25 +813,68 @@ def vtk_3d_visualization(
     interact_style = vtk.vtkInteractorStyleTrackballCamera()
     renderWindowInteractor.SetInteractorStyle(interact_style)
 
-    # Axes widget
+    # ========== Axes widget ==========
     axes = vtk.vtkAxesActor()
     axes_widget = vtk.vtkOrientationMarkerWidget()
     axes_widget.SetOrientationMarker(axes)
     axes_widget.SetInteractor(renderWindowInteractor)
-    axes_widget.SetViewport(0, 0, 0.2, 0.2)
+    axes_widget.SetViewport(0, 0, 0.18, 0.18)
     axes_widget.SetEnabled(1)
     axes_widget.InteractiveOff()
 
-    # Camera position
+    # ========== Camera position ==========
     camera = renderer.GetActiveCamera()
-    camera.SetPosition(L / 2, -L * 0.8, L * 0.6)
+    camera.SetPosition(L / 2, -L * 1.0, L * 0.7)
     camera.SetFocalPoint(L / 2, 0, 0)
     camera.SetViewUp(0, 0, 1)
     renderer.ResetCamera()
-    camera.Zoom(1.2)
+    camera.Zoom(1.1)
+
+    # ========== Animation callback for particles ==========
+    class ParticleAnimator:
+        def __init__(self, points, glyph, initial_pos, L, u, Gamma, dt=0.02):
+            self.points = points
+            self.glyph = glyph
+            self.positions = [list(p) for p in initial_pos]
+            self.L = L
+            self.u = u
+            self.Gamma = Gamma
+            self.dt = dt
+            self.time = 0
+
+        def update(self, obj, event):
+            self.time += self.dt
+            for i, pos in enumerate(self.positions):
+                # Convection
+                pos[0] += self.u * self.dt * 0.5
+                # Diffusion (random walk)
+                pos[0] += np.random.normal(0, np.sqrt(2 * self.Gamma * self.dt) * 0.3)
+                pos[1] += np.random.normal(0, 0.002)
+                pos[2] += np.random.normal(0, 0.002)
+
+                # Periodic boundary
+                if pos[0] > self.L:
+                    pos[0] = 0
+                if pos[0] < 0:
+                    pos[0] = self.L
+
+                self.points.SetPoint(i, pos[0], pos[1], pos[2])
+
+            self.points.Modified()
+            self.glyph.Update()
+            renderWindow.Render()
+
+    animator = ParticleAnimator(particle_points, particle_glyph, initial_positions, L, u, Gamma)
+
+    # Create timer for animation
+    renderWindowInteractor.AddObserver("TimerEvent", animator.update)
+    timer_id = renderWindowInteractor.CreateRepeatingTimer(50)  # 50ms interval
 
     renderWindow.Render()
     renderWindowInteractor.Start()
+
+    # Cleanup timer
+    renderWindowInteractor.DestroyTimer(timer_id)
 
 
 def main():
@@ -600,8 +940,10 @@ def main():
     # Plot results
     plot_solution(x, phi_numerical, phi_analytical, Pe, scheme_name)
 
-    # 3D VTK visualization
-    vtk_3d_visualization(x, phi_numerical, phi_0, phi_L, Pe, u, scheme_name)
+    # 3D VTK visualization with all the ambitious features
+    vtk_3d_visualization(
+        x, phi_numerical, phi_analytical, phi_0, phi_L, Pe, u, Gamma, scheme_name
+    )
 
     # Print results summary
     print("=" * 65)
