@@ -49,9 +49,14 @@ a simplified pipe flow domain with different mesh zones commonly
 found in industrial CFD simulations.
 """
 
-import math
-
 import vtk
+
+
+# Default base temperatures for each zone (Kelvin)
+ZONE_BASE_TEMPERATURES = [300.0, 350.0, 400.0, 500.0]
+
+# Temperature gradient along flow direction (K per unit length)
+TEMP_GRADIENT_ALONG_FLOW = 5.0
 
 
 def create_pipe_inlet_zone(radius=1.0, length=2.0, resolution=20):
@@ -298,8 +303,6 @@ def add_block_scalar_field(multiblock, field_name="Temperature"):
     Returns:
         None (modifies multiblock in place)
     """
-    base_temps = [300.0, 350.0, 400.0, 500.0]  # Different temps for each zone
-
     iterator = multiblock.NewIterator()
     iterator.InitTraversal()
 
@@ -312,13 +315,13 @@ def add_block_scalar_field(multiblock, field_name="Temperature"):
             temp_array.SetName(field_name)
             temp_array.SetNumberOfComponents(1)
 
-            base_temp = base_temps[block_idx % len(base_temps)]
+            base_temp = ZONE_BASE_TEMPERATURES[block_idx % len(ZONE_BASE_TEMPERATURES)]
 
             # Add some variation based on position
             for i in range(block.GetNumberOfPoints()):
                 point = block.GetPoint(i)
                 # Temperature increases along flow direction (y)
-                temp = base_temp + point[1] * 5.0
+                temp = base_temp + point[1] * TEMP_GRADIENT_ALONG_FLOW
                 temp_array.InsertNextValue(temp)
 
             block.GetPointData().AddArray(temp_array)

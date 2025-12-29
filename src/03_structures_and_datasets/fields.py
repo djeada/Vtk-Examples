@@ -57,6 +57,10 @@ import numpy as np
 import vtk
 
 
+# Maximum velocity ratio for Poiseuille flow (u_max = U_MAX_RATIO * u_bulk)
+U_MAX_RATIO = 1.5
+
+
 def create_structured_grid(nx, ny, nz, spacing=1.0):
     """
     Create a structured grid representing a computational domain.
@@ -104,7 +108,7 @@ def create_velocity_field(grid, u_bulk=1.0):
     - Demonstrates viscous effects
 
     The velocity profile is: u(y) = u_max * (1 - (2y/H)^2)
-    where H is the channel height and u_max = 1.5 * u_bulk
+    where H is the channel height and u_max = U_MAX_RATIO * u_bulk
 
     Args:
         grid: vtkStructuredGrid to attach the field to
@@ -117,7 +121,7 @@ def create_velocity_field(grid, u_bulk=1.0):
     grid.GetDimensions(dims)
     ny = dims[1]
     h = (ny - 1)  # Channel height in grid units
-    u_max = 1.5 * u_bulk  # Maximum velocity for parabolic profile
+    u_max = U_MAX_RATIO * u_bulk  # Maximum velocity for parabolic profile
 
     velocity = vtk.vtkFloatArray()
     velocity.SetName("Velocity")
@@ -267,7 +271,8 @@ def create_vorticity_field(grid, velocity_field):
     vorticity.SetNumberOfComponents(3)
 
     # For Poiseuille flow, du/dy = -2 * u_max * (2y/H) / H
-    u_max = 1.5  # From velocity field creation
+    # u_max = U_MAX_RATIO * u_bulk (assuming u_bulk = 1.0)
+    u_max = U_MAX_RATIO
 
     for k in range(dims[2]):
         for j in range(dims[1]):
