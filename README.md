@@ -1,218 +1,486 @@
-# VTK - Visualization Toolkit Python Examples
+<div align="center">
 
-Explore the world of 3D graphics and visualization with VTK examples in Python.
+# 🎨 VTK Examples - Master 3D Visualization with Python
 
-![Screenshot from 2024-02-10 21-38-23](https://github.com/djeada/VTK-Examples/assets/37275728/d843d55f-ab7a-4830-a762-34cc71041fdc)
+**A comprehensive collection of VTK (Visualization Toolkit) examples showcasing 3D graphics, scientific visualization, and computational fluid dynamics**
 
-## Demo
-To watch the Short, just click on the thumbnail. That will open the YouTube Shorts player so you can view the video instantly. Enjoy!
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![VTK 9.4](https://img.shields.io/badge/VTK-9.4-green.svg)](https://vtk.org/)
+[![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[![Watch the Short on YouTube](https://img.youtube.com/vi/Qgoh9NbNqdc/maxresdefault.jpg)](https://youtube.com/shorts/Qgoh9NbNqdc?feature=share)
+[📖 Documentation](#-documentation) • [🚀 Quick Start](#-quick-start) • [💡 Examples](#-examples-gallery) • [🤝 Contributing](#-how-to-contribute)
 
-[![Watch the Short on YouTube](https://img.youtube.com/vi/0jAN9Q-GGCk/maxresdefault.jpg)](https://youtube.com/shorts/0jAN9Q-GGCk?feature=share)
+---
 
-## Overview
+![VTK Visualization Demo](https://github.com/djeada/VTK-Examples/assets/37275728/d843d55f-ab7a-4830-a762-34cc71041fdc)
 
-The Visualization Toolkit, or VTK, is a cornerstone in the field of 3D graphics and scientific visualization:
+</div>
 
-- **What is VTK?**
-  - VTK is an advanced 3D graphics and visualization software library that has been empowering scientific and data visualization, 3D graphics, and image processing.
+## 🎬 See VTK in Action
 
-- **The Toolkit's Features:**
-  - It offers an extensive collection of algorithms, providing hundreds of tools tailored for various visualization needs.
+Experience the power of VTK through these interactive demonstrations. Click on any thumbnail to watch the video on YouTube:
 
-- **Development and Maintenance:**
-  - Since 1993, Kitware Inc. has been the driving force behind VTK, ensuring continuous development and maintenance.
+<div align="center">
 
-- **Open-Source and Cross-Language:**
-  - Being open-source, VTK invites collaboration and expansion. While it's primarily written in C++, it also offers Python, Java, and Tcl bindings.
+| Visualization Demo | Animation Showcase |
+|:------------------:|:------------------:|
+| [![Watch Demo 1](https://img.youtube.com/vi/Qgoh9NbNqdc/maxresdefault.jpg)](https://youtube.com/shorts/Qgoh9NbNqdc?feature=share) | [![Watch Demo 2](https://img.youtube.com/vi/0jAN9Q-GGCk/maxresdefault.jpg)](https://youtube.com/shorts/0jAN9Q-GGCk?feature=share) |
+| *3D Rendering & Interaction* | *Dynamic Visualization* |
 
-## Getting Started with VTK
+</div>
 
-### Installation Guide
+---
 
-For getting VTK up and running on your system:
+## 📋 Table of Contents
 
-- **Platform-Specific Instructions:**
-  - Visit the [official VTK download page](https://vtk.org/download/) for detailed installation guides on Windows, Linux, and macOS.
+- [✨ Why This Repository?](#-why-this-repository)
+- [🔍 What is VTK?](#-what-is-vtk)
+- [🚀 Quick Start](#-quick-start)
+- [📁 Project Structure](#-project-structure)
+- [💡 Examples Gallery](#-examples-gallery)
+  - [🔷 Basic Shapes](#-basic-shapes)
+  - [🔶 Advanced Shapes](#-advanced-shapes)
+  - [📊 Structures and Datasets](#-structures-and-datasets)
+  - [📥 Input and Output](#-input-and-output)
+  - [🔄 Data Conversion](#-data-conversion)
+  - [🎯 Visualization Pipeline](#-visualization-pipeline)
+  - [🎛️ Interactive Widgets](#-interactive-widgets)
+  - [🔗 Integrations](#-integrations-with-external-tools)
+  - [🌊 Computational Fluid Dynamics](#-computational-fluid-dynamics-cfd)
+- [🌐 VTK.js Web Examples](#-vtkjs-web-examples)
+- [📖 Documentation](#-documentation)
+- [🤝 How to Contribute](#-how-to-contribute)
+- [📚 References](#-references)
+- [📄 License](#-license)
 
-### Basic Workflow in VTK
+---
 
-To harness the power of VTK effectively, follow this basic workflow:
+## ✨ Why This Repository?
 
-1. **Data Input and Representation:** Your first step involves choosing the appropriate data structure for your dataset.
+<div align="center">
 
-2. **Data Manipulation and Processing:** Next, apply a variety of filters and algorithms to manipulate and process the data as needed.
+| 🎓 **Learn by Example** | 🛠️ **Production Ready** | 📈 **Comprehensive Coverage** |
+|:-----------------------:|:------------------------:|:-----------------------------:|
+| 50+ working examples with clear explanations | Well-structured, reusable code patterns | From basics to advanced CFD simulations |
 
-3. **Visualization and Rendering:** For the visual representation of data, make use of mappers, actors, and renderers.
+| 🔬 **Scientific Focus** | 🌐 **Web & Desktop** | 📚 **Rich Documentation** |
+|:-----------------------:|:--------------------:|:-------------------------:|
+| Perfect for research and engineering | Python + VTK.js examples | In-depth notes and tutorials |
 
-4. **Interaction and Exporting:** Lastly, incorporate interactive elements into your visualization and utilize export functionalities as required.
+</div>
 
-## Running the Examples
+Whether you're a **student** learning visualization concepts, a **researcher** analyzing scientific data, or an **engineer** building professional applications, this repository provides the building blocks you need.
 
-### Setting Up Your Environment
+### 🎯 What You'll Learn
 
-To begin with your project, it's important to set up your environment properly. Here's how:
+- **Create stunning 3D visualizations** from simple shapes to complex scientific data
+- **Master the VTK pipeline** architecture for efficient rendering
+- **Handle various file formats** (STL, OBJ, VTK, VTU, VTM, and more)
+- **Build interactive applications** with widgets and UI integration
+- **Implement CFD simulations** for heat transfer and fluid flow
+- **Deploy web visualizations** using VTK.js
 
-1. **Creating a Virtual Environment:** Use `virtualenv` or `conda` for isolating your project dependencies. This helps in managing packages specific to this project without affecting others.
+---
 
-2. **Activating and Installing Dependencies:** Once the virtual environment is created, activate it. Then, install all the required packages using the following command:
+## 🔍 What is VTK?
+
+The **Visualization Toolkit (VTK)** is the gold standard for 3D computer graphics, image processing, and scientific visualization.
+
+<table>
+<tr>
+<td width="50%">
+
+### 🏆 Key Features
+
+- **Extensive Algorithm Library** — Hundreds of visualization algorithms for any use case
+- **Cross-Platform** — Windows, Linux, macOS support
+- **Multi-Language** — C++, Python, Java, Tcl bindings
+- **Open Source** — BSD license, free for commercial use
+- **Active Community** — 30+ years of development by Kitware
+
+</td>
+<td width="50%">
+
+### 🔧 Core Capabilities
+
+- 3D surface and volume rendering
+- Scalar, vector, and tensor visualization
+- Image processing and analysis
+- Mesh generation and manipulation
+- Scientific data formats I/O
+- Interactive 3D widgets
+
+</td>
+</tr>
+</table>
+
+### 📊 VTK Pipeline Architecture
+
+Understanding VTK's pipeline is essential for effective visualization:
 
 ```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         VTK VISUALIZATION PIPELINE                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐          │
+│  │  SOURCE  │───▶│  FILTER  │───▶│  MAPPER  │───▶│  ACTOR   │          │
+│  │          │    │          │    │          │    │          │          │
+│  │ Generate │    │ Process  │    │ Convert  │    │ Render   │          │
+│  │   Data   │    │   Data   │    │ to Geo   │    │  Object  │          │
+│  └──────────┘    └──────────┘    └──────────┘    └────┬─────┘          │
+│                                                       │                 │
+│                                                       ▼                 │
+│                                               ┌──────────────┐          │
+│                                               │   RENDERER   │          │
+│                                               │              │          │
+│                                               │   Display    │          │
+│                                               └──────────────┘          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Quick Start
+
+Get up and running in minutes with these simple steps:
+
+### Prerequisites
+
+- Python 3.8 or higher
+- pip package manager
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/djeada/VTK-Examples.git
+cd VTK-Examples
+
+# 2. Create a virtual environment (recommended)
+python -m venv venv
+
+# 3. Activate the virtual environment
+# On Linux/macOS:
+source venv/bin/activate
+# On Windows:
+venv\Scripts\activate
+
+# 4. Install dependencies
 pip install -r requirements.txt
 ```
 
-### Executing Scripts
+### Run Your First Example
 
-Running the scripts is straightforward. Just follow these steps:
-
-- Navigate to the script's directory within the `src/` folder. For example, if you're looking to run a script about basic shapes:
-
-```
+```bash
+# Navigate to the examples directory and run a script
 cd src/01_basic_shapes
 python circle.py
 ```
 
-- The above command will execute the `circle.py` script, which demonstrates creating a simple circle using VTK.
+🎉 **Congratulations!** You should see a window displaying circles rendered with VTK.
 
-### Using an Integrated Development Environment (IDE)
+### 💻 IDE Setup (Optional)
 
-If you prefer using an IDE like Visual Studio Code or PyCharm, here's what you need to do:
+For an enhanced development experience with **VS Code** or **PyCharm**:
 
-1. **Project Setup:** Open your chosen IDE and load the project folder. This will make all your project files accessible in one place.
+1. **Open** the project folder in your IDE
+2. **Configure** the Python interpreter to use your virtual environment
+3. **Run** any script using the built-in run button or debugger
+4. **Debug** with breakpoints for step-through analysis
 
-2. **Interpreter Configuration:** Configure the Python interpreter in your IDE to point to the virtual environment you created earlier. This ensures that your IDE uses the correct Python version and dependencies.
+---
 
-3. **Running Scripts:** Select the script you want to run. Use your IDE's tools (often a "Run" button) to execute the script.
+## 📁 Project Structure
 
-4. **Debugging:** Leverage your IDE's debugging features like breakpoints and step-through debugging to analyze your scripts more closely.
+```
+VTK-Examples/
+├── 📂 src/                          # Source code examples
+│   ├── 📂 01_basic_shapes/          # Fundamental geometric primitives
+│   ├── 📂 02_advanced_shapes/       # Complex geometries & techniques
+│   ├── 📂 03_structures_and_datasets/ # VTK data structures
+│   ├── 📂 04_input_output/          # File format handling
+│   ├── 📂 05_data_conversion/       # Format conversion utilities
+│   ├── 📂 06_visualization_pipeline/ # Rendering pipeline examples
+│   ├── 📂 07_interactive_widgets/   # UI widgets & interaction
+│   ├── 📂 08_integration_with_ui/   # Qt, Matplotlib integration
+│   ├── 📂 09_cfd/                   # Computational Fluid Dynamics
+│   └── 📂 common/                   # Shared utilities & helpers
+│
+├── 📂 notes/                        # In-depth documentation & tutorials
+├── 📂 vtk_js/                       # VTK.js web visualization examples
+├── 📂 data/                         # Sample data files
+│   ├── 📂 stls/                     # STL mesh files
+│   ├── 📂 objs/                     # OBJ model files
+│   ├── 📂 vtks/                     # VTK data files
+│   └── 📂 ...                       # Other format samples
+│
+├── 📄 requirements.txt              # Python dependencies
+├── 📄 LICENSE                       # MIT License
+└── 📄 README.md                     # This file
+```
 
-## Basic Shapes
+---
 
-| Number | Description | Link |
-| --- | --- | --- |
-| 1 | Demonstrates the steps to create a perfectly round circle | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/circle.py) |
-| 2 | Describes the process of generating a 3D cone | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/cone.py) |
-| 3 | Explore how to make a simple cube in 3D space | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/cube.py) |
-| 4 | Learn to draw a cylinder using vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/cylinder.py) |
-| 5 | Get started with glyph production in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/glyph.py) |
-| 6 | Tutorial on creating a 2D square | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/square.py) |
-| 7 | Guides you through the creation of a simple triangle | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/triangle.py) |
+## 💡 Examples Gallery
 
-## Advanced Shapes
+### 🔷 Basic Shapes
 
-| Number | Description | Link |
-| --- | --- | --- |
-| 1 | A detailed example of creating a 3D box that encloses other objects | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/enclosing_box.py) |
-| 2 | Shows how to construct an isosurface in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/isosurface.py) |
-| 3 | Delves into creating scenes with multiple dependent objects | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/multiple_dependent_objects.py) |
-| 4 | Explores creating complex scenes with multiple independent objects | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/multiple_independent_objects.py) |
-| 5 | Introduction to the creation of streamlines in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/streamlines.py) |
-| 6 | Teaches you how to use triangulation techniques in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/triangulation.py) |
-| 7 | Explores the world of volume rendering in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/volume_rendering.py) |
-| 8 | A comparison of different visualization techniques in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/visualization_techniques_comparison.py) |
-| 9 | Demonstrates how to visualize flow simulation data | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/flow_simulation_visualization.py) |
+Start your VTK journey with fundamental geometric primitives. These examples demonstrate the core concepts of creating and rendering 3D objects.
 
-## Structures and Datasets
+| # | Example | Description | Link |
+|:-:|:--------|:------------|:----:|
+| 1 | **Circle** | Create perfectly round 2D circles with customizable radius and resolution | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/circle.py) |
+| 2 | **Cone** | Generate 3D cones with adjustable height, radius, and resolution | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/cone.py) |
+| 3 | **Cube** | Build solid cubes and boxes in 3D space | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/cube.py) |
+| 4 | **Cylinder** | Create cylindrical shapes with height and radius parameters | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/cylinder.py) |
+| 5 | **Glyph** | Introduction to glyph-based visualization for representing data points | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/glyph.py) |
+| 6 | **Square** | Render 2D squares and rectangles | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/square.py) |
+| 7 | **Triangle** | Create triangular primitives, the building blocks of 3D meshes | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/01_basic_shapes/triangle.py) |
 
-| Number | Description | Link |
-| --- | --- | --- |
-| 1 | Shows you how to manipulate points in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/points.py) |
-| 2 | Dives into the workings of cells within vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/cells.py) |
-| 3 | An overview of handling fields in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/fields.py) |
-| 4 | Detailed example of working with multiblock datasets | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/multiblock_dataset.py) |
-| 5 | Covers the basics of poly data structures in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/poly_data.py) |
-| 6 | Teaches you how to work with structured grids | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/structured_grid.py) |
-| 7 | Guides you through the intricacies of unstructured grids | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/unstructured_grid.py) |
-| 8 | Introduction to structured mesh concepts in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/structured_mesh.py) |
-| 9 | Explores the creation and manipulation of unstructured meshes | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/unstructured_mesh.py) |
+### 🔶 Advanced Shapes
 
-## Input and Output
+Take your visualization skills to the next level with complex geometries, volume rendering, and multi-object scenes.
 
-| Number | Description | Link |
-| --- | --- | --- |
-| 1 | Introduction to working with OBJ files in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_obj.py) |
-| 2 | Learn to read and write STL files with vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_stl.py) |
-| 3 | Overview of handling VTK file format | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtk.py) |
-| 4 | Guides you through the usage of VTM file format | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtm.py) |
-| 5 | Explores handling VTU file formats with vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtu.py) |
-| 6 | Walkthrough of handling Exodus II files | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_exodus_ii.py) |
-| 7 | Tutorial on interacting with OpenFOAM files | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_openfoam.py) |
+| # | Example | Description | Link |
+|:-:|:--------|:------------|:----:|
+| 1 | **Enclosing Box** | Create bounding boxes that enclose other objects—useful for spatial analysis | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/enclosing_box.py) |
+| 2 | **Isosurface** | Extract surfaces of constant value from volumetric data | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/isosurface.py) |
+| 3 | **Multiple Dependent Objects** | Build scenes with hierarchically linked objects | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/multiple_dependent_objects.py) |
+| 4 | **Multiple Independent Objects** | Create complex scenes with multiple standalone objects | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/multiple_independent_objects.py) |
+| 5 | **Streamlines** | Visualize flow fields and vector data with streamline rendering | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/streamlines.py) |
+| 6 | **Triangulation** | Apply triangulation techniques for mesh generation | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/triangulation.py) |
+| 7 | **Volume Rendering** | Render volumetric data with customizable transfer functions | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/volume_rendering.py) |
+| 8 | **Visualization Comparison** | Compare different visualization techniques side-by-side | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/visualization_techniques_comparison.py) |
+| 9 | **Flow Simulation** | Visualize computational fluid dynamics data | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/02_advanced_shapes/flow_simulation_visualization.py) |
 
-## Data Conversion
+### 📊 Structures and Datasets
 
-| Number | Description | Link |
-| --- | --- | --- |
-| 1 | Interface for data conversion utilities | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/converter_interface.py) |
-| 2 | Learn to convert between STL and VTK formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/stl_vtk.py) |
-| 3 | Demonstrates conversion between VTK and OBJ formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/vtk_obj.py) |
-| 4 | Teaches conversion between STL and OBJ formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/stl_obj.py) |
-| 5 | Shows you how to convert between VTK and VTM formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/vtk_vtm.py) |
-| 6 | Guides you through the conversion between VTK and VTU formats | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/vtk_vtu.py) |
-## Visualization Pipeline
+Master VTK's data structures—the foundation of all visualization operations.
 
-| Number | Description | Link |
-| --- | --- | --- |
-| 1 | Shows handling multiple objects in the actor-mapper setup | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/actor_mapper_multiple_objects.py) |
-| 2 | Teaches you how to add text labels in your visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/adding_text_labels.py) |
-| 3 | Demonstrates scalar color mapping in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/scalar_color_mapping.py) |
-| 4 | Walks you through creating camera movements | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/camera_movement.py) |
-| 5 | Shows various filters in action in vtk | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/filters_in_action.py) |
-| 6 | Guides you through creating lighting and shadows in your visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/lighting_and_shadows.py) |
-| 7 | Shows you how to animate your visualization pipeline | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/pipeline_animation.py) |
+| # | Example | Description | Link |
+|:-:|:--------|:------------|:----:|
+| 1 | **Points** | Work with vtkPoints—the fundamental spatial data structure | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/points.py) |
+| 2 | **Cells** | Understand cells and their role in defining mesh topology | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/cells.py) |
+| 3 | **Fields** | Handle scalar, vector, and tensor field data | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/fields.py) |
+| 4 | **Multiblock Dataset** | Organize complex data with hierarchical multiblock structures | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/multiblock_dataset.py) |
+| 5 | **PolyData** | Work with polygonal surfaces—the most common VTK data type | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/poly_data.py) |
+| 6 | **Structured Grid** | Handle regularly spaced 3D grid data | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/structured_grid.py) |
+| 7 | **Unstructured Grid** | Work with arbitrary cell types and connectivity | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/unstructured_grid.py) |
+| 8 | **Structured Mesh** | Create and manipulate structured mesh geometries | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/structured_mesh.py) |
+| 9 | **Unstructured Mesh** | Build and process unstructured mesh geometries | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/unstructured_mesh.py) |
 
-## Interactive Widgets
+### 📥 Input and Output
 
-| Number | Description | Link |
-| --- | --- | --- |
-| 1 | Guides you to use the orientation marker widget | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/orientation_marker.py) |
-| 2 | Tutorial on creating and using sliders in your visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/slider.py) |
-| 3 | Learn how to interact with simple buttons in your visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/simple_button.py) |
-| 4 | Demonstrates creating interactive planes intersection | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/planes_intersection.py) |
+Learn to read and write various 3D file formats commonly used in engineering and scientific applications.
 
-## Integrations with External Tools
+| # | Format | Description | Link |
+|:-:|:-------|:------------|:----:|
+| 1 | **OBJ** | Wavefront OBJ—widely used 3D model format | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_obj.py) |
+| 2 | **STL** | Stereolithography format—standard for 3D printing | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_stl.py) |
+| 3 | **VTK** | Native VTK format for polygonal data | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtk.py) |
+| 4 | **VTM** | VTK multiblock format for composite datasets | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtm.py) |
+| 5 | **VTU** | VTK unstructured grid format | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_vtu.py) |
+| 6 | **Exodus II** | SANDIA National Labs format for FEM/CFD results | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_exodus_ii.py) |
+| 7 | **OpenFOAM** | Read OpenFOAM CFD simulation results | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/04_input_output/io_openfoam.py) |
 
-| Number | Description | Link |
-| --- | --- | --- |
-| 1 | Learn to integrate VTK with Qt to create a 3D sphere visualization | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/08_integration_with_ui/qt_sphere.py) |
-| 2 | Demonstrates the use of Matplotlib for creating a 3D sphere using VTK | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/08_integration_with_ui/matplotlib_sphere.py) |
-| 3 | Shows how to create surface plots using VTK and Matplotlib | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/08_integration_with_ui/matplotlib_surface_plot.py) |
+### 🔄 Data Conversion
 
-## Computational Fluid Dynamics (CFD)
+Convert between popular 3D file formats with ease.
 
-| Number | Description | Link |
-| --- | --- | --- |
-| 1 | 1D heat convection problems | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/heat_convection_solver_1d.py) |
-| 2 | 1D fixed end heat transfer | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/fixed_end_heat_transfer_1d.py) |
-| 3 | 1D convective end heat transfer | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/convective_end_heat_transfer_1d.py) |
-| 4 | 1D enhanced heat transfer | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/enhanced_heat_transfer_solver_1d.py) |
-| 5 | 2D heat conduction problems | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/heat_conduction_solver_2d.py) |
-| 6 | 2D enhanced heat transfer | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/enhanced_heat_transfer_solver_2d.py) |
-| 7 | Simple fluid flow | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/fluid_flow_simulator.py) |
-| 8 | Fluid flow around an obstacle | [Python](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/obstacle_flow_simulation.py) |
+| # | Conversion | Description | Link |
+|:-:|:-----------|:------------|:----:|
+| 1 | **Converter Interface** | Base interface for building custom converters | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/converter_interface.py) |
+| 2 | **STL ↔ VTK** | Convert between STL and VTK formats | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/stl_vtk.py) |
+| 3 | **VTK ↔ OBJ** | Convert between VTK and OBJ formats | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/vtk_obj.py) |
+| 4 | **STL ↔ OBJ** | Convert between STL and OBJ formats | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/stl_obj.py) |
+| 5 | **VTK ↔ VTM** | Convert between VTK and VTM formats | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/vtk_vtm.py) |
+| 6 | **VTK ↔ VTU** | Convert between VTK and VTU formats | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/05_data_conversion/vtk_vtu.py) |
 
-## References
+### 🎯 Visualization Pipeline
 
-* [PyScience: VTK](https://pyscience.wordpress.com/tag/vtk/)
-* [Program Creek: VTK](https://www.programcreek.com/python/index/480/vtk)
-* [Visualization Course 2014](https://www.cb.uu.se/~aht/Vis2014/)
-* [Data Visualization Course, SJTU](https://www.cs.sjtu.edu.cn/~shengbin/course/datavis/)
+Understand and master the VTK rendering pipeline for professional-quality visualizations.
 
-## How to Contribute
+| # | Example | Description | Link |
+|:-:|:--------|:------------|:----:|
+| 1 | **Actor-Mapper Setup** | Handle multiple objects with proper actor-mapper relationships | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/actor_mapper_multiple_objects.py) |
+| 2 | **Text Labels** | Add informative text annotations to your visualizations | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/adding_text_labels.py) |
+| 3 | **Scalar Color Mapping** | Map data values to colors using customizable color maps | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/scalar_color_mapping.py) |
+| 4 | **Camera Movement** | Control camera position, orientation, and movement paths | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/camera_movement.py) |
+| 5 | **Filters in Action** | Apply VTK filters for data processing and transformation | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/filters_in_action.py) |
+| 6 | **Lighting & Shadows** | Create realistic lighting effects and shadow rendering | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/lighting_and_shadows.py) |
+| 7 | **Pipeline Animation** | Animate your visualization pipeline over time | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/06_visualization_pipeline/pipeline_animation.py) |
 
-We encourage contributions that enhance the repository's value. To contribute:
+### 🎛️ Interactive Widgets
 
-1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request.
+Build interactive applications with VTK's powerful widget system.
 
-## License
+| # | Widget | Description | Link |
+|:-:|:-------|:------------|:----:|
+| 1 | **Orientation Marker** | Add 3D axes indicator for spatial orientation | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/orientation_marker.py) |
+| 2 | **Slider** | Create interactive sliders for parameter control | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/slider.py) |
+| 3 | **Button** | Implement clickable buttons for user interaction | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/simple_button.py) |
+| 4 | **Planes Intersection** | Interactively slice volumes with intersecting planes | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/07_interactive_widgets/planes_intersection.py) |
 
-This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.
+### 🔗 Integrations with External Tools
 
-## Star History
+Combine VTK with popular frameworks for enhanced visualization capabilities.
+
+| # | Integration | Description | Link |
+|:-:|:------------|:------------|:----:|
+| 1 | **Qt Integration** | Embed VTK visualizations in Qt desktop applications | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/08_integration_with_ui/qt_sphere.py) |
+| 2 | **Matplotlib Sphere** | Combine VTK 3D rendering with Matplotlib | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/08_integration_with_ui/matplotlib_sphere.py) |
+| 3 | **Matplotlib Surface** | Create surface plots using VTK and Matplotlib together | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/08_integration_with_ui/matplotlib_surface_plot.py) |
+
+### 🌊 Computational Fluid Dynamics (CFD)
+
+Simulate and visualize heat transfer and fluid flow phenomena with these physics-based examples.
+
+| # | Simulation | Description | Link |
+|:-:|:-----------|:------------|:----:|
+| 1 | **1D Heat Convection** | Solve 1D heat convection problems with finite differences | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/heat_convection_solver_1d.py) |
+| 2 | **1D Fixed-End Heat Transfer** | Heat transfer with fixed temperature boundary conditions | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/fixed_end_heat_transfer_1d.py) |
+| 3 | **1D Convective-End Heat Transfer** | Heat transfer with convective boundary conditions | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/convective_end_heat_transfer_1d.py) |
+| 4 | **1D Enhanced Heat Transfer** | Advanced 1D heat transfer with enhanced accuracy | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/enhanced_heat_transfer_solver_1d.py) |
+| 5 | **2D Heat Conduction** | Solve 2D steady-state heat conduction problems | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/heat_conduction_solver_2d.py) |
+| 6 | **2D Enhanced Heat Transfer** | Advanced 2D heat transfer solver | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/enhanced_heat_transfer_solver_2d.py) |
+| 7 | **Fluid Flow Simulation** | Simulate basic fluid flow patterns | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/fluid_flow_simulator.py) |
+| 8 | **Obstacle Flow** | Simulate fluid flow around obstacles | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/09_cfd/obstacle_flow_simulation.py) |
+
+---
+
+## 🌐 VTK.js Web Examples
+
+Take your visualizations to the web with **VTK.js**—a JavaScript implementation of VTK for browser-based 3D rendering.
+
+### Quick Start with VTK.js
+
+```bash
+# Navigate to the VTK.js examples
+cd vtk_js/basic
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Start the development server
+npm start
+```
+
+Then open your browser to `http://localhost:8080` to see VTK running in the web!
+
+📂 **Location:** [`vtk_js/basic/`](https://github.com/djeada/VTK-Examples/tree/main/vtk_js/basic)
+
+---
+
+## 📖 Documentation
+
+Deepen your understanding with our comprehensive documentation covering VTK concepts, techniques, and best practices.
+
+| Topic | Description | Link |
+|:------|:------------|:----:|
+| **Data Types & Structures** | vtkDataObject, points, cells, grids, and datasets | [📚 Read](https://github.com/djeada/VTK-Examples/blob/main/notes/01_data_types_and_structures.md) |
+| **Filters & Algorithms** | Data processing, transformation, and analysis filters | [📚 Read](https://github.com/djeada/VTK-Examples/blob/main/notes/02_filters_and_algorithms.md) |
+| **Input & Output** | File format handling and data serialization | [📚 Read](https://github.com/djeada/VTK-Examples/blob/main/notes/03_input_and_output.md) |
+| **Visualization Techniques** | Volume rendering, scalar mapping, vector visualization | [📚 Read](https://github.com/djeada/VTK-Examples/blob/main/notes/04_visualization_techniques.md) |
+| **Interactivity** | User interaction, picking, and selection | [📚 Read](https://github.com/djeada/VTK-Examples/blob/main/notes/05_interactivity.md) |
+| **Animations** | Creating smooth animations and time-series visualizations | [📚 Read](https://github.com/djeada/VTK-Examples/blob/main/notes/06_animations.md) |
+| **Performance Optimization** | Parallelism, LOD, and rendering optimization | [📚 Read](https://github.com/djeada/VTK-Examples/blob/main/notes/07_performance_optimization_and_parallelism.md) |
+| **Tool Integration** | Integrating VTK with Qt, Matplotlib, and other tools | [📚 Read](https://github.com/djeada/VTK-Examples/blob/main/notes/08_integration_with_other_tools.md) |
+| **Custom Filters** | Building custom filters and algorithms | [📚 Read](https://github.com/djeada/VTK-Examples/blob/main/notes/09_custom_filters_and_algorithms.md) |
+
+---
+
+## 🤝 How to Contribute
+
+We welcome contributions from the community! Whether you're fixing a bug, adding new examples, or improving documentation, your help is appreciated.
+
+### Ways to Contribute
+
+- 🐛 **Report bugs** — Found an issue? [Open a bug report](https://github.com/djeada/VTK-Examples/issues/new)
+- 💡 **Suggest features** — Have an idea? [Share it with us](https://github.com/djeada/VTK-Examples/issues/new)
+- 📝 **Improve documentation** — Help make the docs even better
+- 🔧 **Submit code** — Add new examples or enhance existing ones
+
+### Contribution Workflow
+
+```bash
+# 1. Fork the repository on GitHub
+
+# 2. Clone your fork
+git clone https://github.com/YOUR_USERNAME/VTK-Examples.git
+cd VTK-Examples
+
+# 3. Create a feature branch
+git checkout -b feature/AmazingFeature
+
+# 4. Make your changes and commit
+git add .
+git commit -m "Add AmazingFeature: brief description"
+
+# 5. Push to your fork
+git push origin feature/AmazingFeature
+
+# 6. Open a Pull Request on GitHub
+```
+
+### Code Guidelines
+
+- Follow existing code style and patterns
+- Add clear comments and docstrings
+- Include example usage in new scripts
+- Test your code before submitting
+
+---
+
+## 📚 References
+
+Expand your VTK knowledge with these excellent resources:
+
+### Official Resources
+- 🌐 [VTK Official Website](https://vtk.org/) — Documentation, downloads, and news
+- 📖 [VTK User's Guide](https://vtk.org/vtk-users-guide/) — Comprehensive official guide
+- 📚 [VTK Examples](https://examples.vtk.org/) — Official VTK examples collection
+
+### Community Resources
+- 📝 [PyScience VTK Tutorials](https://pyscience.wordpress.com/tag/vtk/) — Python-focused VTK tutorials
+- 💻 [Program Creek VTK Examples](https://www.programcreek.com/python/index/480/vtk) — Code snippets and examples
+- 🎓 [Visualization Course 2014 (Uppsala)](https://www.cb.uu.se/~aht/Vis2014/) — Academic visualization course
+- 🎓 [Data Visualization Course (SJTU)](https://www.cs.sjtu.edu.cn/~shengbin/course/datavis/) — University course materials
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+```
+MIT License - Copyright (c) 2021 Adam Djellouli
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software.
+```
+
+---
+
+## ⭐ Star History
+
+If you find this repository helpful, please consider giving it a star! Your support helps others discover these resources.
 
 [![Star History Chart](https://api.star-history.com/svg?repos=djeada/Vtk-Examples&type=Date)](https://star-history.com/#djeada/Vtk-Examples&Date)
 
+---
+
+<div align="center">
+
+**Made with ❤️ by [Adam Djellouli](https://github.com/djeada) and contributors**
+
+[⬆ Back to Top](#-vtk-examples---master-3d-visualization-with-python)
+
+</div>
