@@ -37,7 +37,10 @@ Discretization Scheme:
 Upwind Difference Scheme (UDS):
 - Uses upwind approximation for convection: stable for all Pe
 - First-order accurate, introduces numerical diffusion
-- For 2D: a_P = a_E + a_W + a_N + a_S + (F_e - F_w) + (F_n - F_s)
+- For 2D with uniform flow, the coefficients are:
+  a_W = D_w + max(F_w, 0), a_E = D_e + max(-F_e, 0)
+  a_S = D_s + max(F_s, 0), a_N = D_n + max(-F_n, 0)
+  a_P = a_W + a_E + a_S + a_N
 
 Relationship to 1D:
 This 2D solver extends the 1D version by:
@@ -616,7 +619,7 @@ def vtk_3d_visualization(
 
     # ========== Animation callback for particles ==========
     class ParticleAnimator2D:
-        def __init__(self, points, glyph, initial_pos, Lx, Ly, u, v, Gamma, dt=0.02):
+        def __init__(self, points, glyph, initial_pos, Lx, Ly, u, v, dt=0.02):
             self.points = points
             self.glyph = glyph
             self.positions = [list(p) for p in initial_pos]
@@ -624,30 +627,36 @@ def vtk_3d_visualization(
             self.Ly = Ly
             self.u = u
             self.v = v
-            self.Gamma = Gamma
             self.dt = dt
             self.time = 0
 
         def update(self, obj, event):
             self.time += self.dt
             for i, pos in enumerate(self.positions):
-                # Convection
+                # Convection: particle advected by flow velocity
                 pos[0] += self.u * self.dt * CONVECTION_SCALE_FACTOR
                 pos[1] += self.v * self.dt * CONVECTION_SCALE_FACTOR
-                # Diffusion (random walk)
-                diffusion_std = np.sqrt(2 * self.Gamma * self.dt) * DIFFUSION_SCALE_FACTOR
-                pos[0] += np.random.normal(0, diffusion_std)
-                pos[1] += np.random.normal(0, diffusion_std)
 
-                # Periodic boundaries
+                # Diffusion: random walk (using dimensionless scale for visualization)
+                # Note: This is a visualization aid, not physically accurate diffusion
+                diffusion_scale = min(self.Lx, self.Ly) * 0.01 * DIFFUSION_SCALE_FACTOR
+                pos[0] += np.random.normal(0, diffusion_scale)
+                pos[1] += np.random.normal(0, diffusion_scale)
+
+                # Respawn at inlet when hitting outlet (consistent with Dirichlet BCs)
+                # Particles represent tracer injection at boundaries
                 if pos[0] > self.Lx:
-                    pos[0] = 0
+                    pos[0] = 0  # Respawn at left inlet
+                    pos[1] = np.random.uniform(0, self.Ly)
                 if pos[0] < 0:
-                    pos[0] = self.Lx
+                    pos[0] = self.Lx  # Respawn at right
+                    pos[1] = np.random.uniform(0, self.Ly)
                 if pos[1] > self.Ly:
-                    pos[1] = 0
+                    pos[1] = 0  # Respawn at bottom
+                    pos[0] = np.random.uniform(0, self.Lx)
                 if pos[1] < 0:
-                    pos[1] = self.Ly
+                    pos[1] = self.Ly  # Respawn at top
+                    pos[0] = np.random.uniform(0, self.Lx)
 
                 self.points.SetPoint(i, pos[0], pos[1], pos[2])
 
@@ -656,7 +665,7 @@ def vtk_3d_visualization(
             renderWindow.Render()
 
     animator = ParticleAnimator2D(
-        particle_points, particle_glyph, initial_positions, Lx, Ly, u, v, Gamma
+        particle_points, particle_glyph, initial_positions, Lx, Ly, u, v
     )
 
     # Create timer for animation
