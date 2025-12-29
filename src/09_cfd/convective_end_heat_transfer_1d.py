@@ -205,41 +205,6 @@ def plot_results(x: np.ndarray, T_numerical: np.ndarray, T_analytical: np.ndarra
     plt.show()
 
 
-def create_points(x: np.ndarray, T: np.ndarray) -> tuple:
-    """
-    Create points and temperature values for vtk visualization.
-
-    :param x: X-coordinate vector (numpy.ndarray)
-    :param T: Temperature field (numpy.ndarray)
-    :return: Tuple of (points, temperature_values) for vtk
-    """
-    points = vtk.vtkPoints()
-    temperature_values = vtk.vtkFloatArray()
-    temperature_values.SetName("Temperature")
-
-    for i in range(len(x)):
-        # Points along the x-axis at y=0, z=0
-        points.InsertNextPoint(x[i], 0, 0)
-        # Insert temperature values in correct order
-        temperature_values.InsertNextValue(T[i])
-
-    return points, temperature_values
-
-
-def create_polyline(x: np.ndarray) -> vtk.vtkPolyLine:
-    """
-    Create a vtkPolyLine for visualization.
-
-    :param x: X-coordinate vector (numpy.ndarray)
-    :return: vtkPolyLine
-    """
-    polyline = vtk.vtkPolyLine()
-    polyline.GetPointIds().SetNumberOfIds(len(x))
-    for i in range(len(x)):
-        polyline.GetPointIds().SetId(i, i)
-    return polyline
-
-
 def create_color_map(T: np.ndarray) -> vtk.vtkLookupTable:
     """
     Create a color map for vtk visualization.
@@ -258,83 +223,325 @@ def create_color_map(T: np.ndarray) -> vtk.vtkLookupTable:
     return color_map
 
 
-def vtk_line_plot(
-    x: np.ndarray,
-    T: np.ndarray,
-    title: str = "Temperature Distribution",
-):
+def create_cylinder_rod(
+    x: np.ndarray, T: np.ndarray, radius: float = 0.05, resolution: int = 20
+) -> tuple:
     """
-    Visualize the temperature field using VTK.
+    Create a 3D cylindrical rod representation with temperature coloring.
 
     :param x: X-coordinate vector (numpy.ndarray)
     :param T: Temperature field (numpy.ndarray)
-    :param title: Title for the visualization (str)
+    :param radius: Radius of the cylinder (float)
+    :param resolution: Number of segments around the cylinder circumference (int)
+    :return: Tuple of (polydata, temperature_values) for vtk
     """
-    points, temperature_values = create_points(x, T)
-    polyline = create_polyline(x)
-
+    points = vtk.vtkPoints()
+    temperature_values = vtk.vtkFloatArray()
+    temperature_values.SetName("Temperature")
     cells = vtk.vtkCellArray()
-    cells.InsertNextCell(polyline)
+
+    # Create cylinder surface points for each x position
+    for i, (xi, Ti) in enumerate(zip(x, T)):
+        for j in range(resolution):
+            theta = 2.0 * np.pi * j / resolution
+            y = radius * np.cos(theta)
+            z = radius * np.sin(theta)
+            points.InsertNextPoint(xi, y, z)
+            temperature_values.InsertNextValue(Ti)
+
+    # Create quad cells connecting adjacent rings
+    for i in range(len(x) - 1):
+        for j in range(resolution):
+            quad = vtk.vtkQuad()
+            # Current ring, current point
+            p0 = i * resolution + j
+            # Current ring, next point
+            p1 = i * resolution + (j + 1) % resolution
+            # Next ring, next point
+            p2 = (i + 1) * resolution + (j + 1) % resolution
+            # Next ring, current point
+            p3 = (i + 1) * resolution + j
+
+            quad.GetPointIds().SetId(0, p0)
+            quad.GetPointIds().SetId(1, p1)
+            quad.GetPointIds().SetId(2, p2)
+            quad.GetPointIds().SetId(3, p3)
+            cells.InsertNextCell(quad)
 
     polyData = vtk.vtkPolyData()
     polyData.SetPoints(points)
-    polyData.SetLines(cells)
-    polyData.GetPointData().AddArray(temperature_values)
-    polyData.GetPointData().SetActiveScalars("Temperature")
+    polyData.SetPolys(cells)
+    polyData.GetPointData().SetScalars(temperature_values)
 
-    color_map = create_color_map(T)
+    return polyData, temperature_values
+
+
+def create_end_cap(
+    x_pos: float, T_val: float, radius: float = 0.05, resolution: int = 20
+) -> vtk.vtkPolyData:
+    """
+    Create an end cap (disk) for the cylinder.
+
+    :param x_pos: X position of the cap (float)
+    :param T_val: Temperature value for the cap (float)
+    :param radius: Radius of the cap (float)
+    :param resolution: Number of segments (int)
+    :return: vtkPolyData for the end cap
+    """
+    disk = vtk.vtkDiskSource()
+    disk.SetInnerRadius(0)
+    disk.SetOuterRadius(radius)
+    disk.SetRadialResolution(1)
+    disk.SetCircumferentialResolution(resolution)
+    disk.Update()
+
+    # Transform to position at x_pos
+    transform = vtk.vtkTransform()
+    transform.Translate(x_pos, 0, 0)
+    transform.RotateY(90)
+
+    transformFilter = vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    transformFilter.SetInputData(disk.GetOutput())
+    transformFilter.Update()
+
+    # Add temperature scalar
+    output = transformFilter.GetOutput()
+    temp_array = vtk.vtkFloatArray()
+    temp_array.SetName("Temperature")
+    for _ in range(output.GetNumberOfPoints()):
+        temp_array.InsertNextValue(T_val)
+    output.GetPointData().SetScalars(temp_array)
+
+    return output
+
+
+def create_heat_flow_arrow(
+    start_pos: tuple, direction: tuple, scale: float = 0.15
+) -> vtk.vtkActor:
+    """
+    Create an arrow to represent heat flow direction.
+
+    :param start_pos: Starting position (x, y, z)
+    :param direction: Direction vector (dx, dy, dz)
+    :param scale: Scale of the arrow (float)
+    :return: vtkActor for the arrow
+    """
+    arrow = vtk.vtkArrowSource()
+    arrow.SetTipResolution(20)
+    arrow.SetShaftResolution(20)
+
+    # Normalize direction
+    length = np.sqrt(sum(d**2 for d in direction))
+    if length == 0:
+        length = 1
+
+    transform = vtk.vtkTransform()
+    transform.Translate(start_pos)
+
+    # Calculate rotation to align arrow with direction
+    # Default arrow points in +X direction
+    if direction[0] < 0:
+        transform.RotateZ(180)
+
+    transform.Scale(scale, scale * 0.3, scale * 0.3)
+
+    transformFilter = vtk.vtkTransformPolyDataFilter()
+    transformFilter.SetTransform(transform)
+    transformFilter.SetInputConnection(arrow.GetOutputPort())
 
     mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputData(polyData)
-    mapper.SetLookupTable(color_map)
-    mapper.SetScalarModeToUsePointData()
-    mapper.SetScalarRange(np.min(T), np.max(T))
+    mapper.SetInputConnection(transformFilter.GetOutputPort())
 
-    # Rod actor setup
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    actor.GetProperty().SetColor(1.0, 0.5, 0.0)  # Orange color for heat flow
+
+    return actor
+
+
+def create_boundary_annotation(
+    text: str, position: tuple, color: tuple = (1, 1, 1)
+) -> vtk.vtkBillboardTextActor3D:
+    """
+    Create a 3D text annotation for boundary conditions.
+
+    :param text: Text to display (str)
+    :param position: Position (x, y, z)
+    :param color: Text color (r, g, b)
+    :return: vtkBillboardTextActor3D
+    """
+    text_actor = vtk.vtkBillboardTextActor3D()
+    text_actor.SetInput(text)
+    text_actor.SetPosition(position)
+    text_actor.GetTextProperty().SetFontSize(14)
+    text_actor.GetTextProperty().SetColor(color)
+    text_actor.GetTextProperty().SetJustificationToCentered()
+    text_actor.GetTextProperty().SetBold(True)
+
+    return text_actor
+
+
+def vtk_3d_rod_visualization(
+    x: np.ndarray,
+    T: np.ndarray,
+    T_l: float,
+    T_r: float,
+    h_l: float,
+    h_r: float,
+    title: str = "1D Heat Conduction with Convective BCs",
+):
+    """
+    Create an advanced 3D visualization of the rod with temperature distribution.
+
+    Features:
+    - 3D cylindrical rod with temperature color mapping
+    - End caps for the rod
+    - Heat flow arrows showing direction
+    - Boundary condition annotations
+    - Improved lighting and background
+
+    :param x: X-coordinate vector (numpy.ndarray)
+    :param T: Temperature field (numpy.ndarray)
+    :param T_l: Left surrounding temperature (float)
+    :param T_r: Right surrounding temperature (float)
+    :param h_l: Left heat transfer coefficient (float)
+    :param h_r: Right heat transfer coefficient (float)
+    :param title: Window title (str)
+    """
+    L = x[-1] - x[0]
+    radius = 0.08 * L  # Rod radius proportional to length
+
+    # Create 3D cylinder rod
+    rod_polydata, _ = create_cylinder_rod(x, T, radius=radius)
+
+    # Create end caps
+    left_cap = create_end_cap(x[0], T[0], radius=radius)
+    right_cap = create_end_cap(x[-1], T[-1], radius=radius)
+
+    # Combine rod and caps
+    append_filter = vtk.vtkAppendPolyData()
+    append_filter.AddInputData(rod_polydata)
+    append_filter.AddInputData(left_cap)
+    append_filter.AddInputData(right_cap)
+    append_filter.Update()
+
+    # Color map
+    color_map = create_color_map(T)
+
+    # Rod mapper and actor
+    rod_mapper = vtk.vtkPolyDataMapper()
+    rod_mapper.SetInputData(append_filter.GetOutput())
+    rod_mapper.SetLookupTable(color_map)
+    rod_mapper.SetScalarModeToUsePointData()
+    rod_mapper.SetScalarRange(np.min(T), np.max(T))
+
     rod_actor = vtk.vtkActor()
-    rod_actor.SetMapper(mapper)
+    rod_actor.SetMapper(rod_mapper)
+    rod_actor.GetProperty().SetInterpolationToPhong()
+    rod_actor.GetProperty().SetSpecular(0.3)
+    rod_actor.GetProperty().SetSpecularPower(20)
 
-    # Set the width of the rod
-    rod_actor.GetProperty().SetLineWidth(5)
+    # Create heat flow arrow (pointing in direction of heat flow)
+    heat_flow_direction = 1 if T_r > T_l else -1
+    arrow_y_offset = radius * 2.5
+    arrow = create_heat_flow_arrow(
+        start_pos=(L / 2 - 0.1 * L * heat_flow_direction, arrow_y_offset, 0),
+        direction=(heat_flow_direction, 0, 0),
+        scale=0.2 * L,
+    )
+
+    # Create boundary annotations
+    annotation_offset = radius * 3
+    left_text = f"Fluid\nT∞ = {T_l}°C\nh = {h_l} W/m²K"
+    right_text = f"Fluid\nT∞ = {T_r}°C\nh = {h_r} W/m²K"
+
+    left_annotation = create_boundary_annotation(
+        left_text, (x[0] - 0.15 * L, 0, annotation_offset), color=(0.3, 0.6, 1.0)
+    )
+    right_annotation = create_boundary_annotation(
+        right_text, (x[-1] + 0.15 * L, 0, annotation_offset), color=(1.0, 0.4, 0.4)
+    )
+
+    # Heat flow label
+    flow_label = create_boundary_annotation(
+        "Heat Flow →" if heat_flow_direction > 0 else "← Heat Flow",
+        (L / 2, arrow_y_offset + radius, 0),
+        color=(1.0, 0.6, 0.2),
+    )
+
     # Scalar bar (legend)
     scalar_bar = vtk.vtkScalarBarActor()
     scalar_bar.SetLookupTable(color_map)
-    scalar_bar.SetTitle("Temperature")
+    scalar_bar.SetTitle("Temperature (°C)")
     scalar_bar.SetNumberOfLabels(5)
+    scalar_bar.SetWidth(0.08)
+    scalar_bar.SetHeight(0.4)
+    scalar_bar.SetPosition(0.9, 0.3)
+    scalar_bar.GetTitleTextProperty().SetFontSize(12)
+    scalar_bar.GetLabelTextProperty().SetFontSize(10)
 
+    # Title annotation
+    title_actor = vtk.vtkTextActor()
+    title_actor.SetInput(title)
+    title_actor.GetTextProperty().SetFontSize(20)
+    title_actor.GetTextProperty().SetColor(1, 1, 1)
+    title_actor.GetTextProperty().SetBold(True)
+    title_actor.SetPosition(10, 10)
+
+    # Renderer setup
     renderer = vtk.vtkRenderer()
     renderer.AddActor(rod_actor)
-    renderer.AddActor(scalar_bar)
+    renderer.AddActor(arrow)
+    renderer.AddActor(left_annotation)
+    renderer.AddActor(right_annotation)
+    renderer.AddActor(flow_label)
+    renderer.AddActor2D(scalar_bar)
+    renderer.AddActor2D(title_actor)
 
+    # Set gradient background (dark blue to black)
+    renderer.SetBackground(0.1, 0.1, 0.2)
+    renderer.SetBackground2(0.02, 0.02, 0.05)
+    renderer.GradientBackgroundOn()
+
+    # Add lighting
+    light = vtk.vtkLight()
+    light.SetPosition(L / 2, L, L)
+    light.SetFocalPoint(L / 2, 0, 0)
+    light.SetIntensity(1.0)
+    renderer.AddLight(light)
+
+    # Render window
     renderWindow = vtk.vtkRenderWindow()
     renderWindow.AddRenderer(renderer)
+    renderWindow.SetSize(1200, 700)
+    renderWindow.SetWindowName(title)
 
-    # Enable user interaction with the scene
+    # Interactor
     renderWindowInteractor = vtk.vtkRenderWindowInteractor()
     renderWindowInteractor.SetRenderWindow(renderWindow)
     renderWindowInteractor.Initialize()
 
-    # Set up interaction style for camera controls
+    # Interaction style
     interact_style = vtk.vtkInteractorStyleTrackballCamera()
     renderWindowInteractor.SetInteractorStyle(interact_style)
 
-    # Create an axes actor
+    # Axes widget
     axes = vtk.vtkAxesActor()
-
-    # Create the widget for the axes
     axes_widget = vtk.vtkOrientationMarkerWidget()
     axes_widget.SetOrientationMarker(axes)
     axes_widget.SetInteractor(renderWindowInteractor)
-    axes_widget.SetViewport(0, 0, 0.3, 0.3)
+    axes_widget.SetViewport(0, 0, 0.2, 0.2)
     axes_widget.SetEnabled(1)
     axes_widget.InteractiveOff()
 
-    # Reset the camera to include all visible actors
+    # Set camera position for better initial view
+    camera = renderer.GetActiveCamera()
+    camera.SetPosition(L / 2, -L * 0.8, L * 0.6)
+    camera.SetFocalPoint(L / 2, 0, 0)
+    camera.SetViewUp(0, 0, 1)
     renderer.ResetCamera()
-
-    # Alternatively, adjust the camera's clipping range manually if needed
-    # camera = renderer.GetActiveCamera()
-    # camera.SetClippingRange(minRange, maxRange)
+    camera.Zoom(1.2)
 
     renderWindow.Render()
     renderWindowInteractor.Start()
@@ -365,7 +572,9 @@ def main():
 
     # Plot results
     plot_results(x, T_numerical, T_analytical)
-    vtk_line_plot(x, T_numerical)
+
+    # 3D VTK visualization with boundary condition annotations
+    vtk_3d_rod_visualization(x, T_numerical, T_l, T_r, h_l, h_r)
 
     # Print boundary values for verification
     print("=" * 60)
