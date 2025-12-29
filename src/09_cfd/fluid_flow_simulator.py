@@ -102,8 +102,8 @@ def initialize_fields(nx: int, ny: int) -> tuple[np.ndarray, np.ndarray, np.ndar
     Initialize velocity and pressure fields to zero.
 
     Args:
-        nx: Number of grid cells in x-direction.
-        ny: Number of grid cells in y-direction.
+        nx: Number of grid points in x-direction.
+        ny: Number of grid points in y-direction.
 
     Returns:
         u: x-velocity field, shape (ny, nx).
@@ -615,10 +615,10 @@ def run_simulation(
     print("Simulation Complete")
     print("=" * 60)
     print(f"Final divergence (should be ~0): {div_max:.2e}")
-    print(f"Maximum u-velocity (interior): {np.max(u[1:-1,1:-1]):.6f} m/s")
-    print(f"Minimum u-velocity (interior): {np.min(u[1:-1,1:-1]):.6f} m/s")
-    print(f"Maximum v-velocity (interior): {np.max(v[1:-1,1:-1]):.6f} m/s")
-    print(f"Minimum v-velocity (interior): {np.min(v[1:-1,1:-1]):.6f} m/s")
+    print(f"Maximum u-velocity (interior): {np.max(u[1:-1, 1:-1]):.6f} m/s")
+    print(f"Minimum u-velocity (interior): {np.min(u[1:-1, 1:-1]):.6f} m/s")
+    print(f"Maximum v-velocity (interior): {np.max(v[1:-1, 1:-1]):.6f} m/s")
+    print(f"Minimum v-velocity (interior): {np.min(v[1:-1, 1:-1]):.6f} m/s")
     print("=" * 60)
 
     return x, y, u, v, p
