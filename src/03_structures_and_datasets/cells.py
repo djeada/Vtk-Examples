@@ -38,6 +38,18 @@ import math
 import vtk
 
 
+# Distinct colors for each cell type (shared between legend and color lookup table)
+CELL_TYPE_COLORS = [
+    (1.0, 0.0, 0.0),    # Red - Vertex
+    (1.0, 0.5, 0.0),    # Orange - Line
+    (1.0, 1.0, 0.0),    # Yellow - Triangle
+    (0.0, 1.0, 0.0),    # Green - Quad
+    (0.0, 1.0, 1.0),    # Cyan - Polygon
+    (0.0, 0.0, 1.0),    # Blue - Tetrahedron
+    (1.0, 0.0, 1.0),    # Magenta - Hexahedron
+]
+
+
 def create_vertex_cell(points, base_id, x_offset):
     """
     Create a 0D vertex cell (single point).
@@ -191,6 +203,7 @@ def create_polygon_cell(points, base_id, x_offset, n_sides=5):
     radius = 0.5
 
     for i in range(n_sides):
+        # Rotate by -pi/2 so first vertex is at top (visually appealing orientation)
         angle = 2 * math.pi * i / n_sides - math.pi / 2
         x = x_offset + 0.5 + radius * math.cos(angle)
         y = center_y + radius * math.sin(angle)
@@ -373,18 +386,7 @@ def create_color_lookup_table(num_colors):
     lut.SetNumberOfTableValues(num_colors)
     lut.SetRange(0, num_colors - 1)
 
-    # Distinct colors for each cell type
-    colors = [
-        (1.0, 0.0, 0.0),    # Red - Vertex
-        (1.0, 0.5, 0.0),    # Orange - Line
-        (1.0, 1.0, 0.0),    # Yellow - Triangle
-        (0.0, 1.0, 0.0),    # Green - Quad
-        (0.0, 1.0, 1.0),    # Cyan - Polygon
-        (0.0, 0.0, 1.0),    # Blue - Tetrahedron
-        (1.0, 0.0, 1.0),    # Magenta - Hexahedron
-    ]
-
-    for i, (r, g, b) in enumerate(colors):
+    for i, (r, g, b) in enumerate(CELL_TYPE_COLORS[:num_colors]):
         lut.SetTableValue(i, r, g, b, 1.0)
 
     lut.Build()
@@ -451,18 +453,13 @@ def visualize_cells(ugrid, cell_type_names):
     legend.UseBackgroundOn()
     legend.SetBackgroundColor(0.1, 0.1, 0.1)
 
-    colors = [
-        (1.0, 0.0, 0.0),
-        (1.0, 0.5, 0.0),
-        (1.0, 1.0, 0.0),
-        (0.0, 1.0, 0.0),
-        (0.0, 1.0, 1.0),
-        (0.0, 0.0, 1.0),
-        (1.0, 0.0, 1.0),
-    ]
+    # Create a single sphere source for legend entries and update it
+    legend_sphere = vtk.vtkSphereSource()
+    legend_sphere.Update()
+    legend_output = legend_sphere.GetOutput()
 
-    for i, (name, color) in enumerate(zip(cell_type_names, colors)):
-        legend.SetEntry(i, vtk.vtkSphereSource().GetOutput(), name, color)
+    for i, (name, color) in enumerate(zip(cell_type_names, CELL_TYPE_COLORS)):
+        legend.SetEntry(i, legend_output, name, color)
 
     # Renderer setup
     renderer = vtk.vtkRenderer()
