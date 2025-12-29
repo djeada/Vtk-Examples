@@ -51,6 +51,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import vtk
 
+# ========== Animation and Visualization Constants ==========
+ANIMATION_TIMER_MS = 50  # Animation update interval in milliseconds
+PARTICLE_RADIUS_FACTOR = 0.8  # Particles confined to this fraction of rod radius
+CONVECTION_SCALE_FACTOR = 0.5  # Scale factor for particle convection animation
+DIFFUSION_SCALE_FACTOR = 0.3  # Scale factor for particle diffusion animation
+LATERAL_DIFFUSION_STD = 0.002  # Standard deviation for lateral particle motion
+
 
 def tdma_solve(
     a: np.ndarray, ad: np.ndarray, au: np.ndarray, b: np.ndarray
@@ -385,7 +392,9 @@ def create_velocity_glyph_field(
     glyph.SetInputData(polyData)
     glyph.SetVectorModeToUseVector()
     glyph.SetScaleModeToScaleByVector()
-    glyph.SetScaleFactor(0.08 * L / abs(u) if abs(u) > 0 else 0.08 * L)
+    # Use a default scale when velocity is zero or very small
+    base_scale = 0.08 * L
+    glyph.SetScaleFactor(base_scale / max(abs(u), 0.1))
     glyph.Update()
 
     mapper = vtk.vtkPolyDataMapper()
@@ -504,12 +513,13 @@ def create_particle_system(
 
     for i in range(n_particles):
         x = np.random.uniform(0, L)
-        y = np.random.uniform(-radius * 0.8, radius * 0.8)
-        z = np.random.uniform(-radius * 0.8, radius * 0.8)
-        # Ensure inside cylinder
-        while y * y + z * z > radius * radius * 0.64:
-            y = np.random.uniform(-radius * 0.8, radius * 0.8)
-            z = np.random.uniform(-radius * 0.8, radius * 0.8)
+        y = np.random.uniform(-radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR)
+        z = np.random.uniform(-radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR)
+        # Ensure inside cylinder (r^2 < (radius * factor)^2)
+        max_r_squared = (radius * PARTICLE_RADIUS_FACTOR) ** 2
+        while y * y + z * z > max_r_squared:
+            y = np.random.uniform(-radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR)
+            z = np.random.uniform(-radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR)
         points.InsertNextPoint(x, y, z)
         initial_positions.append([x, y, z])
 
@@ -845,12 +855,14 @@ def vtk_3d_visualization(
         def update(self, obj, event):
             self.time += self.dt
             for i, pos in enumerate(self.positions):
-                # Convection
-                pos[0] += self.u * self.dt * 0.5
-                # Diffusion (random walk)
-                pos[0] += np.random.normal(0, np.sqrt(2 * self.Gamma * self.dt) * 0.3)
-                pos[1] += np.random.normal(0, 0.002)
-                pos[2] += np.random.normal(0, 0.002)
+                # Convection: particle advected by flow velocity (scaled for visualization)
+                pos[0] += self.u * self.dt * CONVECTION_SCALE_FACTOR
+                # Diffusion: random walk in x-direction based on diffusion coefficient
+                diffusion_std = np.sqrt(2 * self.Gamma * self.dt) * DIFFUSION_SCALE_FACTOR
+                pos[0] += np.random.normal(0, diffusion_std)
+                # Lateral diffusion (small random motion in y and z)
+                pos[1] += np.random.normal(0, LATERAL_DIFFUSION_STD)
+                pos[2] += np.random.normal(0, LATERAL_DIFFUSION_STD)
 
                 # Periodic boundary
                 if pos[0] > self.L:
@@ -868,7 +880,7 @@ def vtk_3d_visualization(
 
     # Create timer for animation
     renderWindowInteractor.AddObserver("TimerEvent", animator.update)
-    timer_id = renderWindowInteractor.CreateRepeatingTimer(50)  # 50ms interval
+    timer_id = renderWindowInteractor.CreateRepeatingTimer(ANIMATION_TIMER_MS)
 
     renderWindow.Render()
     renderWindowInteractor.Start()
