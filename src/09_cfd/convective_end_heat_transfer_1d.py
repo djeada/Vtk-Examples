@@ -14,36 +14,55 @@ Workflow:
 6. Compare the numerical solution with an analytical solution (if available).
 7. Visualize the temperature distribution along the rod using VTK.
 
+Physics:
+A rod of length L with thermal conductivity k has convective heat transfer at both ends.
+The left end (x=0) is exposed to fluid at temperature T_l with heat transfer coefficient h_l.
+The right end (x=L) is exposed to fluid at temperature T_r with heat transfer coefficient h_r.
+
 Mathematics:
 
 The heat transfer in the rod is modeled using the steady-state heat conduction equation:
-    -k * d^2T/dx^2 = 0
-where k is the thermal conductivity, T is the temperature, and x is the position along the rod.
+    d^2T/dx^2 = 0
+where T is the temperature and x is the position along the rod.
 
-Discretization using the finite difference method leads to a system of linear equations:
-    A[i-1]*T[i-1] + A[i]*T[i] + A[i+1]*T[i+1] = b[i]
-for each interior node i, where A represents the coefficients matrix, T is the temperature vector, and b is the source term vector.
+For interior nodes, the discretized equation using central difference is:
+    -T[i-1] + 2*T[i] - T[i+1] = 0
 
-Boundary Conditions:
-At x = 0 (left end):
-    h_l*(T[0] - T_l) = -k*(T[1] - T[0])/dx
-At x = L (right end):
-    h_r*(T[n] - T_r) = k*(T[n] - T[n-1])/dx
-where h_l, h_r are the convective heat transfer coefficients, T_l, T_r are the surrounding temperatures, and dx is the grid spacing.
+Boundary Conditions (convective at both ends):
+At x = 0 (left end), heat balance:
+    -k * (T[1] - T[0])/dx = h_l * (T[0] - T_l)
+    Rearranged: (k/dx + h_l)*T[0] - (k/dx)*T[1] = h_l*T_l
+
+At x = L (right end), heat balance:
+    k * (T[n] - T[n-1])/dx = h_r * (T[n] - T_r)
+    Rearranged: -(k/dx)*T[n-1] + (k/dx + h_r)*T[n] = h_r*T_r
+
+Analytical Solution:
+Since d^2T/dx^2 = 0, T(x) = a*x + c (linear profile).
+Using thermal resistance approach:
+    R_total = 1/h_l + L/k + 1/h_r  (total thermal resistance)
+    q = (T_r - T_l) / R_total       (heat flux)
+    T(0) = T_l + q/h_l              (temperature at x=0)
+    T(L) = T_r - q/h_r              (temperature at x=L)
+    a = (T(L) - T(0)) / L           (slope)
 
 TDMA Solver:
-The TDMA solver efficiently solves tridiagonal systems of equations. The algorithm involves two steps:
+The TDMA solver efficiently solves tridiagonal systems of equations.
+The system has the form: ad[i]*T[i-1] + a[i]*T[i] + au[i]*T[i+1] = b[i]
+where 'a' is the main diagonal, 'ad' is the sub-diagonal (lower), 
+'au' is the super-diagonal (upper), and 'b' is the right-hand side.
+
+The algorithm involves two steps:
 1. Forward elimination:
    For i = 1 to n-1:
-       w = c[i-1] / b[i-1]
-       b[i] = b[i] - w * a[i]
-       d[i] = d[i] - w * d[i-1]
+       f = ad[i] / a[i-1]
+       a[i] = a[i] - f * au[i-1]
+       b[i] = b[i] - f * b[i-1]
 2. Back substitution:
-   For i = n-1 to 0:
-       T[i] = (d[i] - a[i] * T[i+1]) / b[i]
+   T[n-1] = b[n-1] / a[n-1]
+   For i = n-2 to 0:
+       T[i] = (b[i] - au[i] * T[i+1]) / a[i]
 """
-
-from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -51,35 +70,35 @@ import vtk
 
 
 def tdma_solve(
-    a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray
+    a: np.ndarray, ad: np.ndarray, au: np.ndarray, b: np.ndarray
 ) -> np.ndarray:
     """
-    Solve a linear system with a tri-diagonal matrix using the Thomas algorithm.
+    Solves a tridiagonal matrix equation using the Thomas algorithm (TDMA).
 
-    :param a: Lower diagonal elements (numpy.ndarray)
-    :param b: Main diagonal elements (numpy.ndarray)
-    :param c: Upper diagonal elements (numpy.ndarray)
-    :param d: Right-hand side vector (numpy.ndarray)
+    :param a: Main diagonal elements (numpy.ndarray)
+    :param ad: Sub-diagonal (lower) elements (numpy.ndarray)
+    :param au: Super-diagonal (upper) elements (numpy.ndarray)
+    :param b: Right-hand side vector (numpy.ndarray)
     :return: Solution vector (numpy.ndarray)
     """
-    n = len(d)
-    w = np.zeros(n - 1, float)
-    g = np.zeros(n, float)
-    p = np.zeros(n, float)
+    n = len(b)
+    # Make copies to avoid modifying original arrays
+    a = a.copy()
+    b = b.copy()
+    T = np.zeros(n)
 
-    w[0] = c[0] / b[0]
-    g[0] = d[0] / b[0]
-
-    for i in range(1, n - 1):
-        w[i] = c[i] / (b[i] - a[i - 1] * w[i - 1])
+    # Forward elimination
     for i in range(1, n):
-        g[i] = (d[i] - a[i - 1] * g[i - 1]) / (b[i] - a[i - 1] * w[i - 1])
+        f = ad[i] / a[i - 1]
+        a[i] -= f * au[i - 1]
+        b[i] -= f * b[i - 1]
 
-    p[n - 1] = g[n - 1]
+    # Back substitution
+    T[-1] = b[-1] / a[-1]
     for i in range(n - 2, -1, -1):
-        p[i] = g[i] - w[i] * p[i + 1]
+        T[i] = (b[i] - au[i] * T[i + 1]) / a[i]
 
-    return p
+    return T
 
 
 def initialize_matrices(
@@ -88,29 +107,86 @@ def initialize_matrices(
     """
     Initialize the matrices and vectors for the TDMA solver.
 
+    All equations are normalized with k/dx to ensure consistent scaling:
+    - Interior nodes (i = 1 to n-1): -(k/dx)*T[i-1] + 2*(k/dx)*T[i] - (k/dx)*T[i+1] = 0
+    - Left boundary (i = 0): (k/dx + h_l)*T[0] - (k/dx)*T[1] = h_l*T_l
+    - Right boundary (i = n): -(k/dx)*T[n-1] + (k/dx + h_r)*T[n] = h_r*T_r
+
     :param n: Number of divisions in the domain (int)
     :param dx: Grid spacing (float)
     :param k: Thermal conductivity (float)
     :param h_l: Heat transfer coefficient at the left boundary (float)
     :param h_r: Heat transfer coefficient at the right boundary (float)
-    :param T_l: Temperature at the left boundary (float)
-    :param T_r: Temperature at the right boundary (float)
+    :param T_l: Surrounding temperature at the left boundary (float)
+    :param T_r: Surrounding temperature at the right boundary (float)
     :return: Tuple of (A, Ad, Au, b) representing the main, lower, and upper diagonals, and the right-hand side vector.
     """
-    # Initialize diagonals
-    A = 2 * np.ones(n + 1)
-    Au = -1 * np.ones(n + 1)
-    Ad = -1 * np.ones(n + 1)
+    # Number of nodes is n + 1 (from 0 to n)
+    num_nodes = n + 1
 
-    # Apply boundary conditions
-    A[0], A[-1] = k / dx + h_l, k / dx + h_r
-    Au[0], Ad[-1] = -k / dx, -k / dx
+    # Conduction coefficient
+    cond = k / dx
+
+    # Initialize diagonals for interior nodes (using k/dx scaling)
+    A = 2.0 * cond * np.ones(num_nodes)
+    Au = -cond * np.ones(num_nodes)
+    Ad = -cond * np.ones(num_nodes)
+
+    # Apply left boundary condition: (k/dx + h_l)*T[0] - (k/dx)*T[1] = h_l*T_l
+    A[0] = cond + h_l
+    Au[0] = -cond
+    Ad[0] = 0.0  # No lower diagonal at first node
+
+    # Apply right boundary condition: -(k/dx)*T[n-1] + (k/dx + h_r)*T[n] = h_r*T_r
+    A[-1] = cond + h_r
+    Ad[-1] = -cond
+    Au[-1] = 0.0  # No upper diagonal at last node
 
     # Initialize right-hand side vector
-    b = np.zeros(n + 1)
-    b[0], b[-1] = h_l * T_l, h_r * T_r
+    b = np.zeros(num_nodes)
+    b[0] = h_l * T_l  # Left boundary
+    b[-1] = h_r * T_r  # Right boundary
 
     return A, Ad, Au, b
+
+
+def analytical_solution(
+    x: np.ndarray, L: float, k: float, h_l: float, h_r: float, T_l: float, T_r: float
+) -> np.ndarray:
+    """
+    Compute the analytical solution for 1D steady-state heat conduction with
+    convective boundary conditions at both ends.
+
+    Since d^2T/dx^2 = 0, the temperature profile is linear: T(x) = a*x + c
+
+    Using thermal resistance approach:
+    - Total resistance: R_total = 1/h_l + L/k + 1/h_r
+    - Heat flux: q = (T_r - T_l) / R_total
+    - Temperature at x=0: T(0) = T_l + q/h_l
+    - Temperature at x=L: T(L) = T_r - q/h_r
+
+    :param x: Position array (numpy.ndarray)
+    :param L: Length of the rod (float)
+    :param k: Thermal conductivity (float)
+    :param h_l: Heat transfer coefficient at left end (float)
+    :param h_r: Heat transfer coefficient at right end (float)
+    :param T_l: Surrounding temperature at left end (float)
+    :param T_r: Surrounding temperature at right end (float)
+    :return: Temperature array (numpy.ndarray)
+    """
+    # Total thermal resistance
+    R_total = 1 / h_l + L / k + 1 / h_r
+
+    # Heat flux (positive when flowing from left to right, i.e., when T_r > T_l)
+    q = (T_r - T_l) / R_total
+
+    # Temperature at boundaries
+    T_0 = T_l + q / h_l
+    T_L = T_r - q / h_r
+
+    # Linear temperature profile
+    a = (T_L - T_0) / L
+    return a * x + T_0
 
 
 def plot_results(x: np.ndarray, T_numerical: np.ndarray, T_analytical: np.ndarray):
@@ -129,12 +205,12 @@ def plot_results(x: np.ndarray, T_numerical: np.ndarray, T_analytical: np.ndarra
     plt.show()
 
 
-def create_points(x: np.ndarray, y: np.ndarray) -> tuple:
+def create_points(x: np.ndarray, T: np.ndarray) -> tuple:
     """
     Create points and temperature values for vtk visualization.
 
     :param x: X-coordinate vector (numpy.ndarray)
-    :param y: Temperature field (numpy.ndarray)
+    :param T: Temperature field (numpy.ndarray)
     :return: Tuple of (points, temperature_values) for vtk
     """
     points = vtk.vtkPoints()
@@ -142,9 +218,10 @@ def create_points(x: np.ndarray, y: np.ndarray) -> tuple:
     temperature_values.SetName("Temperature")
 
     for i in range(len(x)):
-        points.InsertNextPoint(x[i], y[i], 0)
-        # Insert values in reverse order
-        temperature_values.InsertNextValue(y[-(i + 1)])
+        # Points along the x-axis at y=0, z=0
+        points.InsertNextPoint(x[i], 0, 0)
+        # Insert temperature values in correct order
+        temperature_values.InsertNextValue(T[i])
 
     return points, temperature_values
 
@@ -163,46 +240,37 @@ def create_polyline(x: np.ndarray) -> vtk.vtkPolyLine:
     return polyline
 
 
-def create_color_map(y: np.ndarray) -> vtk.vtkLookupTable:
+def create_color_map(T: np.ndarray) -> vtk.vtkLookupTable:
     """
     Create a color map for vtk visualization.
 
-    :param y: Temperature field (numpy.ndarray)
+    :param T: Temperature field (numpy.ndarray)
     :return: vtkLookupTable
     """
     color_map = vtk.vtkLookupTable()
-    min_val, max_val = np.min(y), np.max(y)
+    min_val, max_val = np.min(T), np.max(T)
     color_map.SetRange(min_val, max_val)
 
-    # Reverse the color order
-    color_map.SetHueRange(0.667, 0)  # Blue to red
+    # Blue to red color range (cold to hot)
+    color_map.SetHueRange(0.667, 0)
 
     color_map.Build()
     return color_map
 
 
-def apply_transformation(
-    polyData: vtk.vtkPolyData, x_offset: float = 50, y_offset: float = 10
-) -> vtk.vtkTransformPolyDataFilter:
-    transform = vtk.vtkTransform()
-    transform.Translate(x_offset, y_offset, 0)
-
-    transformFilter = vtk.vtkTransformPolyDataFilter()
-    transformFilter.SetTransform(transform)
-    transformFilter.SetInputData(polyData)
-    transformFilter.Update()
-
-    return transformFilter
-
-
 def vtk_line_plot(
     x: np.ndarray,
-    y: np.ndarray,
+    T: np.ndarray,
     title: str = "Temperature Distribution",
-    x_label: str = "Position",
-    y_label: str = "Temperature",
 ):
-    points, temperature_values = create_points(x, y)
+    """
+    Visualize the temperature field using VTK.
+
+    :param x: X-coordinate vector (numpy.ndarray)
+    :param T: Temperature field (numpy.ndarray)
+    :param title: Title for the visualization (str)
+    """
+    points, temperature_values = create_points(x, T)
     polyline = create_polyline(x)
 
     cells = vtk.vtkCellArray()
@@ -214,15 +282,13 @@ def vtk_line_plot(
     polyData.GetPointData().AddArray(temperature_values)
     polyData.GetPointData().SetActiveScalars("Temperature")
 
-    transformFilter = apply_transformation(polyData)
-
-    color_map = create_color_map(y)
+    color_map = create_color_map(T)
 
     mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputConnection(transformFilter.GetOutputPort())
+    mapper.SetInputData(polyData)
     mapper.SetLookupTable(color_map)
     mapper.SetScalarModeToUsePointData()
-    mapper.SetScalarRange(np.min(y), np.max(y))
+    mapper.SetScalarRange(np.min(T), np.max(T))
 
     # Rod actor setup
     rod_actor = vtk.vtkActor()
@@ -275,31 +341,49 @@ def vtk_line_plot(
 
 
 def main():
-    # Problem setup
-    n = 10
-    dx = 0.1 / n
-    k = 0.1
-    h_r, h_l = 5.0, 30.0
-    T_r, T_l = 30.0, 300.0
+    # Problem setup: Rod of length L with convective BCs at both ends
+    L = 1.0  # Rod length (m)
+    n = 50  # Number of divisions
+    dx = L / n  # Grid spacing
+    k = 50.0  # Thermal conductivity (W/m·K)
+    h_l = 100.0  # Heat transfer coefficient at left end (W/m²·K)
+    h_r = 50.0  # Heat transfer coefficient at right end (W/m²·K)
+    T_l = 100.0  # Surrounding temperature at left end (°C)
+    T_r = 300.0  # Surrounding temperature at right end (°C)
 
-    x = np.arange(0, 0.1 + dx, dx)
+    # Create position array
+    x = np.linspace(0, L, n + 1)
+
+    # Initialize matrices for TDMA solver
     A, Ad, Au, b = initialize_matrices(n, dx, k, h_l, h_r, T_l, T_r)
 
     # Solve the linear system
-    T_numerical = tdma_solve(Ad, A, Au, b)
+    T_numerical = tdma_solve(A, Ad, Au, b)
 
-    # Analytical solution for comparison
-    c2 = 292.70270270270271
-    c1 = -300 * (300 - c2)
-    T_analytical = c1 * x + c2
+    # Compute analytical solution
+    T_analytical = analytical_solution(x, L, k, h_l, h_r, T_l, T_r)
 
     # Plot results
     plot_results(x, T_numerical, T_analytical)
     vtk_line_plot(x, T_numerical)
 
-    # Print boundary values
-    print("Numerical solution at boundaries:", T_numerical[0], T_numerical[-1])
-    print("Analytical solution at boundaries:", T_analytical[0], T_analytical[-1])
+    # Print boundary values for verification
+    print("=" * 60)
+    print("1D Steady-State Heat Conduction with Convective BCs")
+    print("=" * 60)
+    print(f"Rod length: {L} m, Grid points: {n + 1}")
+    print(f"Thermal conductivity: {k} W/m·K")
+    print(f"Left BC:  h_l = {h_l} W/m²·K, T_l = {T_l} °C")
+    print(f"Right BC: h_r = {h_r} W/m²·K, T_r = {T_r} °C")
+    print("-" * 60)
+    print(f"Numerical solution at x=0:  {T_numerical[0]:.4f} °C")
+    print(f"Numerical solution at x=L:  {T_numerical[-1]:.4f} °C")
+    print(f"Analytical solution at x=0: {T_analytical[0]:.4f} °C")
+    print(f"Analytical solution at x=L: {T_analytical[-1]:.4f} °C")
+    print("-" * 60)
+    max_error = np.max(np.abs(T_numerical - T_analytical))
+    print(f"Maximum error: {max_error:.6f} °C")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
