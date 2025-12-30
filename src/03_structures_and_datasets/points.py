@@ -126,7 +126,8 @@ def create_structured_point_grid(nx, ny, nz, spacing=1.0):
 
 
 def create_boundary_layer_points(wall_y=0.0, first_cell_height=0.01,
-                                  growth_rate=1.2, num_layers=10, x_points=5):
+                                  growth_rate=1.2, num_layers=10, x_points=5,
+                                  streamwise_spacing=0.5):
     """
     Create points with boundary layer clustering near a wall.
 
@@ -146,6 +147,7 @@ def create_boundary_layer_points(wall_y=0.0, first_cell_height=0.01,
         growth_rate: Expansion ratio between successive layers
         num_layers: Number of boundary layer cells
         x_points: Number of points in streamwise direction
+        streamwise_spacing: Distance between points in x-direction
 
     Returns:
         vtkPoints: Points clustered near the wall
@@ -165,7 +167,7 @@ def create_boundary_layer_points(wall_y=0.0, first_cell_height=0.01,
     # Create 2D grid of points
     for y in y_coords:
         for i in range(x_points):
-            x = i * 0.5  # Streamwise spacing
+            x = i * streamwise_spacing
             points.InsertNextPoint(x, y, 0.0)
 
     return points
