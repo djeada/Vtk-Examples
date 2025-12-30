@@ -1,123 +1,667 @@
 """
-This module demonstrates the creation, manipulation, and visualization of an unstructured grid using the Visualization Toolkit (VTK). An unstructured grid is a versatile data structure in VTK that allows for representing complex geometries composed of various types of cells. In this example, a hexahedron and a tetrahedron are created, along with their associated points, and then combined into a single unstructured grid. Additionally, scalar and vector fields are attached to this grid to illustrate the concept of data association with grid points and cells.
+VTK Unstructured Grid: Flexible Mesh Topology for Complex CFD Geometries
 
-Key Components and Workflow:
+This module provides an educational demonstration of vtkUnstructuredGrid, which
+is the most versatile mesh structure in VTK for Computational Fluid Dynamics (CFD)
+and Finite Element Analysis (FEA).
 
-1. Hexahedron and Tetrahedron Creation:
-   - Hexahedron (vtkHexahedron) and tetrahedron (vtkTetra) cells are created to represent two different 3D geometric shapes.
-   - The point ids for each cell are set to define the geometry of these cells.
+What is an Unstructured Grid?
+-----------------------------
+An unstructured grid is a mesh where:
+- Cells can be of any type (hexahedra, tetrahedra, prisms, pyramids, etc.)
+- Connectivity is EXPLICIT (stored for each cell)
+- No regular i-j-k topology required
+- Can represent arbitrarily complex geometries
 
-2. Points Creation (vtkPoints):
-   - A vtkPoints object is created to store the coordinates of the vertices for both the hexahedron and tetrahedron.
+Unstructured vs Structured:
+---------------------------
+UNSTRUCTURED GRIDS:
+- Explicit connectivity (requires more memory)
+- Can mesh any geometry (complex shapes, moving bodies)
+- Mixed cell types in same mesh
+- Automatic mesh generation available (Delaunay, advancing front)
+- More complex numerical schemes
 
-3. Unstructured Grid (vtkUnstructuredGrid):
-   - An unstructured grid is defined to hold the created cells.
-   - This grid type is chosen for its ability to handle diverse cell types within a single data structure.
+STRUCTURED GRIDS:
+- Implicit connectivity (memory efficient)
+- Limited to simple topologies
+- Single cell type per block
+- Manual mesh generation often required
+- Simpler, often more accurate numerics
 
-4. Scalar and Vector Fields:
-   - Scalar values (random) are attached to the points of the grid, demonstrating how to associate data with grid points.
-   - Vector values (random) are attached to the cells of the grid, showing data association with grid cells.
+CFD Applications:
+-----------------
+Unstructured grids are essential for:
 
-5. Visualization:
-   - A vtkDataSetMapper is used to map the unstructured grid data to graphical primitives.
-   - The visualization pipeline, encapsulated in the 'VisualisationPipeline' class, is then utilized to render the grid with the scalar and vector fields. The pipeline is configured to highlight the edges of the grid and enhance the visual understanding of its structure.
+1. COMPLEX GEOMETRIES:
+   - Vehicle aerodynamics (cars, aircraft, ships)
+   - Biomedical flows (arteries, organs)
+   - Industrial equipment (valves, pumps, mixers)
 
+2. AUTOMATIC MESH GENERATION:
+   - Delaunay triangulation/tetrahedralization
+   - Advancing front methods
+   - Octree-based meshing
+
+3. ADAPTIVE MESH REFINEMENT:
+   - Local refinement where needed
+   - Error-based mesh adaptation
+   - Dynamic remeshing for moving bodies
+
+4. HYBRID MESHES:
+   - Structured boundary layers near walls
+   - Unstructured in complex regions
+   - Smooth transitions between regions
+
+Cell Types in Unstructured Grids:
+---------------------------------
+- 0D: Vertex
+- 1D: Line, Quadratic Edge
+- 2D: Triangle, Quad, Polygon
+- 3D: Tetrahedron, Hexahedron, Wedge, Pyramid, Polyhedron
+
+This example demonstrates creating unstructured grids with various cell types,
+attaching field data, and visualizing the results in CFD style.
 """
 
-import numpy as np
+import math
+
 import vtk
 
-from src.common.simple_pipeline import VisualisationPipeline
+
+# Cell type information for educational purposes
+CELL_TYPE_INFO = {
+    vtk.VTK_TETRA: {"name": "Tetrahedron", "vertices": 4, "faces": 4, "dim": 3},
+    vtk.VTK_HEXAHEDRON: {"name": "Hexahedron", "vertices": 8, "faces": 6, "dim": 3},
+    vtk.VTK_WEDGE: {"name": "Wedge/Prism", "vertices": 6, "faces": 5, "dim": 3},
+    vtk.VTK_PYRAMID: {"name": "Pyramid", "vertices": 5, "faces": 5, "dim": 3},
+    vtk.VTK_TRIANGLE: {"name": "Triangle", "vertices": 3, "faces": 1, "dim": 2},
+    vtk.VTK_QUAD: {"name": "Quad", "vertices": 4, "faces": 1, "dim": 2},
+}
 
 
-def create_hexahedron():
+def create_single_tetrahedron(x_offset=0.0, y_offset=0.0, z_offset=0.0):
     """
-    Create and return a hexahedron cell.
-    """
-    hexahedron = vtk.vtkHexahedron()
-    for i in range(8):
-        hexahedron.GetPointIds().SetId(i, i)
-    return hexahedron
+    Create a single tetrahedron cell.
 
+    Tetrahedra are the workhorse of unstructured CFD meshes:
+    - Simplest 3D element (4 vertices, 4 faces, 6 edges)
+    - Can mesh ANY 3D geometry (guaranteed by Delaunay)
+    - Commonly generated by automatic mesh generators
+    - Linear tetrahedra have constant gradients within each cell
 
-def create_tetrahedron():
-    """
-    Create and return a tetrahedron cell.
-    """
-    tetrahedron = vtk.vtkTetra()
-    for i in range(4):
-        tetrahedron.GetPointIds().SetId(i, i + 8)
-    return tetrahedron
+    In CFD, tetrahedra are used when:
+    - Complex geometry requires flexibility
+    - Automatic mesh generation is needed
+    - Adaptive refinement is planned
 
+    Trade-offs:
+    - More cells needed compared to hexahedra
+    - Can suffer from numerical diffusion
+    - Less accurate for aligned flows
 
-def create_points():
-    """
-    Create and return vtkPoints for the hexahedron and tetrahedron.
+    Args:
+        x_offset, y_offset, z_offset: Position offset for the tetrahedron
+
+    Returns:
+        tuple: (vtkPoints, vtkTetra, vtkUnstructuredGrid)
     """
     points = vtk.vtkPoints()
-    # Hexahedron points
-    for i in range(8):
-        points.InsertNextPoint(i % 2, (i // 2) % 2, i // 4)
-    # Tetrahedron points
-    points.InsertNextPoint(2, 2, 2)
-    points.InsertNextPoint(2, 3, 2)
-    points.InsertNextPoint(3, 2, 2)
-    points.InsertNextPoint(2, 2, 3)
-    return points
+    # Regular tetrahedron vertices
+    points.InsertNextPoint(x_offset + 0.0, y_offset + 0.0, z_offset + 0.0)
+    points.InsertNextPoint(x_offset + 1.0, y_offset + 0.0, z_offset + 0.0)
+    points.InsertNextPoint(x_offset + 0.5, y_offset + 0.866, z_offset + 0.0)
+    points.InsertNextPoint(x_offset + 0.5, y_offset + 0.289, z_offset + 0.816)
 
+    tetra = vtk.vtkTetra()
+    for i in range(4):
+        tetra.GetPointIds().SetId(i, i)
 
-def create_unstructured_grid(points, hexahedron, tetrahedron):
-    """
-    Create and return an unstructured grid containing the hexahedron and tetrahedron.
-    """
     ugrid = vtk.vtkUnstructuredGrid()
     ugrid.SetPoints(points)
-    ugrid.InsertNextCell(hexahedron.GetCellType(), hexahedron.GetPointIds())
-    ugrid.InsertNextCell(tetrahedron.GetCellType(), tetrahedron.GetPointIds())
+    ugrid.InsertNextCell(tetra.GetCellType(), tetra.GetPointIds())
+
+    return points, tetra, ugrid
+
+
+def create_single_hexahedron(x_offset=0.0, y_offset=0.0, z_offset=0.0, size=1.0):
+    """
+    Create a single hexahedron cell.
+
+    Hexahedra are preferred for high-accuracy CFD:
+    - 8 vertices, 6 faces, 12 edges
+    - Better accuracy than tetrahedra for aligned flows
+    - Used in structured regions of hybrid meshes
+    - Common in boundary layer meshes
+
+    In CFD, hexahedra provide:
+    - Lower numerical diffusion
+    - Better gradient resolution
+    - Fewer cells for same accuracy
+
+    Trade-offs:
+    - Harder to generate for complex geometries
+    - May require blocking strategies
+    - Can be highly skewed in complex regions
+
+    Args:
+        x_offset, y_offset, z_offset: Position offset
+        size: Edge length
+
+    Returns:
+        tuple: (vtkPoints, vtkHexahedron, vtkUnstructuredGrid)
+    """
+    points = vtk.vtkPoints()
+    # Hexahedron vertices (in VTK ordering)
+    vertices = [
+        (0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0),  # Bottom face
+        (0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1),  # Top face
+    ]
+    for v in vertices:
+        points.InsertNextPoint(
+            x_offset + v[0] * size,
+            y_offset + v[1] * size,
+            z_offset + v[2] * size
+        )
+
+    hexa = vtk.vtkHexahedron()
+    for i in range(8):
+        hexa.GetPointIds().SetId(i, i)
+
+    ugrid = vtk.vtkUnstructuredGrid()
+    ugrid.SetPoints(points)
+    ugrid.InsertNextCell(hexa.GetCellType(), hexa.GetPointIds())
+
+    return points, hexa, ugrid
+
+
+def create_single_wedge(x_offset=0.0, y_offset=0.0, z_offset=0.0):
+    """
+    Create a single wedge (prism) cell.
+
+    Wedges/prisms are commonly used in CFD boundary layers:
+    - 6 vertices, 5 faces (2 triangular + 3 quad)
+    - Natural extrusion of triangular surface mesh
+    - Good for boundary layer regions near walls
+
+    In CFD, wedges provide:
+    - Transition between triangular surface and hex core
+    - Aligned layers for boundary layer resolution
+    - Better aspect ratio control than tetrahedra
+
+    Args:
+        x_offset, y_offset, z_offset: Position offset
+
+    Returns:
+        tuple: (vtkPoints, vtkWedge, vtkUnstructuredGrid)
+    """
+    points = vtk.vtkPoints()
+    # Wedge vertices (triangular prism)
+    points.InsertNextPoint(x_offset + 0.0, y_offset + 0.0, z_offset + 0.0)
+    points.InsertNextPoint(x_offset + 1.0, y_offset + 0.0, z_offset + 0.0)
+    points.InsertNextPoint(x_offset + 0.5, y_offset + 0.866, z_offset + 0.0)
+    points.InsertNextPoint(x_offset + 0.0, y_offset + 0.0, z_offset + 1.0)
+    points.InsertNextPoint(x_offset + 1.0, y_offset + 0.0, z_offset + 1.0)
+    points.InsertNextPoint(x_offset + 0.5, y_offset + 0.866, z_offset + 1.0)
+
+    wedge = vtk.vtkWedge()
+    for i in range(6):
+        wedge.GetPointIds().SetId(i, i)
+
+    ugrid = vtk.vtkUnstructuredGrid()
+    ugrid.SetPoints(points)
+    ugrid.InsertNextCell(wedge.GetCellType(), wedge.GetPointIds())
+
+    return points, wedge, ugrid
+
+
+def create_single_pyramid(x_offset=0.0, y_offset=0.0, z_offset=0.0):
+    """
+    Create a single pyramid cell.
+
+    Pyramids are transition elements in hybrid meshes:
+    - 5 vertices, 5 faces (1 quad + 4 triangular)
+    - Connect quad-faced cells to triangle-faced cells
+    - Essential for hex-tet transitions
+
+    In CFD, pyramids are used to:
+    - Bridge structured (hex) and unstructured (tet) regions
+    - Avoid non-conformal interfaces
+    - Enable smooth mesh transitions
+
+    Args:
+        x_offset, y_offset, z_offset: Position offset
+
+    Returns:
+        tuple: (vtkPoints, vtkPyramid, vtkUnstructuredGrid)
+    """
+    points = vtk.vtkPoints()
+    # Pyramid vertices (square base + apex)
+    points.InsertNextPoint(x_offset + 0.0, y_offset + 0.0, z_offset + 0.0)
+    points.InsertNextPoint(x_offset + 1.0, y_offset + 0.0, z_offset + 0.0)
+    points.InsertNextPoint(x_offset + 1.0, y_offset + 1.0, z_offset + 0.0)
+    points.InsertNextPoint(x_offset + 0.0, y_offset + 1.0, z_offset + 0.0)
+    points.InsertNextPoint(x_offset + 0.5, y_offset + 0.5, z_offset + 1.0)
+
+    pyramid = vtk.vtkPyramid()
+    for i in range(5):
+        pyramid.GetPointIds().SetId(i, i)
+
+    ugrid = vtk.vtkUnstructuredGrid()
+    ugrid.SetPoints(points)
+    ugrid.InsertNextCell(pyramid.GetCellType(), pyramid.GetPointIds())
+
+    return points, pyramid, ugrid
+
+
+def create_hybrid_mesh():
+    """
+    Create a hybrid mesh with multiple cell types.
+
+    Hybrid meshes combine different cell types:
+    - Hexahedra/prisms in boundary layers (high quality)
+    - Tetrahedra in complex regions (geometric flexibility)
+    - Pyramids for transitions
+
+    This is the standard approach for industrial CFD:
+    - Captures boundary layers accurately
+    - Meshes complex geometries
+    - Balances accuracy and meshing effort
+
+    Returns:
+        vtkUnstructuredGrid: Hybrid mesh with multiple cell types
+    """
+    ugrid = vtk.vtkUnstructuredGrid()
+    points = vtk.vtkPoints()
+
+    # Create a simple hybrid mesh: hex + tetrahedra
+    point_id = 0
+
+    # Hexahedron at origin
+    hex_pts = [
+        (0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0),
+        (0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1),
+    ]
+    hex_ids = []
+    for p in hex_pts:
+        points.InsertNextPoint(*p)
+        hex_ids.append(point_id)
+        point_id += 1
+
+    hexa = vtk.vtkHexahedron()
+    for i, pid in enumerate(hex_ids):
+        hexa.GetPointIds().SetId(i, pid)
+
+    # Tetrahedron adjacent to hex
+    tet_pts = [
+        (1.5, 0.5, 0.5),
+        (2.0, 0.0, 0.0),
+        (2.0, 1.0, 0.0),
+        (2.0, 0.5, 1.0),
+    ]
+    tet_ids = []
+    for p in tet_pts:
+        points.InsertNextPoint(*p)
+        tet_ids.append(point_id)
+        point_id += 1
+
+    tetra = vtk.vtkTetra()
+    for i, pid in enumerate(tet_ids):
+        tetra.GetPointIds().SetId(i, pid)
+
+    # Wedge (prism) below hex
+    wedge_pts = [
+        (0.0, 0.0, -1.0),
+        (1.0, 0.0, -1.0),
+        (0.5, 1.0, -1.0),
+        (0.0, 0.0, 0.0),
+        (1.0, 0.0, 0.0),
+        (0.5, 1.0, 0.0),
+    ]
+    wedge_ids = []
+    for p in wedge_pts:
+        points.InsertNextPoint(*p)
+        wedge_ids.append(point_id)
+        point_id += 1
+
+    wedge = vtk.vtkWedge()
+    for i, pid in enumerate(wedge_ids):
+        wedge.GetPointIds().SetId(i, pid)
+
+    ugrid.SetPoints(points)
+    ugrid.InsertNextCell(hexa.GetCellType(), hexa.GetPointIds())
+    ugrid.InsertNextCell(tetra.GetCellType(), tetra.GetPointIds())
+    ugrid.InsertNextCell(wedge.GetCellType(), wedge.GetPointIds())
+
     return ugrid
 
 
-def attach_fields_to_grid(ugrid, points):
+def add_scalar_field(ugrid, field_name="Pressure", mode="distance"):
     """
-    Attach scalar and vector fields to the unstructured grid.
+    Add a scalar field to the unstructured grid.
+
+    Scalar fields on unstructured grids:
+    - Can be at points (vertex-centered) or cells (cell-centered)
+    - Interpolation depends on element shape functions
+    - Color mapping for visualization
+
+    Args:
+        ugrid: vtkUnstructuredGrid to modify
+        field_name: Name of the scalar field
+        mode: How to compute values ("distance", "height", "cell_id")
+
+    Returns:
+        vtkUnstructuredGrid: Grid with scalar field attached
     """
-    # Attach a scalar field to the points
     scalars = vtk.vtkFloatArray()
-    scalars.SetName("Scalars")
-    for i in range(points.GetNumberOfPoints()):
-        scalars.InsertNextValue(np.random.rand())
-    ugrid.GetPointData().SetScalars(scalars)
+    scalars.SetName(field_name)
+    scalars.SetNumberOfComponents(1)
 
-    # Attach a vector field to the cells
-    vectors = vtk.vtkFloatArray()
-    vectors.SetNumberOfComponents(3)
-    vectors.SetName("Vectors")
+    if mode == "cell_id":
+        # Cell-centered data
+        for i in range(ugrid.GetNumberOfCells()):
+            scalars.InsertNextValue(float(i))
+        ugrid.GetCellData().AddArray(scalars)
+        ugrid.GetCellData().SetActiveScalars(field_name)
+    else:
+        # Point-centered data
+        for i in range(ugrid.GetNumberOfPoints()):
+            x, y, z = ugrid.GetPoint(i)
+            if mode == "distance":
+                value = math.sqrt(x**2 + y**2 + z**2)
+            elif mode == "height":
+                value = z
+            else:
+                value = x + y + z
+            scalars.InsertNextValue(value)
+        ugrid.GetPointData().AddArray(scalars)
+        ugrid.GetPointData().SetActiveScalars(field_name)
+
+    return ugrid
+
+
+def add_velocity_field(ugrid):
+    """
+    Add a velocity field to the unstructured grid.
+
+    Vector fields on unstructured grids:
+    - Stored as 3-component arrays
+    - Can represent velocity, displacement, force
+    - Visualized with glyphs or streamlines
+
+    Args:
+        ugrid: vtkUnstructuredGrid to modify
+
+    Returns:
+        vtkUnstructuredGrid: Grid with velocity field attached
+    """
+    velocity = vtk.vtkFloatArray()
+    velocity.SetName("Velocity")
+    velocity.SetNumberOfComponents(3)
+
+    for i in range(ugrid.GetNumberOfPoints()):
+        x, y, z = ugrid.GetPoint(i)
+        # Simple rotational flow pattern
+        u = -y
+        v = x
+        w = 0.5
+        velocity.InsertNextTuple3(u, v, w)
+
+    ugrid.GetPointData().AddArray(velocity)
+    ugrid.GetPointData().SetActiveVectors("Velocity")
+
+    return ugrid
+
+
+def compute_mesh_statistics(ugrid):
+    """
+    Compute and print mesh statistics for quality assessment.
+
+    Mesh statistics help assess:
+    - Cell type distribution
+    - Mesh size and resolution
+    - Quality metrics for CFD
+
+    Args:
+        ugrid: vtkUnstructuredGrid to analyze
+    """
+    print("\n" + "=" * 60)
+    print("Unstructured Grid Statistics")
+    print("=" * 60)
+
+    print(f"\nTotal points: {ugrid.GetNumberOfPoints()}")
+    print(f"Total cells: {ugrid.GetNumberOfCells()}")
+
+    # Count cell types
+    cell_type_counts = {}
     for i in range(ugrid.GetNumberOfCells()):
-        vectors.InsertNextTuple3(np.random.rand(), np.random.rand(), np.random.rand())
-    ugrid.GetCellData().SetVectors(vectors)
+        cell_type = ugrid.GetCellType(i)
+        cell_type_counts[cell_type] = cell_type_counts.get(cell_type, 0) + 1
+
+    print("\nCell type distribution:")
+    for cell_type, count in sorted(cell_type_counts.items()):
+        if cell_type in CELL_TYPE_INFO:
+            info = CELL_TYPE_INFO[cell_type]
+            print(f"  {info['name']}: {count} cells "
+                  f"({info['vertices']} vertices, {info['faces']} faces)")
+        else:
+            print(f"  Type {cell_type}: {count} cells")
+
+    # Compute bounds
+    bounds = ugrid.GetBounds()
+    print(f"\nDomain bounds:")
+    print(f"  X: [{bounds[0]:.4f}, {bounds[1]:.4f}]")
+    print(f"  Y: [{bounds[2]:.4f}, {bounds[3]:.4f}]")
+    print(f"  Z: [{bounds[4]:.4f}, {bounds[5]:.4f}]")
+
+    # List data arrays
+    print("\nPoint data arrays:")
+    pd = ugrid.GetPointData()
+    if pd.GetNumberOfArrays() == 0:
+        print("  (none)")
+    for i in range(pd.GetNumberOfArrays()):
+        arr = pd.GetArray(i)
+        print(f"  {arr.GetName()}: {arr.GetNumberOfTuples()} values, "
+              f"{arr.GetNumberOfComponents()} components")
+
+    print("\nCell data arrays:")
+    cd = ugrid.GetCellData()
+    if cd.GetNumberOfArrays() == 0:
+        print("  (none)")
+    for i in range(cd.GetNumberOfArrays()):
+        arr = cd.GetArray(i)
+        print(f"  {arr.GetName()}: {arr.GetNumberOfTuples()} values, "
+              f"{arr.GetNumberOfComponents()} components")
 
 
-def visualize_unstructured_grid(ugrid):
+def visualize_unstructured_grid(ugrid, show_edges=True, color_by_field=None):
     """
-    Visualize the unstructured grid with scalar and vector fields.
+    Visualize the unstructured grid with CFD-style rendering.
+
+    Args:
+        ugrid: vtkUnstructuredGrid to visualize
+        show_edges: Whether to show cell edges
+        color_by_field: Name of field for color mapping
     """
+    # Create mapper
     mapper = vtk.vtkDataSetMapper()
     mapper.SetInputData(ugrid)
-    mapper.SetScalarModeToUsePointData()
-    mapper.SetColorModeToMapScalars()
-    mapper.SelectColorArray("Scalars")
 
-    pipeline = VisualisationPipeline(mappers=[mapper], point_size=30)
-    pipeline.run()
+    if color_by_field:
+        if ugrid.GetPointData().GetArray(color_by_field):
+            mapper.SetScalarModeToUsePointFieldData()
+            mapper.SelectColorArray(color_by_field)
+            scalar_range = ugrid.GetPointData().GetArray(color_by_field).GetRange()
+            mapper.SetScalarRange(scalar_range)
+        elif ugrid.GetCellData().GetArray(color_by_field):
+            mapper.SetScalarModeToUseCellFieldData()
+            mapper.SelectColorArray(color_by_field)
+            scalar_range = ugrid.GetCellData().GetArray(color_by_field).GetRange()
+            mapper.SetScalarRange(scalar_range)
+
+        # Create lookup table
+        lut = vtk.vtkLookupTable()
+        lut.SetHueRange(0.667, 0.0)  # Blue to red
+        lut.Build()
+        mapper.SetLookupTable(lut)
+
+    # Create actor
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+
+    if show_edges:
+        actor.GetProperty().SetEdgeVisibility(1)
+        actor.GetProperty().SetEdgeColor(0.1, 0.1, 0.1)
+        actor.GetProperty().SetLineWidth(2)
+
+    # Renderer setup
+    renderer = vtk.vtkRenderer()
+    renderer.AddActor(actor)
+    renderer.SetBackground(0.15, 0.15, 0.2)
+
+    # Add scalar bar if coloring by field
+    if color_by_field:
+        scalar_bar = vtk.vtkScalarBarActor()
+        scalar_bar.SetLookupTable(mapper.GetLookupTable())
+        scalar_bar.SetTitle(color_by_field)
+        scalar_bar.SetNumberOfLabels(5)
+        scalar_bar.SetPosition(0.85, 0.1)
+        scalar_bar.SetWidth(0.1)
+        scalar_bar.SetHeight(0.8)
+        renderer.AddActor(scalar_bar)
+
+    # Render window
+    render_window = vtk.vtkRenderWindow()
+    render_window.AddRenderer(renderer)
+    render_window.SetSize(1200, 600)
+    render_window.SetWindowName("VTK Unstructured Grid: CFD Mesh Flexibility")
+
+    # Interactor
+    interactor = vtk.vtkRenderWindowInteractor()
+    interactor.SetRenderWindow(render_window)
+
+    # Camera positioning
+    renderer.ResetCamera()
+    camera = renderer.GetActiveCamera()
+    camera.Elevation(20)
+    camera.Azimuth(30)
+
+    # Add axes widget
+    axes = vtk.vtkAxesActor()
+    axes_widget = vtk.vtkOrientationMarkerWidget()
+    axes_widget.SetOrientationMarker(axes)
+    axes_widget.SetInteractor(interactor)
+    axes_widget.SetViewport(0.0, 0.0, 0.15, 0.25)
+    axes_widget.SetEnabled(1)
+    axes_widget.InteractiveOff()
+
+    interactor.Initialize()
+    render_window.Render()
+    interactor.Start()
+
+
+def print_educational_summary():
+    """
+    Print educational summary about unstructured grids in CFD.
+    """
+    print("\n" + "=" * 70)
+    print("VTK Unstructured Grid: Educational Summary for CFD")
+    print("=" * 70)
+    print("""
+1. WHAT IS AN UNSTRUCTURED GRID?
+   - Explicit connectivity stored for each cell
+   - Mixed cell types allowed (hex, tet, wedge, pyramid)
+   - No regular topology required
+   - Maximum geometric flexibility
+
+2. CELL TYPES FOR CFD:
+   - Tetrahedron: 4 vertices, meshes any geometry
+   - Hexahedron: 8 vertices, highest accuracy
+   - Wedge/Prism: 6 vertices, boundary layers
+   - Pyramid: 5 vertices, hex-tet transition
+
+3. ADVANTAGES:
+   - Can mesh ANY geometry
+   - Automatic mesh generation available
+   - Local refinement possible
+   - Adaptive mesh refinement
+
+4. DISADVANTAGES:
+   - Higher memory usage (explicit connectivity)
+   - Slower neighbor lookup
+   - More complex numerical schemes
+   - Generally lower accuracy than structured
+
+5. HYBRID MESH STRATEGY:
+   - Prisms/hexahedra in boundary layers
+   - Tetrahedra in complex regions
+   - Pyramids for transitions
+   - Best of both worlds
+
+6. CFD APPLICATIONS:
+   - Vehicle aerodynamics
+   - Biomedical flows
+   - Turbomachinery
+   - Industrial equipment
+
+7. QUALITY METRICS:
+   - Skewness: deviation from ideal shape
+   - Aspect ratio: edge length ratios
+   - Volume ratio: neighbor cell size ratio
+   - Orthogonality: face normal alignment
+""")
 
 
 def main():
-    hexahedron = create_hexahedron()
-    tetrahedron = create_tetrahedron()
-    points = create_points()
-    ugrid = create_unstructured_grid(points, hexahedron, tetrahedron)
-    attach_fields_to_grid(ugrid, points)
-    visualize_unstructured_grid(ugrid)
+    """
+    Main function demonstrating VTK unstructured grids for CFD.
+
+    Demonstrates:
+    - Individual cell type creation
+    - Hybrid mesh with multiple cell types
+    - Field data attachment
+    - Mesh statistics and visualization
+    """
+    print_educational_summary()
+
+    # Create individual cell types for demonstration
+    print("\n" + "-" * 70)
+    print("Creating individual cell types...")
+    print("-" * 70)
+
+    _, _, tet_grid = create_single_tetrahedron()
+    print(f"Tetrahedron: {tet_grid.GetNumberOfPoints()} points, "
+          f"{tet_grid.GetNumberOfCells()} cells")
+
+    _, _, hex_grid = create_single_hexahedron()
+    print(f"Hexahedron: {hex_grid.GetNumberOfPoints()} points, "
+          f"{hex_grid.GetNumberOfCells()} cells")
+
+    _, _, wedge_grid = create_single_wedge()
+    print(f"Wedge: {wedge_grid.GetNumberOfPoints()} points, "
+          f"{wedge_grid.GetNumberOfCells()} cells")
+
+    _, _, pyr_grid = create_single_pyramid()
+    print(f"Pyramid: {pyr_grid.GetNumberOfPoints()} points, "
+          f"{pyr_grid.GetNumberOfCells()} cells")
+
+    # Create hybrid mesh
+    print("\n" + "-" * 70)
+    print("Creating hybrid mesh...")
+    print("-" * 70)
+
+    hybrid = create_hybrid_mesh()
+    add_scalar_field(hybrid, "Pressure", "distance")
+    add_velocity_field(hybrid)
+
+    compute_mesh_statistics(hybrid)
+
+    # Visualize
+    print("\n" + "-" * 70)
+    print("Visualizing hybrid mesh...")
+    print("-" * 70)
+
+    visualize_unstructured_grid(hybrid, show_edges=True, color_by_field="Pressure")
 
 
 if __name__ == "__main__":
