@@ -1,11 +1,17 @@
+import os
+
 import vtk
 
 from src.common.simple_pipeline import VisualisationPipeline
 
-FOAM_CASE_PATH = "../../data/open_foam/temp.case"
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+FOAM_CASE_PATH = os.path.join(SCRIPT_DIR, "../../data/open_foam/temp.case")
+OUTPUT_FILE = os.path.join(SCRIPT_DIR, "../../data/open_foam/output.vtm")
 
 
 def write_vtk(data: vtk.vtkMultiBlockDataSet, filename: str):
+    """Write a vtkMultiBlockDataSet to a VTM file."""
     writer = vtk.vtkXMLMultiBlockDataWriter()
     writer.SetFileName(filename)
     writer.SetInputData(data)
@@ -13,13 +19,20 @@ def write_vtk(data: vtk.vtkMultiBlockDataSet, filename: str):
 
 
 def read_foam(case_path: str) -> vtk.vtkMultiBlockDataSet:
+    """
+    Read an OpenFOAM case file.
+
+    The case_path should point to a .foam file or a case directory.
+    For a .foam file, it should be located in the case directory.
+    """
     reader = vtk.vtkOpenFOAMReader()
-    reader.SetFileName(case_path + "/system/controlDict")
+    reader.SetFileName(case_path)
     reader.Update()
     return reader.GetOutput()
 
 
 def transform_block(block: vtk.vtkMultiBlockDataSet, transform: vtk.vtkTransform):
+    """Apply a transform to a vtkMultiBlockDataSet."""
     transform_filter = vtk.vtkTransformFilter()
     transform_filter.SetInputData(block)
     transform_filter.SetTransform(transform)
@@ -40,11 +53,11 @@ if __name__ == "__main__":
     pipeline = VisualisationPipeline(mappers=[mapper])
     pipeline.run()
 
-    # Apply a translation transform
+    # Apply a transform
     transform = vtk.vtkTransform()
     transform.Scale(2.0, 1.0, 1.0)  # Double the size along the x-axis
     transform.RotateZ(45.0)  # Rotate 45 degrees about the z-axis
     foam_data = transform_block(foam_data, transform)
 
     # Write VTK file
-    write_vtk(foam_data, "test.vtk")
+    write_vtk(foam_data, OUTPUT_FILE)

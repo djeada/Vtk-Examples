@@ -1,13 +1,18 @@
+import os
+
 import vtk
 from vtkmodules.vtkCommonDataModel import vtkMultiBlockDataSet
 
 from src.common.simple_pipeline import VisualisationPipeline
 
-FILE_NAME = "../../data/exodus/tetrahedron.exo"
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+FILE_NAME = os.path.join(SCRIPT_DIR, "../../data/exodus/tetrahedron.exo")
+OUTPUT_FILE = os.path.join(SCRIPT_DIR, "../../data/exodus/tetrahedron_output.exo")
 
 
 def read_exodus(filename: str) -> vtkMultiBlockDataSet:
-    """Read an Exodus II file."""
+    """Read an Exodus II file and return a vtkMultiBlockDataSet."""
     reader = vtk.vtkExodusIIReader()
     reader.SetFileName(filename)
     reader.UpdateInformation()
@@ -19,7 +24,7 @@ def read_exodus(filename: str) -> vtkMultiBlockDataSet:
 
 
 def write_exodus(data: vtkMultiBlockDataSet, filename: str) -> None:
-    """Write an Exodus II file."""
+    """Write a vtkMultiBlockDataSet to an Exodus II file."""
     writer = vtk.vtkExodusIIWriter()
     writer.SetFileName(filename)
     writer.SetInputData(data)
@@ -27,6 +32,7 @@ def write_exodus(data: vtkMultiBlockDataSet, filename: str) -> None:
 
 
 def translate_mesh(input_block, dx, dy, dz):
+    """Translate all points in a mesh by the specified offsets."""
     if isinstance(input_block, vtk.vtkMultiBlockDataSet):
         for i in range(input_block.GetNumberOfBlocks()):
             sub_block = input_block.GetBlock(i)
@@ -60,4 +66,4 @@ if __name__ == "__main__":
     translate_mesh(exodus_data, 10.0, 0.0, 0.0)
 
     # Write Exodus II file
-    write_exodus(exodus_data, "output.exo")
+    write_exodus(exodus_data, OUTPUT_FILE)

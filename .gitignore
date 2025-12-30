@@ -165,3 +165,8 @@ src/**/*.vtp
 src/**/*.stl
 src/**/*.obj
 
+# Generated output files from IO examples
+data/**/*_transformed.*
+data/**/*_output.*
+data/exodus/tetrahedron_output.exo
+
