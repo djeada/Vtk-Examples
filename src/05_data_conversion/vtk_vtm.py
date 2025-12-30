@@ -67,7 +67,13 @@ class VtmToVtkConverter(Converter):
 
             # Get the first block from the multiblock dataset
             mbds = reader.GetOutput()
-            if mbds.GetNumberOfBlocks() > 0:
+            num_blocks = mbds.GetNumberOfBlocks()
+            if num_blocks > 0:
+                if num_blocks > 1:
+                    logging.warning(
+                        f"VTM file contains {num_blocks} blocks. "
+                        "Only the first block will be converted."
+                    )
                 block = mbds.GetBlock(0)
                 # Write VTK File
                 writer = vtk.vtkDataSetWriter()
@@ -78,7 +84,7 @@ class VtmToVtkConverter(Converter):
                     f"Conversion successful: {input_filename} to {output_filename}"
                 )
             else:
-                raise ValueError("No blocks found in the VTM file.")
+                raise ValueError(f"No blocks found in the VTM file: {input_filename}")
         except Exception as e:
             logging.error(f"Error during conversion: {e}")
             raise
