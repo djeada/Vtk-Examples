@@ -9,8 +9,8 @@ except ImportError:
     from converter_interface import Converter
 
 
-class VtkToVtuConverter(Converter):
-    """Converter for VTK to VTU (XML unstructured grid) file format conversion."""
+class VtkToVtpConverter(Converter):
+    """Converter for VTK to VTP (XML PolyData) file format conversion."""
 
     def convert(self, input_filename: str, output_filename: str) -> None:
         if not input_filename or not output_filename:
@@ -18,9 +18,9 @@ class VtkToVtuConverter(Converter):
 
         if not (
             input_filename.lower().endswith(".vtk")
-            and output_filename.lower().endswith(".vtu")
+            and output_filename.lower().endswith(".vtp")
         ):
-            raise ValueError("Invalid file extensions. Expected '.vtk' and '.vtu'.")
+            raise ValueError("Invalid file extensions. Expected '.vtk' and '.vtp'.")
 
         try:
             # Read VTK File
@@ -28,8 +28,8 @@ class VtkToVtuConverter(Converter):
             reader.SetFileName(input_filename)
             reader.Update()
 
-            # Write VTU File
-            writer = vtk.vtkXMLUnstructuredGridWriter()
+            # Write VTP File
+            writer = vtk.vtkXMLPolyDataWriter()
             writer.SetFileName(output_filename)
             writer.SetInputConnection(reader.GetOutputPort())
             writer.Write()
@@ -41,27 +41,27 @@ class VtkToVtuConverter(Converter):
             raise
 
 
-class VtuToVtkConverter(Converter):
-    """Converter for VTU (XML unstructured grid) to VTK file format conversion."""
+class VtpToVtkConverter(Converter):
+    """Converter for VTP (XML PolyData) to VTK file format conversion."""
 
     def convert(self, input_filename: str, output_filename: str) -> None:
         if not input_filename or not output_filename:
             raise ValueError("Input and output filenames must be provided.")
 
         if not (
-            input_filename.lower().endswith(".vtu")
+            input_filename.lower().endswith(".vtp")
             and output_filename.lower().endswith(".vtk")
         ):
-            raise ValueError("Invalid file extensions. Expected '.vtu' and '.vtk'.")
+            raise ValueError("Invalid file extensions. Expected '.vtp' and '.vtk'.")
 
         try:
-            # Read VTU File
-            reader = vtk.vtkXMLUnstructuredGridReader()
+            # Read VTP File
+            reader = vtk.vtkXMLPolyDataReader()
             reader.SetFileName(input_filename)
             reader.Update()
 
             # Write VTK File
-            writer = vtk.vtkDataSetWriter()
+            writer = vtk.vtkPolyDataWriter()
             writer.SetFileName(output_filename)
             writer.SetInputConnection(reader.GetOutputPort())
             writer.Write()
@@ -80,18 +80,18 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(script_dir, "..", "..", "data")
 
-    # Example: VTK to VTU conversion
-    vtk_input = os.path.join(data_dir, "vtks", "grid_of_triangles.vtk")
-    vtu_output = os.path.join(script_dir, "grid_converted.vtu")
+    # Example: VTK to VTP conversion
+    vtk_input = os.path.join(data_dir, "vtks", "cube_polydata.vtk")
+    vtp_output = os.path.join(script_dir, "cube_converted.vtp")
 
-    vtk_to_vtu = VtkToVtuConverter()
-    vtk_to_vtu.convert(vtk_input, vtu_output)
-    print(f"Converted {vtk_input} to {vtu_output}")
+    vtk_to_vtp = VtkToVtpConverter()
+    vtk_to_vtp.convert(vtk_input, vtp_output)
+    print(f"Converted {vtk_input} to {vtp_output}")
 
-    # Example: VTU to VTK conversion
-    vtu_input = os.path.join(data_dir, "vtus", "grid_of_triangles.vtu")
-    vtk_output = os.path.join(script_dir, "grid_converted.vtk")
+    # Example: VTP to VTK conversion
+    vtp_input = os.path.join(data_dir, "vtps", "naca0012.vtp")
+    vtk_output = os.path.join(script_dir, "naca0012_converted.vtk")
 
-    vtu_to_vtk = VtuToVtkConverter()
-    vtu_to_vtk.convert(vtu_input, vtk_output)
-    print(f"Converted {vtu_input} to {vtk_output}")
+    vtp_to_vtk = VtpToVtkConverter()
+    vtp_to_vtk.convert(vtp_input, vtk_output)
+    print(f"Converted {vtp_input} to {vtk_output}")

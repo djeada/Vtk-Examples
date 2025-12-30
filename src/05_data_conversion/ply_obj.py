@@ -9,27 +9,27 @@ except ImportError:
     from converter_interface import Converter
 
 
-class VtkToVtuConverter(Converter):
-    """Converter for VTK to VTU (XML unstructured grid) file format conversion."""
+class PlyToObjConverter(Converter):
+    """Converter for PLY to OBJ file format conversion."""
 
     def convert(self, input_filename: str, output_filename: str) -> None:
         if not input_filename or not output_filename:
             raise ValueError("Input and output filenames must be provided.")
 
         if not (
-            input_filename.lower().endswith(".vtk")
-            and output_filename.lower().endswith(".vtu")
+            input_filename.lower().endswith(".ply")
+            and output_filename.lower().endswith(".obj")
         ):
-            raise ValueError("Invalid file extensions. Expected '.vtk' and '.vtu'.")
+            raise ValueError("Invalid file extensions. Expected '.ply' and '.obj'.")
 
         try:
-            # Read VTK File
-            reader = vtk.vtkGenericDataObjectReader()
+            # Read PLY File
+            reader = vtk.vtkPLYReader()
             reader.SetFileName(input_filename)
             reader.Update()
 
-            # Write VTU File
-            writer = vtk.vtkXMLUnstructuredGridWriter()
+            # Write OBJ File
+            writer = vtk.vtkOBJWriter()
             writer.SetFileName(output_filename)
             writer.SetInputConnection(reader.GetOutputPort())
             writer.Write()
@@ -41,27 +41,27 @@ class VtkToVtuConverter(Converter):
             raise
 
 
-class VtuToVtkConverter(Converter):
-    """Converter for VTU (XML unstructured grid) to VTK file format conversion."""
+class ObjToPlyConverter(Converter):
+    """Converter for OBJ to PLY file format conversion."""
 
     def convert(self, input_filename: str, output_filename: str) -> None:
         if not input_filename or not output_filename:
             raise ValueError("Input and output filenames must be provided.")
 
         if not (
-            input_filename.lower().endswith(".vtu")
-            and output_filename.lower().endswith(".vtk")
+            input_filename.lower().endswith(".obj")
+            and output_filename.lower().endswith(".ply")
         ):
-            raise ValueError("Invalid file extensions. Expected '.vtu' and '.vtk'.")
+            raise ValueError("Invalid file extensions. Expected '.obj' and '.ply'.")
 
         try:
-            # Read VTU File
-            reader = vtk.vtkXMLUnstructuredGridReader()
+            # Read OBJ File
+            reader = vtk.vtkOBJReader()
             reader.SetFileName(input_filename)
             reader.Update()
 
-            # Write VTK File
-            writer = vtk.vtkDataSetWriter()
+            # Write PLY File
+            writer = vtk.vtkPLYWriter()
             writer.SetFileName(output_filename)
             writer.SetInputConnection(reader.GetOutputPort())
             writer.Write()
@@ -80,18 +80,18 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(script_dir, "..", "..", "data")
 
-    # Example: VTK to VTU conversion
-    vtk_input = os.path.join(data_dir, "vtks", "grid_of_triangles.vtk")
-    vtu_output = os.path.join(script_dir, "grid_converted.vtu")
+    # Example: OBJ to PLY conversion
+    obj_input = os.path.join(data_dir, "objs", "cube.obj")
+    ply_output = os.path.join(script_dir, "cube_converted.ply")
 
-    vtk_to_vtu = VtkToVtuConverter()
-    vtk_to_vtu.convert(vtk_input, vtu_output)
-    print(f"Converted {vtk_input} to {vtu_output}")
+    obj_to_ply = ObjToPlyConverter()
+    obj_to_ply.convert(obj_input, ply_output)
+    print(f"Converted {obj_input} to {ply_output}")
 
-    # Example: VTU to VTK conversion
-    vtu_input = os.path.join(data_dir, "vtus", "grid_of_triangles.vtu")
-    vtk_output = os.path.join(script_dir, "grid_converted.vtk")
-
-    vtu_to_vtk = VtuToVtkConverter()
-    vtu_to_vtk.convert(vtu_input, vtk_output)
-    print(f"Converted {vtu_input} to {vtk_output}")
+    # Note: PLY to OBJ conversion requires a PLY input file
+    # Uncomment the following if you have a PLY file available:
+    # ply_input = os.path.join(data_dir, "plys", "example.ply")
+    # obj_output = os.path.join(script_dir, "example_converted.obj")
+    # ply_to_obj = PlyToObjConverter()
+    # ply_to_obj.convert(ply_input, obj_output)
+    # print(f"Converted {ply_input} to {obj_output}")
