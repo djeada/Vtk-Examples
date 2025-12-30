@@ -1,11 +1,17 @@
+import os
+
 import vtk
 
 from src.common.simple_pipeline import VisualisationPipeline
 
-FILE_NAME = "../../data/vtks/grid_of_triangles.vtk"
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+FILE_NAME = os.path.join(SCRIPT_DIR, "../../data/vtks/grid_of_triangles.vtk")
+OUTPUT_FILE = os.path.join(SCRIPT_DIR, "../../data/vtks/grid_of_triangles_transformed.vtk")
 
 
 def write_vtk(data: vtk.vtkUnstructuredGrid, filename: str):
+    """Write a vtkUnstructuredGrid to a VTK file."""
     writer = vtk.vtkUnstructuredGridWriter()
     writer.SetFileName(filename)
     writer.SetInputData(data)
@@ -13,6 +19,7 @@ def write_vtk(data: vtk.vtkUnstructuredGrid, filename: str):
 
 
 def read_vtk(filename: str) -> vtk.vtkUnstructuredGrid:
+    """Read a VTK file and return a vtkUnstructuredGrid."""
     reader = vtk.vtkUnstructuredGridReader()
     reader.SetFileName(filename)
     reader.Update()
@@ -20,6 +27,7 @@ def read_vtk(filename: str) -> vtk.vtkUnstructuredGrid:
 
 
 def transform_grid(grid: vtk.vtkUnstructuredGrid, transform: vtk.vtkTransform):
+    """Apply a transform to a vtkUnstructuredGrid."""
     transform_filter = vtk.vtkTransformFilter()
     transform_filter.SetInputData(grid)
     transform_filter.SetTransform(transform)
@@ -28,6 +36,7 @@ def transform_grid(grid: vtk.vtkUnstructuredGrid, transform: vtk.vtkTransform):
 
 
 def print_dataset_info(dataset: vtk.vtkUnstructuredGrid):
+    """Print information about the dataset's arrays."""
     point_data = dataset.GetPointData()
     cell_data = dataset.GetCellData()
 
@@ -64,11 +73,11 @@ if __name__ == "__main__":
     pipeline = VisualisationPipeline(mappers=[mapper])
     pipeline.run()
 
-    # Apply a translation transform
+    # Apply a transform
     transform = vtk.vtkTransform()
     transform.Scale(2.0, 1.0, 1.0)  # Double the size along the x-axis
     transform.RotateZ(45.0)  # Rotate 45 degrees about the z-axis
     vtk_data = transform_grid(vtk_data, transform)
 
     # Write VTK file
-    write_vtk(vtk_data, "test.vtk")
+    write_vtk(vtk_data, OUTPUT_FILE)

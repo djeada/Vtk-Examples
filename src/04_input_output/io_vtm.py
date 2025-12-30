@@ -1,11 +1,17 @@
+import os
+
 import vtk
 
 from src.common.simple_pipeline import VisualisationPipeline
 
-FILE_NAME = "../../data/vtms/grid_of_triangles.vtm"
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+FILE_NAME = os.path.join(SCRIPT_DIR, "../../data/vtms/grid_of_triangles.vtm")
+OUTPUT_FILE = os.path.join(SCRIPT_DIR, "../../data/vtms/grid_of_triangles_output.vtm")
 
 
 def write_vtm(data: vtk.vtkMultiBlockDataSet, filename: str):
+    """Write a vtkMultiBlockDataSet to a VTM file."""
     writer = vtk.vtkXMLMultiBlockDataWriter()
     writer.SetFileName(filename)
     writer.SetInputData(data)
@@ -13,6 +19,7 @@ def write_vtm(data: vtk.vtkMultiBlockDataSet, filename: str):
 
 
 def read_vtm(filename: str) -> vtk.vtkMultiBlockDataSet:
+    """Read a VTM file and return a vtkMultiBlockDataSet."""
     reader = vtk.vtkXMLMultiBlockDataReader()
     reader.SetFileName(filename)
     reader.Update()
@@ -20,6 +27,7 @@ def read_vtm(filename: str) -> vtk.vtkMultiBlockDataSet:
 
 
 def print_dataset_info(dataset: vtk.vtkMultiBlockDataSet):
+    """Print information about the dataset's blocks and arrays."""
     for i in range(dataset.GetNumberOfBlocks()):
         block = dataset.GetBlock(i)
         if block:
@@ -66,4 +74,4 @@ if __name__ == "__main__":
     pipeline.run()
 
     # Write VTM file
-    write_vtm(vtm_data, "test.vtm")
+    write_vtm(vtm_data, OUTPUT_FILE)
