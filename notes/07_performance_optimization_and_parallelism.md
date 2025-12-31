@@ -139,7 +139,7 @@ I. `vtkFrustumCuller`
 
 II. `vtkVisibilityCuller`
 
-**(Small wording fix because the original phrasing can be misleading.)** `vtkVisibilityCuller` is commonly used as a framework/base for visibility-based culling; the specific behavior depends on the culler implementation you use with your renderer. So it’s safest to describe it as “visibility culling support” rather than guaranteeing a specific occlusion algorithm.
+`vtkVisibilityCuller` is commonly used as a framework/base for visibility-based culling; the specific behavior depends on the culler implementation you use with your renderer. So it’s safest to describe it as “visibility culling support” rather than guaranteeing a specific occlusion algorithm.
 
 * Visibility-based culling helps determine whether objects are likely to be visible from the camera’s perspective, avoiding unnecessary rendering.
 * Depth testing and related approaches can be used to detect and exclude hidden geometry (depending on the configured culler strategy).
