@@ -6,16 +6,31 @@ VTK offers a set of tools to create animations and visualize time-varying data. 
 2. Temporal Data Visualization
 3. Animation Export
 
+Why you should care: **animation turns a static “look at this” into a guided “watch what changes.”** It’s how you show cause and effect, highlight progression, compare states, and keep viewers oriented as data evolves. And for time-varying datasets, animation isn’t decoration—it’s often the only way to truly understand trends, cycles, and transitions.
+
+A good rule of thumb:
+
+* **Do** use animation to reveal structure (what changes, when, and how fast).
+* **Don’t** animate just because you can—motion without intent can make analysis harder.
+
 ### Keyframe Animation
 
 Keyframe animation is a technique used to create smooth transitions between different states of a visualization. This approach is particularly beneficial for visual storytelling or creating explanatory visualizations, where the evolution of data over time needs to be clearly communicated.
+
+What makes keyframes so practical is that you don’t animate *every* moment manually—you define meaningful “poses” (keyframes), and the system fills in the in-between. That keeps your story intentional: you’re choosing the moments that matter (start state, mid state, end state) and letting interpolation handle smooth motion.
 
 #### Core Concepts
 
 The core classes involved in keyframe animation using VTK (Visualization Toolkit) are:
 
-- `vtkAnimationCue`: Represents an individual animation sequence with defined start and end times. An animation cue controls how a particular property of an object changes over a specified period.
-- `vtkAnimationScene`: Manages multiple animation cues and orchestrates the overall animation playback. It handles the timing and sequencing of various animation cues to create a cohesive animation.
+* `vtkAnimationCue`: Represents an individual animation sequence with defined start and end times. An animation cue controls how a particular property of an object changes over a specified period.
+* `vtkAnimationScene`: Manages multiple animation cues and orchestrates the overall animation playback. It handles the timing and sequencing of various animation cues to create a cohesive animation.
+
+A useful way to think about this:
+
+* A **scene** is the timeline (global time, frame rate, looping).
+* A **cue** is a clip on that timeline (what changes during that time window).
+* A **callback** is the “hands” doing the work each tick (update radius, move camera, change opacity).
 
 #### Basic Workflow
 
@@ -23,6 +38,12 @@ The core classes involved in keyframe animation using VTK (Visualization Toolkit
 2. Create animation cues for each property you want to animate by making an instance of `vtkAnimationCue`, and defining the start and end times for each cue.
 3. Add the animation cues to the scene by including each `vtkAnimationCue` in the `vtkAnimationScene`.
 4. Define callbacks to update the properties of the visual objects at each frame of the animation.
+
+Do/don’t guidance that saves headaches:
+
+* **Do** decide what “time” means (seconds, frames, simulation steps) and keep it consistent.
+* **Do** separate “compute value” from “apply value” inside callbacks (easier to debug).
+* **Don’t** call `Render()` more than you need to—ideally once per tick, not multiple times per property.
 
 #### Example: Animating a Sphere's Radius
 
@@ -66,8 +87,16 @@ animationScene.SetEndTime(2)  # Ensuring the scene's end time matches the cue's 
 def update_radius(caller, event):
     cue = caller
     t = cue.GetAnimationTime()
-    new_radius = 5 + 5 * t  # Example: linearly increase radius over time
+
+    # Normalize t to [0, 1] across the cue duration
+    t0 = cue.GetStartTime()
+    t1 = cue.GetEndTime()
+    alpha = 0.0 if t1 == t0 else (t - t0) / (t1 - t0)
+
+    # Example: increase radius linearly from 5 -> 10
+    new_radius = 5 + 5 * alpha
     sphereSource.SetRadius(new_radius)
+
     renderWindow.Render()
 
 # Set up an animation cue for the radius
@@ -85,24 +114,35 @@ renderWindowInteractor.Start()
 
 In this example:
 
-- A sphere is created using `vtkSphereSource`.
-- A mapper and actor are set up to render the sphere.
-- An `vtkAnimationScene` is created and configured.
-- An `vtkAnimationCue` is created for animating the sphere's radius over a 2-second period.
-- A callback function `update_radius` is defined to update the sphere's radius based on the animation time.
-- The animation cue is added to the animation scene.
-- Finally, the animation is played, and the render window interactor is started.
+* A sphere is created using `vtkSphereSource`.
+* A mapper and actor are set up to render the sphere.
+* A `vtkAnimationScene` is created and configured.
+* A `vtkAnimationCue` is created for animating the sphere's radius over a 2-second period.
+* A callback function `update_radius` is defined to update the sphere's radius based on the animation time.
+* The animation cue is added to the animation scene.
+* Finally, the animation is played, and the render window interactor is started.
+
+Once you can animate one property (radius), you can animate almost anything—camera position, clipping planes, opacity ramps, color transfer functions, glyph scale, slice index—making it easy to build explainers and “guided tours” of a dataset.
 
 ## Temporal Data Visualization
 
 Temporal data visualization involves displaying data that varies over time. This technique is particularly useful for visualizing simulations, time-series data, or dynamic systems, providing insights into how data evolves and changes across different time steps.
 
+The main “why”: **time is an extra dimension of meaning.** Without temporal playback, you’re forced to compare snapshots manually and you miss continuity—how quickly something emerges, whether changes are smooth or abrupt, whether patterns repeat, and whether cause precedes effect.
+
+Do/don’t guidance:
+
+* **Do** decide whether you want *step-by-step truth* (discrete timesteps) or *smooth playback* (interpolation).
+* **Don’t** interpolate blindly if your data represents events or discontinuities (e.g., sudden fractures, threshold triggers). Interpolation can “invent” states that never existed.
+
 ### Core Classes and Concepts
 
 The main classes used for temporal data visualization in VTK (Visualization Toolkit) are:
 
-- `vtkTemporalDataSet`: Represents a collection of datasets associated with different time steps. This class allows for organizing and managing temporal data effectively.
-- `vtkTemporalInterpolator`: Interpolates between datasets at different time steps to create smooth transitions. This is essential for creating fluid animations and seamless visual transitions.
+* `vtkTemporalDataSet`: Represents a collection of datasets associated with different time steps. This class allows for organizing and managing temporal data effectively.
+* `vtkTemporalInterpolator`: Interpolates between datasets at different time steps to create smooth transitions. This is essential for creating fluid animations and seamless visual transitions.
+
+(Practical note: VTK’s time support is also strongly tied to the pipeline’s **time requests**—many readers/filters expose time steps and respond to requested update time. So the cleanest temporal workflows often come from letting the pipeline drive time, rather than manually “setting a timestep” on a reader that doesn’t support it.)
 
 ### Basic Workflow
 
@@ -115,13 +155,15 @@ The main classes used for temporal data visualization in VTK (Visualization Tool
 
 Below is an example demonstrating how to load and visualize a temporal dataset using VTK. This example involves reading a temporal dataset, setting up a mapper and actor, and rendering the data.
 
+**Small fix (misleading API usage):** `vtkXMLMultiBlockDataReader` does not generally provide `GetNumberOfTimeSteps()` / `SetTimeStep()` in the way your example assumes. A safer, more VTK-ish pattern is to animate by setting the pipeline’s **requested update time** via `vtkStreamingDemandDrivenPipeline` keys.
+
 ```python
 import vtk
 
 # Load temporal dataset
 reader = vtk.vtkXMLMultiBlockDataReader()
 reader.SetFileName("data.vtm")
-reader.Update()
+reader.UpdateInformation()
 
 # Optionally set up a temporal interpolator for smooth transitions
 interpolator = vtk.vtkTemporalInterpolator()
@@ -144,6 +186,10 @@ renderWindowInteractor.SetRenderWindow(renderWindow)
 renderer.AddActor(actor)
 renderer.SetBackground(0.1, 0.2, 0.4)  # Background color
 
+# Get available time steps from the pipeline (if provided)
+info = reader.GetOutputInformation(0)
+time_steps = info.Get(vtk.vtkStreamingDemandDrivenPipeline.TIME_STEPS())
+
 # Initialize and start the render window interactor
 renderWindow.Render()
 renderWindowInteractor.Initialize()
@@ -156,15 +202,28 @@ animationScene.SetFrameRate(24)  # 24 frames per second
 
 # Define the callback to update the time step
 def update_time_step(caller, event):
-    time_cue = caller
-    time_step = int(time_cue.GetAnimationTime() * reader.GetNumberOfTimeSteps())
-    reader.SetTimeStep(time_step)
-    renderWindow.Render()
+    cue = caller
+    t = cue.GetAnimationTime()
+
+    # Map animation time to an index in the available time steps
+    if time_steps:
+        t0 = cue.GetStartTime()
+        t1 = cue.GetEndTime()
+        alpha = 0.0 if t1 == t0 else (t - t0) / (t1 - t0)
+        idx = int(alpha * (len(time_steps) - 1))
+        requested_time = time_steps[idx]
+
+        # Request this time from the pipeline
+        out_info = interpolator.GetOutputInformation(0)
+        out_info.Set(vtk.vtkStreamingDemandDrivenPipeline.UPDATE_TIME_STEP(), requested_time)
+
+        interpolator.Update()
+        renderWindow.Render()
 
 # Set up an animation cue for the time steps
 timeCue = vtk.vtkAnimationCue()
 timeCue.SetStartTime(0)
-timeCue.SetEndTime(reader.GetNumberOfTimeSteps() / 24)
+timeCue.SetEndTime(5)  # Example duration; tune to your dataset
 timeCue.AddObserver(vtk.vtkCommand.AnimationCueTickEvent, update_time_step)
 animationScene.AddCue(timeCue)
 
@@ -175,25 +234,34 @@ renderWindowInteractor.Start()
 
 In this example:
 
-- A temporal dataset is loaded using `vtkXMLMultiBlockDataReader`.
-- An optional `vtkTemporalInterpolator` is set up to create smooth transitions between time steps.
-- A mapper and actor are created to visualize the data.
-- A renderer, render window, and interactor are initialized.
-- An animation scene is set up to handle the temporal data animation.
-- A callback function `update_time_step` is defined to update the dataset based on the current time step.
-- An animation cue is created to manage the animation timing.
-- The animation is played, and the render window interactor is started.
+* A temporal dataset is loaded using `vtkXMLMultiBlockDataReader`.
+* An optional `vtkTemporalInterpolator` is set up to create smooth transitions between time steps.
+* A mapper and actor are created to visualize the data.
+* A renderer, render window, and interactor are initialized.
+* An animation scene is set up to handle the temporal data animation.
+* A callback function `update_time_step` is defined to request updates at different time steps.
+* An animation cue is created to manage the animation timing.
+* The animation is played, and the render window interactor is started.
+
+When you use the pipeline’s time keys, you’re working with VTK “the VTK way”—filters that understand time can cooperate, and you’re less likely to rely on reader-specific methods that don’t exist.
 
 ## Animation Export
 
 Animation export involves saving an animation as a video or image sequence. This capability is crucial for sharing animations with others or for viewing them offline. It allows for easy distribution and playback of visualizations created in VTK (Visualization Toolkit).
 
+The big “why”: **a visualization that can’t be shared is often a visualization that can’t create impact.** Export lets you put results into slide decks, papers, dashboards, tickets, or async reviews—so people can see what you see without needing your exact runtime environment.
+
+Do/don’t guidance:
+
+* **Do** export image sequences when quality matters (then encode later).
+* **Don’t** assume video encoding is always available—some VTK builds lack FFMPEG support, so have a PNG-sequence fallback.
+
 ### Core Classes and Concepts
 
 The main classes used for exporting animations in VTK are:
 
-- `vtkWindowToImageFilter`: Captures the contents of a render window as an image. This class is essential for converting the rendered scene into a format suitable for saving.
-- `vtkAVIWriter`, `vtkOggTheoraWriter`, `vtkFFMPEGWriter`: These classes save image sequences as video files in different formats. They provide the functionality to encode and write video files.
+* `vtkWindowToImageFilter`: Captures the contents of a render window as an image. This class is essential for converting the rendered scene into a format suitable for saving.
+* `vtkAVIWriter`, `vtkOggTheoraWriter`, `vtkFFMPEGWriter`: These classes save image sequences as video files in different formats. They provide the functionality to encode and write video files.
 
 ### Basic Workflow
 
@@ -286,5 +354,5 @@ videoWriter.End()
 
 In these examples:
 
-- The render window's contents are captured and saved as a PNG image.
-- A series of frames are captured while animating the scene, and these frames are compiled into an MP4 video file using `vtkFFMPEGWriter`.
+* The render window's contents are captured and saved as a PNG image.
+* A series of frames are captured while animating the scene, and these frames are compiled into an MP4 video file using `vtkFFMPEGWriter`.
