@@ -309,20 +309,25 @@ def compute_mesh_quality(grid: vtk.vtkStructuredGrid) -> dict:
 
 def create_mesh_visualization_actors(
     grid: vtk.vtkStructuredGrid,
-) -> tuple[vtk.vtkActor, vtk.vtkActor, vtk.vtkActor]:
+) -> tuple[vtk.vtkActor, vtk.vtkActor, vtk.vtkActor, vtk.vtkLookupTable]:
     """
     Create VTK actors for visualizing mesh structure.
 
-    Creates three visualization components:
+    Creates visualization components:
     1. Surface actor: Colored by temperature field
     2. Edge actor: Shows mesh wireframe
     3. Node actor: Shows mesh nodes as points
+    4. Lookup table: Color mapping for temperature values
 
     Args:
         grid: VTK structured grid with temperature data
 
     Returns:
-        tuple: (surface_actor, edge_actor, node_actor)
+        tuple: (surface_actor, edge_actor, node_actor, lut)
+            - surface_actor: VTK actor showing temperature color map
+            - edge_actor: VTK actor showing mesh edges
+            - node_actor: VTK actor showing mesh nodes
+            - lut: VTK lookup table for color mapping
     """
     # Create color lookup table (blue=cold, red=hot)
     lut = vtk.vtkLookupTable()
