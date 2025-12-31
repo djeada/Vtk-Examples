@@ -336,7 +336,8 @@ def solve_laplace_gauss_seidel(
                 continue
 
             T_old = T[node_id]
-            T_new = sum(T[n] for n in neighbor_ids) / len(neighbor_ids)
+            # Use numpy mean for better performance on larger meshes
+            T_new = np.mean(T[list(neighbor_ids)])
             T[node_id] = T_new
 
             change = abs(T_new - T_old)
