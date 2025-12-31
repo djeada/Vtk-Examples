@@ -83,6 +83,8 @@ References:
 3. Katz, J. & Plotkin, A. (2001). "Low-Speed Aerodynamics" 2nd Ed., Cambridge.
 """
 
+from typing import Tuple
+
 import numpy as np
 import vtk
 from vtkmodules.util.numpy_support import numpy_to_vtk
@@ -119,7 +121,7 @@ def compute_velocity_field(
     radius: float = CYLINDER_RADIUS,
     u_inf: float = U_INF,
     gamma: float = CIRCULATION
-) -> tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Compute the velocity field for potential flow around a cylinder.
     
@@ -152,8 +154,9 @@ def compute_velocity_field(
     R2_over_r4 = radius**2 / (r_squared**2)
     
     # Velocity from uniform flow + doublet (non-lifting flow)
-    # u = U_inf * (1 - R²*(x²-y²)/(r⁴))
-    # v = -U_inf * 2*R²*x*y / r⁴
+    # The formula u = U_inf * (1 - R²*(x²-y²)/r⁴) is equivalent to:
+    # u = U_inf * (1 - R²/r² + 2*R²*y²/r⁴) since (x²-y²)/r⁴ = 1/r² - 2*y²/r⁴
+    # The expanded form is used for numerical efficiency
     u = u_inf * (1.0 - R2_over_r2 + 2.0 * R2_over_r4 * y**2)
     v = -u_inf * 2.0 * R2_over_r4 * x * y
     
@@ -340,7 +343,7 @@ def create_cylinder_geometry(
 def create_flow_field_grid(
     resolution: int = GRID_RESOLUTION,
     domain_size: float = DOMAIN_SIZE
-) -> tuple[vtk.vtkStructuredGrid, np.ndarray, np.ndarray]:
+) -> Tuple[vtk.vtkStructuredGrid, np.ndarray, np.ndarray]:
     """
     Create a VTK structured grid for the flow field visualization.
     
