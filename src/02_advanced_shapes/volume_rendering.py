@@ -180,7 +180,7 @@ class HeatConductionSolver:
 
         Args:
             max_iterations: Maximum number of iterations.
-            tolerance: Convergence criterion (L2 norm of residual).
+            tolerance: Convergence criterion (max equation residual).
 
         Returns:
             Number of iterations to convergence.
@@ -211,15 +211,15 @@ class HeatConductionSolver:
                         # New value from Laplace equation
                         t_new = neighbor_sum / 6.0
 
+                        # Compute equation residual before update
+                        # Residual measures how well current value satisfies Laplace equation
+                        residual = abs(t_new - self.temperature[i, j, k])
+                        max_residual = max(max_residual, residual)
+
                         # SOR update
-                        t_old = self.temperature[i, j, k]
                         self.temperature[i, j, k] = (
                             1 - self.omega
-                        ) * t_old + self.omega * t_new
-
-                        # Track maximum residual
-                        residual = abs(self.temperature[i, j, k] - t_old)
-                        max_residual = max(max_residual, residual)
+                        ) * self.temperature[i, j, k] + self.omega * t_new
 
             # Apply boundary conditions after each iteration
             self._apply_boundary_conditions()
