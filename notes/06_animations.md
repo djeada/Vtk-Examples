@@ -6,20 +6,20 @@ VTK offers a set of tools to create animations and visualize time-varying data. 
 2. Temporal Data Visualization
 3. Animation Export
 
-Why you should care: **animation turns a static “look at this” into a guided “watch what changes.”** It’s how you show cause and effect, highlight progression, compare states, and keep viewers oriented as data evolves. And for time-varying datasets, animation isn’t decoration—it’s often the only way to truly understand trends, cycles, and transitions.
+Why you should care: **animation turns a static “look at this” into a guided “watch what changes.”** It’s how you show cause and effect, highlight progression, compare states, and keep viewers oriented as data evolves. And for time-varying datasets, animation isn’t decoration, it’s often the only way to truly understand trends, cycles, and transitions.
 
 A good rule of thumb:
 
 * **Do** use animation to reveal structure (what changes, when, and how fast).
-* **Don’t** animate just because you can—motion without intent can make analysis harder.
+* **Don’t** animate just because you can, motion without intent can make analysis harder.
 
 ### Keyframe Animation
 
 Keyframe animation is a technique used to create smooth transitions between different states of a visualization. This approach is particularly beneficial for visual storytelling or creating explanatory visualizations, where the evolution of data over time needs to be clearly communicated.
 
-What makes keyframes so practical is that you don’t animate *every* moment manually—you define meaningful “poses” (keyframes), and the system fills in the in-between. That keeps your story intentional: you’re choosing the moments that matter (start state, mid state, end state) and letting interpolation handle smooth motion.
+What makes keyframes so practical is that you don’t animate *every* moment manually, you define meaningful “poses” (keyframes), and the system fills in the in-between. That keeps your story intentional: you’re choosing the moments that matter (start state, mid state, end state) and letting interpolation handle smooth motion.
 
-#### Core Concepts
+#### Concepts
 
 The core classes involved in keyframe animation using VTK (Visualization Toolkit) are:
 
@@ -43,7 +43,7 @@ Do/don’t guidance that saves headaches:
 
 * **Do** decide what “time” means (seconds, frames, simulation steps) and keep it consistent.
 * **Do** separate “compute value” from “apply value” inside callbacks (easier to debug).
-* **Don’t** call `Render()` more than you need to—ideally once per tick, not multiple times per property.
+* **Don’t** call `Render()` more than you need to, ideally once per tick, not multiple times per property.
 
 #### Example: Animating a Sphere's Radius
 
@@ -122,29 +122,31 @@ In this example:
 * The animation cue is added to the animation scene.
 * Finally, the animation is played, and the render window interactor is started.
 
-Once you can animate one property (radius), you can animate almost anything—camera position, clipping planes, opacity ramps, color transfer functions, glyph scale, slice index—making it easy to build explainers and “guided tours” of a dataset.
+https://github.com/user-attachments/assets/dc1e2d17-3c1c-40ee-b23b-8def5a67116e
 
-## Temporal Data Visualization
+Once you can animate one property (radius), you can animate almost anything, camera position, clipping planes, opacity ramps, color transfer functions, glyph scale, slice index, making it easy to build explainers and “guided tours” of a dataset.
+
+### Temporal Data Visualization
 
 Temporal data visualization involves displaying data that varies over time. This technique is particularly useful for visualizing simulations, time-series data, or dynamic systems, providing insights into how data evolves and changes across different time steps.
 
-The main “why”: **time is an extra dimension of meaning.** Without temporal playback, you’re forced to compare snapshots manually and you miss continuity—how quickly something emerges, whether changes are smooth or abrupt, whether patterns repeat, and whether cause precedes effect.
+The main “why”: **time is an extra dimension of meaning.** Without temporal playback, you’re forced to compare snapshots manually and you miss continuity, how quickly something emerges, whether changes are smooth or abrupt, whether patterns repeat, and whether cause precedes effect.
 
 Do/don’t guidance:
 
 * **Do** decide whether you want *step-by-step truth* (discrete timesteps) or *smooth playback* (interpolation).
 * **Don’t** interpolate blindly if your data represents events or discontinuities (e.g., sudden fractures, threshold triggers). Interpolation can “invent” states that never existed.
 
-### Core Classes and Concepts
+#### Classes and Concepts
 
 The main classes used for temporal data visualization in VTK (Visualization Toolkit) are:
 
 * `vtkTemporalDataSet`: Represents a collection of datasets associated with different time steps. This class allows for organizing and managing temporal data effectively.
 * `vtkTemporalInterpolator`: Interpolates between datasets at different time steps to create smooth transitions. This is essential for creating fluid animations and seamless visual transitions.
 
-(Practical note: VTK’s time support is also strongly tied to the pipeline’s **time requests**—many readers/filters expose time steps and respond to requested update time. So the cleanest temporal workflows often come from letting the pipeline drive time, rather than manually “setting a timestep” on a reader that doesn’t support it.)
+(Practical note: VTK’s time support is also strongly tied to the pipeline’s **time requests**, many readers/filters expose time steps and respond to requested update time. So the cleanest temporal workflows often come from letting the pipeline drive time, rather than manually “setting a timestep” on a reader that doesn’t support it.)
 
-### Basic Workflow
+#### Basic Workflow
 
 1. Load temporal data using appropriate readers to import the datasets.
 2. Set up data interpolation (optional) to ensure smooth transitions between time steps by configuring a temporal interpolator.
@@ -154,8 +156,6 @@ The main classes used for temporal data visualization in VTK (Visualization Tool
 ### Example: Loading and Visualizing a Temporal Dataset
 
 Below is an example demonstrating how to load and visualize a temporal dataset using VTK. This example involves reading a temporal dataset, setting up a mapper and actor, and rendering the data.
-
-**Small fix (misleading API usage):** `vtkXMLMultiBlockDataReader` does not generally provide `GetNumberOfTimeSteps()` / `SetTimeStep()` in the way your example assumes. A safer, more VTK-ish pattern is to animate by setting the pipeline’s **requested update time** via `vtkStreamingDemandDrivenPipeline` keys.
 
 ```python
 import vtk
@@ -243,33 +243,35 @@ In this example:
 * An animation cue is created to manage the animation timing.
 * The animation is played, and the render window interactor is started.
 
-When you use the pipeline’s time keys, you’re working with VTK “the VTK way”—filters that understand time can cooperate, and you’re less likely to rely on reader-specific methods that don’t exist.
+https://github.com/user-attachments/assets/c00b6a01-832a-4dad-9ce2-3a38b5a5e244
 
-## Animation Export
+When you use the pipeline’s time keys, you’re working with VTK “the VTK way”, filters that understand time can cooperate, and you’re less likely to rely on reader-specific methods that don’t exist.
+
+### Animation Export
 
 Animation export involves saving an animation as a video or image sequence. This capability is crucial for sharing animations with others or for viewing them offline. It allows for easy distribution and playback of visualizations created in VTK (Visualization Toolkit).
 
-The big “why”: **a visualization that can’t be shared is often a visualization that can’t create impact.** Export lets you put results into slide decks, papers, dashboards, tickets, or async reviews—so people can see what you see without needing your exact runtime environment.
+The big “why”: **a visualization that can’t be shared is often a visualization that can’t create impact.** Export lets you put results into slide decks, papers, dashboards, tickets, or async reviews, so people can see what you see without needing your exact runtime environment.
 
 Do/don’t guidance:
 
 * **Do** export image sequences when quality matters (then encode later).
-* **Don’t** assume video encoding is always available—some VTK builds lack FFMPEG support, so have a PNG-sequence fallback.
+* **Don’t** assume video encoding is always available, some VTK builds lack FFMPEG support, so have a PNG-sequence fallback.
 
-### Core Classes and Concepts
+#### Classes and Concepts
 
 The main classes used for exporting animations in VTK are:
 
 * `vtkWindowToImageFilter`: Captures the contents of a render window as an image. This class is essential for converting the rendered scene into a format suitable for saving.
 * `vtkAVIWriter`, `vtkOggTheoraWriter`, `vtkFFMPEGWriter`: These classes save image sequences as video files in different formats. They provide the functionality to encode and write video files.
 
-### Basic Workflow
+#### Basic Workflow
 
 1. Capture the render window using `vtkWindowToImageFilter` to save the current state of the render window as an image.
 2. Set up a writer by choosing an appropriate one (`vtkAVIWriter`, `vtkOggTheoraWriter`, `vtkFFMPEGWriter`, etc.) to save the captured images as a video file.
 3. Write the images or compile them into a video file using the chosen writer.
 
-### Example: Capturing a Render Window as an Image
+#### Example: Capturing a Render Window as an Image
 
 Below is an example demonstrating how to capture the current render window as an image and save it using `vtkPNGWriter`.
 
@@ -305,7 +307,7 @@ writer.SetInputConnection(windowToImageFilter.GetOutputPort())
 writer.Write()
 ```
 
-### Example: Exporting an Animation to a Video File
+#### Example: Exporting an Animation to a Video File
 
 Below is an example demonstrating how to capture a series of frames and export them as a video file using `vtkFFMPEGWriter`.
 
