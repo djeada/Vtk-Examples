@@ -8,8 +8,8 @@ VTK offers a powerful array of advanced visualization techniques. These are esse
 
 A good “reader promise” for this section is: each technique is a different answer to the question **“what do I want to see?”** Some techniques show *surfaces*, some show *interiors*, some show *motion*, and some show *local direction + magnitude*. Once you recognize which question you’re asking, picking the right technique becomes much less mysterious.
 
-**Do:** match the technique to the question (interior vs boundary vs flow vs local orientation).
-**Don’t:** try to make one technique do everything, hybrid views (e.g., volume + isosurfaces + glyphs) are often the most informative.
+**Do** match the technique to the question (interior vs boundary vs flow vs local orientation).
+**Don’t** try to make one technique do everything, hybrid views (e.g., volume + isosurfaces + glyphs) are often the most informative.
 
 ### Volume Rendering
 
@@ -21,8 +21,8 @@ Volume rendering is a sophisticated technique used for visualizing 3D scalar fie
 
 The “make it look good” secret here is the transfer functions: color and opacity are basically your storytelling knobs. That’s why volume rendering can feel magical when it’s tuned, and muddy when it’s not.
 
-**Do:** spend time on color/opacity transfer functions; they determine what becomes visible.
-**Don’t:** expect default settings to reveal your feature of interest, volume rendering needs intent.
+**Do** spend time on color/opacity transfer functions; they determine what becomes visible.
+**Don’t** expect default settings to reveal your feature of interest, volume rendering needs intent.
 
 #### Applications
 
@@ -42,8 +42,8 @@ A quick intuition:
 * `vtkVolumeProperty` = “what should those samples look like?”
 * `vtkVolume` = “the thing we place in the scene”
 
-**Do:** think “mapper = method, property = style.”
-**Don’t:** mix them up, many bugs are just misconfigured properties attached to the wrong volume.
+**Do** think “mapper = method, property = style.”
+**Don’t** mix them up, many bugs are just misconfigured properties attached to the wrong volume.
 
 #### Example: Creating a Volume
 
@@ -108,8 +108,8 @@ Streamlines and pathlines are essential techniques for visualizing fluid flow or
 
 The big idea to hold onto: **seeding is everything.** The same vector field can look “boring” or “revealing” depending on where you place seeds and how you integrate. That’s why flow visualization is part science, part art.
 
-**Do:** choose seed locations intentionally (inlets, boundaries, near obstacles, high-gradient regions).
-**Don’t:** interpret “no streamlines” as “no flow”, you might just have bad seeds or integration settings.
+**Do** choose seed locations intentionally (inlets, boundaries, near obstacles, high-gradient regions).
+**Don’t** interpret “no streamlines” as “no flow”, you might just have bad seeds or integration settings.
 
 #### Streamlines
 
@@ -129,8 +129,8 @@ A helpful “do/don’t” distinction:
 * StreamTracer gives you the *paths*.
 * RibbonFilter gives you *readability* (thickness + twist cues).
 
-**Do:** add ribbons or tubes when you want depth and orientation cues.
-**Don’t:** over-thicken them, visual clutter can hide the flow you’re trying to reveal.
+**Do** add ribbons or tubes when you want depth and orientation cues.
+**Don’t** over-thicken them, visual clutter can hide the flow you’re trying to reveal.
 
 #### Example: Creating a Streamline
 
@@ -201,8 +201,8 @@ Glyphs are small geometric objects (such as arrows, cones, or spheres) used in V
 
 The main risk with glyphs is also the main reason they’re powerful: it’s easy to overplot and turn your screen into a porcupine. The trick is sampling and scaling.
 
-**Do:** downsample points, cap glyph sizes, and use transparency if needed.
-**Don’t:** plot every single vector in a huge dataset, readability beats completeness.
+**Do** downsample points, cap glyph sizes, and use transparency if needed.
+**Don’t** plot every single vector in a huge dataset, readability beats completeness.
 
 #### Regular Glyphs
 
@@ -222,8 +222,8 @@ A good rule of thumb:
 * `vtkGlyph3D` = flexible “general glyph engine”
 * `vtkHedgeHog` = fast, direct “spikes for vectors”
 
-**Do:** start with HedgeHog when you want quick vector direction checks.
-**Don’t:** jump straight to complex glyphs when you’re still validating the data.
+**Do** start with HedgeHog when you want quick vector direction checks.
+**Don’t** jump straight to complex glyphs when you’re still validating the data.
 
 #### Example: Creating Glyphs
 
@@ -296,8 +296,8 @@ Contouring is a technique for extracting surface representations from a scalar f
 
 The practical reason people love isosurfaces: once you have a mesh, you can do mesh things, compute area/volume, run smoothing/decimation, find curvature, export to STL, and so on.
 
-**Do:** treat the iso-value as a scientific/analytic parameter, not just a slider to make it look cool.
-**Don’t:** assume a single iso-value tells the whole story, often you want multiple surfaces or a sweep across thresholds.
+**Do** treat the iso-value as a scientific/analytic parameter, not just a slider to make it look cool.
+**Don’t** assume a single iso-value tells the whole story, often you want multiple surfaces or a sweep across thresholds.
 
 #### Applications
 
@@ -316,8 +316,8 @@ A quick mental map:
 * `vtkContourFilter` = general contouring tool
 * `vtkMarchingCubes` = classic, specialized workhorse for image/volume data
 
-**Do:** use MarchingCubes when you’re specifically working with volumetric image-like data and want that classic behavior.
-**Don’t:** skip post-processing, contours often benefit from smoothing, decimation, and normal generation depending on your use case.
+**Do** use MarchingCubes when you’re specifically working with volumetric image-like data and want that classic behavior.
+**Don’t** skip post-processing, contours often benefit from smoothing, decimation, and normal generation depending on your use case.
 
 #### Example: Creating a Contour
 
