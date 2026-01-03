@@ -6,8 +6,8 @@ VTK offers a comprehensive suite of tools for reading and writing a variety of d
 
 A useful way to think about it: file formats are not just “containers,” they encode assumptions, what kind of dataset it is, how connectivity is represented, and which attributes are supported. When a file load “works” but looks wrong, it’s usually because something about those assumptions didn’t match your expectations.
 
-**Do:** treat file I/O as part of your pipeline design, not a last-minute step.
-**Don’t:** assume every format preserves every attribute (normals, scalars, materials, units, time steps, etc.) the same way.
+**Do** treat file I/O as part of your pipeline design, not a last-minute step.
+**Don’t** assume every format preserves every attribute (normals, scalars, materials, units, time steps, etc.) the same way.
 
 ### Common File Formats
 
@@ -15,8 +15,8 @@ VTK supports an extensive range of data formats, including:
 
 Before diving into formats, here’s the big “why”: the *best* format depends on what you care about most, human readability, storage size, speed, compatibility, or rich metadata. That’s why VTK still supports both the old legacy format and the newer XML formats, plus popular third-party mesh standards.
 
-**Do:** pick the format that matches your goal (debugging vs production vs interoperability).
-**Don’t:** default to the first one that loads, your future self will thank you for choosing intentionally.
+**Do** pick the format that matches your goal (debugging vs production vs interoperability).
+**Don’t** default to the first one that loads, your future self will thank you for choosing intentionally.
 
 #### I. Legacy VTK File Format
 
@@ -26,8 +26,8 @@ Before diving into formats, here’s the big “why”: the *best* format depend
 
 Legacy VTK is the “classic” option: straightforward, widely supported, and easy to inspect if you choose ASCII. It’s great for learning, debugging, and quick exports. The tradeoff is that it’s less extensible and less structured than the XML family, and it can get bulky for large datasets.
 
-**Do:** use legacy ASCII when you want to quickly sanity-check what’s inside a file.
-**Don’t:** rely on it for very large datasets or long-term pipelines where extensibility and metadata matter.
+**Do** use legacy ASCII when you want to quickly sanity-check what’s inside a file.
+**Don’t** rely on it for very large datasets or long-term pipelines where extensibility and metadata matter.
 
 Example:
 
@@ -58,8 +58,8 @@ POLYGONS 6 30
 
 XML-based VTK formats are the “modern default” for many workflows because they’re more descriptive and extensible, and they map cleanly to specific dataset types through file extensions. That explicit mapping is a big deal: it reduces ambiguity and makes toolchains more reliable.
 
-**Do:** prefer XML formats when you want robust, future-proof storage and clearer dataset typing.
-**Don’t:** assume “XML” means “human friendly.” These files can still be large, and binary/appended data is common for performance.
+**Do** prefer XML formats when you want robust, future-proof storage and clearer dataset typing.
+**Don’t** assume “XML” means “human friendly.” These files can still be large, and binary/appended data is common for performance.
 
 Example:
 
@@ -93,8 +93,8 @@ Example:
 
 Third-party formats are where interoperability lives. You use these when your data is coming from (or going to) other ecosystems, CAD tools, 3D modeling software, printing pipelines, or simulation packages. The catch is that each format has its own “personality.” Some are geometry-only, some carry materials, some are loose about units, and some ignore advanced attributes.
 
-**Do:** choose third-party formats when you need compatibility with external tools.
-**Don’t:** assume they preserve VTK-specific richness (like arbitrary point/cell arrays) unless you’ve verified it.
+**Do** choose third-party formats when you need compatibility with external tools.
+**Don’t** assume they preserve VTK-specific richness (like arbitrary point/cell arrays) unless you’ve verified it.
 
 Example (STL):
 
@@ -138,8 +138,8 @@ There is a suite of subclasses derived from `vtkDataReader` and `vtkDataWriter`.
 
 The important “why” behind the subclass approach: different dataset types need different handling. Writing `vtkPolyData` is not the same as writing `vtkImageData`, and mixing them up tends to fail loudly, or worse, appear to work while silently dropping information.
 
-**Do:** match the reader/writer to the dataset type you expect.
-**Don’t:** ignore the output type, knowing whether you got `vtkPolyData` vs `vtkUnstructuredGrid` determines what filters you can apply next.
+**Do** match the reader/writer to the dataset type you expect.
+**Don’t** ignore the output type, knowing whether you got `vtkPolyData` vs `vtkUnstructuredGrid` determines what filters you can apply next.
 
 #### Subclasses for Data Reading and Writing
 
@@ -154,8 +154,8 @@ Each subclass under `vtkDataReader` and `vtkDataWriter` is tailored for specific
 
 This example is a great “real life” scenario: you get something common and portable (STL), but you want to bring it into the VTK world so you can run filters, add attributes, and keep a pipeline consistent. Converting to a VTK-native format is often the first step in building a repeatable workflow.
 
-**Do:** treat conversion scripts like this as reusable utilities in your toolbox.
-**Don’t:** forget what STL represents: it’s primarily a surface triangle mesh, so you shouldn’t expect volumetric cells or rich per-point attributes unless you add them later.
+**Do** treat conversion scripts like this as reusable utilities in your toolbox.
+**Don’t** forget what STL represents: it’s primarily a surface triangle mesh, so you shouldn’t expect volumetric cells or rich per-point attributes unless you add them later.
 
 Below is a Python script demonstrating how to read data from an STL file (common in 3D printing and modeling) and write it into VTK's native format.
 
@@ -181,8 +181,8 @@ This script shows the straightforward approach of VTK in converting data between
 
 Tables like this are useful because they prevent a super common beginner mistake: picking a reader/writer because the file extension looks right, without checking the dataset type it produces or expects. In VTK, dataset type is everything, filters, mappers, and pipeline expectations all hang on it.
 
-**Do:** use the “Output Data Type / Input Data Type” columns as your reality check.
-**Don’t:** expect every format to be symmetric (read + write). Some formats are read-only in practice, especially for complex third-party ecosystems.
+**Do** use the “Output Data Type / Input Data Type” columns as your reality check.
+**Don’t** expect every format to be symmetric (read + write). Some formats are read-only in practice, especially for complex third-party ecosystems.
 
 | Format       | Reader Class                   | Output Data Type       | Writer Class                   | Input Data Type        |
 | ------------ | ------------------------------ | ---------------------- | ------------------------------ | ---------------------- |
