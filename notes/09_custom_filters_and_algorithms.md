@@ -4,8 +4,8 @@ Creating custom filters and algorithms opens up a world of possibilities for tai
 
 The reason custom filters matter is that real projects rarely fit perfectly inside “stock” tooling. Built-in filters cover the common cases, but the moment a workflow needs a domain-specific metric, a bespoke feature extractor, or a new way to manipulate geometry, a custom filter turns that requirement into a reusable pipeline block instead of a one-off script.
 
-**Do:** treat custom filters as reusable building blocks that can live alongside VTK’s built-ins.
-**Don’t:** keep important computations outside the pipeline in ad-hoc loops that are hard to reuse, debug, or chain.
+**Do** treat custom filters as reusable building blocks that can live alongside VTK’s built-ins.
+**Don’t** keep important computations outside the pipeline in ad-hoc loops that are hard to reuse, debug, or chain.
 
 VTK comes with a broad range of built-in filters and classes that cover many common visualization tasks, but there may be occasions when you need more specific functionality. For instance, you might need to process data from specialized scientific instruments, create a custom metric for point analysis, or experiment with novel geometry-manipulation algorithms. In these cases, developing a custom filter allows you to:
 
@@ -24,8 +24,8 @@ The VTK pipeline is the backbone of VTK’s data processing and visualization wo
 
 The “why” behind this design is simple: pipelines make large workflows scalable. Each step does one job, and everything downstream benefits from that one job being done consistently. It also means custom filters should behave like good citizens: read inputs, write outputs, and only compute when asked.
 
-**Do:** keep each pipeline stage focused on a single responsibility.
-**Don’t:** mix rendering/UI logic into a data-processing filter.
+**Do** keep each pipeline stage focused on a single responsibility.
+**Don’t** mix rendering/UI logic into a data-processing filter.
 
 Here’s a simple ASCII diagram illustrating the VTK pipeline:
 
@@ -49,8 +49,8 @@ Building a custom filter in VTK is a multi-step process that ensures your new fi
 
 These steps exist so a custom filter doesn’t just “work once,” but continues working as workflows grow: more data, more filters, more outputs, more parameters. Following the conventions is what unlocks interoperability.
 
-**Do:** follow VTK conventions even in small prototypes—prototypes tend to become production.
-**Don’t:** skip setters/getters and `Modified()` calls; stale pipelines are a common source of confusion.
+**Do** follow VTK conventions even in small prototypes—prototypes tend to become production.
+**Don’t** skip setters/getters and `Modified()` calls; stale pipelines are a common source of confusion.
 
 I. Identify Your Data and Goals
 
@@ -72,8 +72,8 @@ VTK provides several base classes for filters, each tailored for different data 
 
 Choosing the right base class is mostly about correctness and convenience. It reduces boilerplate and ensures that input/output expectations match the dataset type. That makes the filter easier to use and harder to misuse.
 
-**Do:** pick the most specific base class that matches the primary input type.
-**Don’t:** default to `vtkAlgorithm` when the data type is known and stable.
+**Do** pick the most specific base class that matches the primary input type.
+**Don’t** default to `vtkAlgorithm` when the data type is known and stable.
 
 III. Subclass the Chosen Base Class
 
@@ -91,8 +91,8 @@ Properly managing input and output ports is necessary. You need to specify how m
 
 The important idea is that computation belongs in the execution phase (`RequestData()`), not sprinkled throughout initialization or setters. That keeps results consistent and makes sure pipeline updates happen at the right time.
 
-**Do:** compute in `RequestData()` and treat setters as configuration only.
-**Don’t:** hide heavy computation inside setters or constructors.
+**Do** compute in `RequestData()` and treat setters as configuration only.
+**Don’t** hide heavy computation inside setters or constructors.
 
 V. Expose Parameters and Methods
 
@@ -113,8 +113,8 @@ Let’s say you have a 3D model (e.g., a sphere, a mesh from a CT scan, or a CAD
 
 This example is a good “starter” custom filter because it demonstrates the classic VTK pattern: compute something per point, store it as a VTK array, then let the rest of VTK use it (coloring, thresholding, contours, statistics). That’s the core loop of many real filters.
 
-**Do:** store derived results as VTK arrays (point data or cell data) so they are usable downstream.
-**Don’t:** keep computed results only in Python lists if they are meant for visualization or pipeline processing.
+**Do** store derived results as VTK arrays (point data or cell data) so they are usable downstream.
+**Don’t** keep computed results only in Python lists if they are meant for visualization or pipeline processing.
 
 When the distance for each point is computed, it’s often stored in a scalar array so it can be used for:
 
@@ -214,8 +214,8 @@ class DistanceToPointFilter(vtk.vtkPolyDataAlgorithm):
 
 This implementation focuses on being pipeline-friendly: it reads from the pipeline, writes back into the output object, and stores results in point data. That keeps the output immediately usable by mappers and by any other filters that operate on scalar fields.
 
-**Do:** use `ShallowCopy` when adding arrays to an existing dataset without changing geometry.
-**Don’t:** use `DeepCopy` unless independent geometry/connectivity duplication is actually required.
+**Do** use `ShallowCopy` when adding arrays to an existing dataset without changing geometry.
+**Don’t** use `DeepCopy` unless independent geometry/connectivity duplication is actually required.
 
 Here’s a breakdown of what’s happening in `RequestData()`:
 
@@ -234,10 +234,10 @@ This custom VTK filter calculates the Euclidean distance from each point in a vt
 
 The key is to connect the filter into the pipeline so it behaves like any other VTK algorithm: source → filter → mapper. That ensures updates happen correctly and makes it easy to insert additional filters later.
 
-**Do:** connect with `SetInputConnection(...)` when working with sources/filters.
-**Don’t:** rely on non-pipeline shortcuts when the goal is a reusable workflow.
+**Do** connect with `SetInputConnection(...)` when working with sources/filters.
+**Don’t** rely on non-pipeline shortcuts when the goal is a reusable workflow.
 
-**Creating and configuring the distance filter:**
+**Creating and configuring the distance filter**
 
 ```python
 import vtk
@@ -257,7 +257,7 @@ distance_filter.Update()
 output_data = distance_filter.GetOutput()
 ```
 
-**Setting up the visualization pipeline with color mapping:**
+**Setting up the visualization pipeline with color mapping**
 
 ```python
 # Create mapper and configure scalar visualization
