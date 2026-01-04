@@ -10,8 +10,8 @@ The mental model to keep in your pocket is simple: **data in VTK is more than va
 
 Before you meet the “fancy” datasets, it helps to understand the trunk of the tree. `vtkDataObject` is VTK’s universal container: it’s the “everything starts here” base class. You care because once you know what *every* data object guarantees, you can navigate the VTK ecosystem without feeling like you’re memorizing random class names.
 
-**Do:** treat `vtkDataObject` as the shared contract. When you’re writing general pipelines or utilities, thinking at this level keeps your code flexible.
-**Don’t:** assume every `vtkDataObject` is directly renderable or has points/cells, some are composite containers, some are specialized.
+**Do** treat `vtkDataObject` as the shared contract. When you’re writing general pipelines or utilities, thinking at this level keeps your code flexible.
+**Don’t** assume every `vtkDataObject` is directly renderable or has points/cells, some are composite containers, some are specialized.
 
 I. Base class for all data objects in VTK
 
@@ -65,8 +65,8 @@ When people say “VTK dataset,” they’re often talking about nodes lower in 
 
 `vtkImageData` is the “pixel/voxel brain” of VTK. It’s what you reach for when your data lives on a **uniform grid**, like images (2D) or volumes (3D). You care because this structure is fast and compact: connectivity is *implicit*, and a lot of VTK’s imaging and volume rendering pipeline is built around it.
 
-**Do:** use `vtkImageData` for CT/MRI, 3D textures, scalar fields sampled uniformly, and anything that feels like “voxels.”
-**Don’t:** force irregular spacing into it. The moment spacing isn’t uniform, you’ll either distort the meaning of your data or end up wishing you chose a rectilinear or unstructured grid.
+**Do** use `vtkImageData` for CT/MRI, 3D textures, scalar fields sampled uniformly, and anything that feels like “voxels.”
+**Don’t** force irregular spacing into it. The moment spacing isn’t uniform, you’ll either distort the meaning of your data or end up wishing you chose a rectilinear or unstructured grid.
 
 * Represents a regular grid with fixed topology and uniform spacing between points.
 * Ideal for volumetric data like images or 3D scalar fields.
@@ -78,8 +78,8 @@ When people say “VTK dataset,” they’re often talking about nodes lower in 
 
 Think of `vtkRectilinearGrid` as “structured, but with stretchy spacing.” Topology is still a neat grid, but the points along each axis can be unevenly spaced. This matters when your data’s resolution changes by design, common in scientific models where you want more detail in certain regions without paying the cost everywhere else.
 
-**Do:** use this when you still want the simplicity of a structured grid, but your sampling is non-uniform.
-**Don’t:** confuse this with curvilinear grids, rectilinear still means axes-aligned lines; spacing changes, not direction.
+**Do** use this when you still want the simplicity of a structured grid, but your sampling is non-uniform.
+**Don’t** confuse this with curvilinear grids, rectilinear still means axes-aligned lines; spacing changes, not direction.
 
 * A regular grid with fixed topology but non-uniform spacing between points.
 * Suitable for data with varying resolution, like in climate or terrain elevation data.
@@ -91,8 +91,8 @@ Think of `vtkRectilinearGrid` as “structured, but with stretchy spacing.” To
 
 If `vtkImageData` is “voxels,” `vtkPolyData` is “surfaces.” This is the workhorse for meshes you’d actually model or export: triangle surfaces, polygon soups, lines, contours, and anything you’d describe as *geometry you can touch*. You care because most interactive 3D models and many visualization outputs end up as `vtkPolyData`.
 
-**Do:** use `vtkPolyData` for surfaces, contour results, boundaries, and models that are primarily skins/shells.
-**Don’t:** store volumetric cells here, `vtkPolyData` isn’t meant for full 3D cell types like tetrahedra or hexahedra.
+**Do** use `vtkPolyData` for surfaces, contour results, boundaries, and models that are primarily skins/shells.
+**Don’t** store volumetric cells here, `vtkPolyData` isn’t meant for full 3D cell types like tetrahedra or hexahedra.
 
 * **Description**: Represents a dataset comprising points, vertices, lines, polygons, and triangle strips.
 * **Applications**: Ideal for surface meshes and 3D models.
@@ -104,8 +104,8 @@ If `vtkImageData` is “voxels,” `vtkPolyData` is “surfaces.” This is the 
 
 A `vtkStructuredGrid` is where structure meets flexibility. The grid topology is still orderly (i,j,k indexing), but the points can warp through space, making it perfect for curvilinear coordinate systems and simulation meshes that bend around objects.
 
-**Do:** use this when you have a logical 3D grid layout but the geometry isn’t axis-aligned.
-**Don’t:** use it when connectivity isn’t grid-like. If neighbors aren’t predictable via indices, you’re heading into unstructured territory.
+**Do** use this when you have a logical 3D grid layout but the geometry isn’t axis-aligned.
+**Don’t** use it when connectivity isn’t grid-like. If neighbors aren’t predictable via indices, you’re heading into unstructured territory.
 
 * Curvilinear grid maintaining fixed topology.
 * Best for data on curvilinear coordinate systems.
@@ -119,8 +119,8 @@ A `vtkStructuredGrid` is where structure meets flexibility. The grid topology is
 
 This is the one you choose when the world stops being neat: adaptive meshes, FEM simulations, irregular domains, complex anatomy, fractured geology, you name it.
 
-**Do:** use it when the mesh is irregular, adaptive, or mixed-cell.
-**Don’t:** default to it “just in case.” If your data is structured, structured grids will usually be faster and lighter.
+**Do** use it when the mesh is irregular, adaptive, or mixed-cell.
+**Don’t** default to it “just in case.” If your data is structured, structured grids will usually be faster and lighter.
 
 * An irregular grid with flexible topology, capable of containing various geometric primitives.
 * Suitable for complex geometries and adaptive meshes.
@@ -132,8 +132,8 @@ This is the one you choose when the world stops being neat: adaptive meshes, FEM
 
 This is one of the most practical forks in the road. If you remember nothing else, remember this: **structured grids buy you speed and simplicity**, unstructured grids buy you **geometric freedom**. Your “best” choice is usually the simplest structure that still represents your data truthfully.
 
-**Do:** pick structured when the indexing is predictable and the domain is regular-ish.
-**Don’t:** pick unstructured just because it sounds more powerful, it’s powerful, but you pay for it.
+**Do** pick structured when the indexing is predictable and the domain is regular-ish.
+**Don’t** pick unstructured just because it sounds more powerful, it’s powerful, but you pay for it.
 
 |                     | **Structured Grids**                                   | **Unstructured Grids**                                     |
 | ------------------- | ------------------------------------------------------ | ---------------------------------------------------------- |
@@ -146,8 +146,8 @@ This is one of the most practical forks in the road. If you remember nothing els
 
 Once your datasets get big, or naturally split into parts, you’ll want a container that preserves that structure. `vtkMultiBlockDataSet` lets you keep data organized the way *you* think about it: domains, components, LOD levels, timesteps, regions, etc. This matters because organization isn’t just neatness, it affects pipeline clarity, debugging, and how easily you can process or render subsets.
 
-**Do:** use multiblock when your data is naturally “many datasets,” especially for multi-domain simulations or grouped assets.
-**Don’t:** flatten everything into one giant unstructured grid unless you truly need to, keeping blocks separate can make processing and rendering more manageable.
+**Do** use multiblock when your data is naturally “many datasets,” especially for multi-domain simulations or grouped assets.
+**Don’t** flatten everything into one giant unstructured grid unless you truly need to, keeping blocks separate can make processing and rendering more manageable.
 
 * A collection of multiple datasets, organized hierarchically.
 * Handles complex, hierarchical data structures effectively.
@@ -161,8 +161,8 @@ A `vtkMultiBlockDataSet` organizes datasets (or blocks) hierarchically. Each blo
 
 This is where everything clicks: your data structure choice is not “just a container decision.” It’s a commitment that affects performance, tooling, and what operations feel natural. If you match the structure to the data’s *true nature*, VTK feels effortless. If you mismatch it, you’ll constantly translate, patch, and second-guess.
 
-**Do:** choose the least complex option that preserves meaning (geometry + topology + resolution).
-**Don’t:** optimize prematurely by picking a complicated type “for future-proofing.” Future-proofing usually means choosing something accurate and convertible, not something maximal.
+**Do** choose the least complex option that preserves meaning (geometry + topology + resolution).
+**Don’t** optimize prematurely by picking a complicated type “for future-proofing.” Future-proofing usually means choosing something accurate and convertible, not something maximal.
 
 * Consider the geometry, topology, and resolution of your data
 * The choice of data structure affects memory usage, processing time, and ease of use
