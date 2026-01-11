@@ -52,7 +52,6 @@ the connectivity filter operates on a multi-object dataset.
 """
 
 import sys
-import math
 
 import vtk
 from PyQt6.QtCore import Qt
@@ -77,9 +76,10 @@ def create_multi_object_dataset():
     """
     Create a dataset with multiple disconnected objects.
 
-    This creates several spheres and cubes at different positions,
-    all combined into a single polydata object. The connectivity
-    filter will be able to identify each as a separate region.
+    This creates several shapes (spheres, cube, cylinder, cone) at
+    different positions, all combined into a single polydata object.
+    The connectivity filter will be able to identify each as a
+    separate region.
 
     Returns:
         vtkPolyData containing multiple disconnected objects
