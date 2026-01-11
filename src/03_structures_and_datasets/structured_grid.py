@@ -112,8 +112,9 @@ def create_uniform_structured_grid(nx, ny, nz, spacing=1.0):
     return grid
 
 
-def create_stretched_grid(nx, ny, nz, length_x, length_y, length_z,
-                          stretch_y=1.2, wall_clustering=True):
+def create_stretched_grid(
+    nx, ny, nz, length_x, length_y, length_z, stretch_y=1.2, wall_clustering=True
+):
     """
     Create a stretched structured grid with boundary layer clustering.
 
@@ -157,7 +158,7 @@ def create_stretched_grid(nx, ny, nz, length_x, length_y, length_z,
             for j in range(ny):
                 y_coords.append(y)
                 if j < ny - 1:
-                    dy = first_dy * (stretch_y ** j)
+                    dy = first_dy * (stretch_y**j)
                     y += dy
         else:
             y_coords = [0.0]
@@ -175,8 +176,9 @@ def create_stretched_grid(nx, ny, nz, length_x, length_y, length_z,
     return grid
 
 
-def create_ogrid_around_cylinder(radius_inner, radius_outer, nradial, ntheta, nz,
-                                  length_z=1.0):
+def create_ogrid_around_cylinder(
+    radius_inner, radius_outer, nradial, ntheta, nz, length_z=1.0
+):
     """
     Create an O-grid topology around a cylinder.
 
@@ -208,12 +210,16 @@ def create_ogrid_around_cylinder(radius_inner, radius_outer, nradial, ntheta, nz
     # Geometric stretching for radial direction
     stretch_ratio = 1.15
     radii = []
-    dr_first = (radius_outer - radius_inner) * (stretch_ratio - 1) / (stretch_ratio ** (nradial - 1) - 1)
+    dr_first = (
+        (radius_outer - radius_inner)
+        * (stretch_ratio - 1)
+        / (stretch_ratio ** (nradial - 1) - 1)
+    )
     r = radius_inner
     for i in range(nradial):
         radii.append(r)
         if i < nradial - 1:
-            dr = dr_first * (stretch_ratio ** i)
+            dr = dr_first * (stretch_ratio**i)
             r += dr
 
     points = vtk.vtkPoints()
@@ -231,8 +237,7 @@ def create_ogrid_around_cylinder(radius_inner, radius_outer, nradial, ntheta, nz
     return grid
 
 
-def create_channel_flow_grid(length, height, width, nx, ny, nz,
-                              wall_stretch=1.2):
+def create_channel_flow_grid(length, height, width, nx, ny, nz, wall_stretch=1.2):
     """
     Create a structured grid for channel flow CFD simulation.
 
@@ -256,8 +261,9 @@ def create_channel_flow_grid(length, height, width, nx, ny, nz,
     Returns:
         vtkStructuredGrid: Channel flow grid with wall clustering
     """
-    return create_stretched_grid(nx, ny, nz, length, height, width,
-                                  stretch_y=wall_stretch, wall_clustering=True)
+    return create_stretched_grid(
+        nx, ny, nz, length, height, width, stretch_y=wall_stretch, wall_clustering=True
+    )
 
 
 def add_velocity_field(grid, flow_type="channel"):
@@ -398,8 +404,11 @@ def compute_grid_quality(grid):
 
         min_dy = min(dy_values)
         max_dy = max(dy_values)
-        expansion_ratio = max(dy_values[i + 1] / dy_values[i]
-                              for i in range(len(dy_values) - 1)) if len(dy_values) > 1 else 1.0
+        expansion_ratio = (
+            max(dy_values[i + 1] / dy_values[i] for i in range(len(dy_values) - 1))
+            if len(dy_values) > 1
+            else 1.0
+        )
 
         print(f"\nY-direction cell sizes:")
         print(f"  First cell height: {dy_values[0]:.6f}")
@@ -408,7 +417,9 @@ def compute_grid_quality(grid):
         print(f"  Max expansion ratio: {expansion_ratio:.3f}")
 
         if expansion_ratio > MAX_RECOMMENDED_EXPANSION_RATIO:
-            print(f"  WARNING: Expansion ratio > {MAX_RECOMMENDED_EXPANSION_RATIO} may affect accuracy")
+            print(
+                f"  WARNING: Expansion ratio > {MAX_RECOMMENDED_EXPANSION_RATIO} may affect accuracy"
+            )
 
     return {"dims": dims, "bounds": bounds}
 
@@ -534,7 +545,8 @@ def print_educational_summary():
     print("\n" + "=" * 70)
     print("VTK Structured Grid: Educational Summary for CFD")
     print("=" * 70)
-    print("""
+    print(
+        """
 1. WHAT IS A STRUCTURED GRID?
    - Regular i-j-k topology with implicit connectivity
    - Each point identified by (i,j,k) indices
@@ -570,7 +582,8 @@ def print_educational_summary():
    - External aerodynamics (with O/C grids)
    - Turbomachinery passages
    - Heat exchanger analysis
-""")
+"""
+    )
 
 
 def main():
@@ -599,9 +612,7 @@ def main():
     # 2. Stretched grid for channel flow
     print("\n2. CHANNEL FLOW GRID (with wall stretching)")
     channel_grid = create_channel_flow_grid(
-        length=5.0, height=2.0, width=1.0,
-        nx=15, ny=20, nz=5,
-        wall_stretch=1.15
+        length=5.0, height=2.0, width=1.0, nx=15, ny=20, nz=5, wall_stretch=1.15
     )
     compute_grid_quality(channel_grid)
     add_velocity_field(channel_grid, flow_type="channel")
@@ -610,8 +621,7 @@ def main():
     # 3. O-grid around cylinder
     print("\n3. O-GRID AROUND CYLINDER")
     ogrid = create_ogrid_around_cylinder(
-        radius_inner=0.5, radius_outer=3.0,
-        nradial=15, ntheta=32, nz=3
+        radius_inner=0.5, radius_outer=3.0, nradial=15, ntheta=32, nz=3
     )
     compute_grid_quality(ogrid)
 
@@ -620,8 +630,7 @@ def main():
     print("Visualizing channel flow grid with velocity profile...")
     print("-" * 70)
 
-    visualize_structured_grid(channel_grid, show_edges=True,
-                               color_by_field="Pressure")
+    visualize_structured_grid(channel_grid, show_edges=True, color_by_field="Pressure")
 
 
 if __name__ == "__main__":

@@ -120,7 +120,7 @@ def create_velocity_field(grid, u_bulk=1.0):
     dims = [0, 0, 0]
     grid.GetDimensions(dims)
     ny = dims[1]
-    h = (ny - 1)  # Channel height in grid units
+    h = ny - 1  # Channel height in grid units
     u_max = U_MAX_RATIO * u_bulk  # Maximum velocity for parabolic profile
 
     velocity = vtk.vtkFloatArray()
@@ -342,7 +342,7 @@ def visualize_fields(grid):
     vel_magnitude.SetNumberOfComponents(1)
     for i in range(vel_array.GetNumberOfTuples()):
         v = vel_array.GetTuple3(i)
-        mag = math.sqrt(v[0]**2 + v[1]**2 + v[2]**2)
+        mag = math.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2)
         vel_magnitude.InsertNextValue(mag)
     grid.GetPointData().AddArray(vel_magnitude)
 
@@ -484,7 +484,8 @@ def print_field_info(grid):
     print("\n" + "=" * 70)
     print("Key Concepts for CFD Field Data:")
     print("=" * 70)
-    print("""
+    print(
+        """
 1. FIELD LOCATION: Choose point vs cell data based on:
    - Discretization scheme (FVM typically uses cell-centered)
    - Interpolation requirements (point data interpolates smoothly)
@@ -504,7 +505,8 @@ def print_field_info(grid):
    - VTK interpolates point data within cells for smooth visualization
    - Cell data appears as constant per cell (piecewise constant)
    - Higher-order elements can represent curved variations
-""")
+"""
+    )
 
 
 def main():

@@ -65,16 +65,19 @@ from vtkmodules.vtkInteractionWidgets import vtkSliderWidget, vtkSliderRepresent
 
 
 # Default hexahedron vertices (unit cube centered at origin)
-DEFAULT_VERTICES = np.array([
-    [-0.5, -0.5, -0.5],  # 0: bottom-front-left
-    [ 0.5, -0.5, -0.5],  # 1: bottom-front-right
-    [ 0.5,  0.5, -0.5],  # 2: bottom-back-right
-    [-0.5,  0.5, -0.5],  # 3: bottom-back-left
-    [-0.5, -0.5,  0.5],  # 4: top-front-left
-    [ 0.5, -0.5,  0.5],  # 5: top-front-right
-    [ 0.5,  0.5,  0.5],  # 6: top-back-right
-    [-0.5,  0.5,  0.5],  # 7: top-back-left
-], dtype=np.float64)
+DEFAULT_VERTICES = np.array(
+    [
+        [-0.5, -0.5, -0.5],  # 0: bottom-front-left
+        [0.5, -0.5, -0.5],  # 1: bottom-front-right
+        [0.5, 0.5, -0.5],  # 2: bottom-back-right
+        [-0.5, 0.5, -0.5],  # 3: bottom-back-left
+        [-0.5, -0.5, 0.5],  # 4: top-front-left
+        [0.5, -0.5, 0.5],  # 5: top-front-right
+        [0.5, 0.5, 0.5],  # 6: top-back-right
+        [-0.5, 0.5, 0.5],  # 7: top-back-left
+    ],
+    dtype=np.float64,
+)
 
 
 class TopologyGeometryDemo:
@@ -390,7 +393,9 @@ class TopologyGeometryDemo:
         ]
 
         for title, min_val, max_val, initial, y_pos, callback in slider_configs:
-            slider = self.create_slider(title, min_val, max_val, initial, y_pos, callback)
+            slider = self.create_slider(
+                title, min_val, max_val, initial, y_pos, callback
+            )
             self.sliders.append(slider)
 
     def setup_axes(self):
@@ -440,7 +445,8 @@ def print_educational_summary():
     print("\n" + "=" * 70)
     print("TOPOLOGY vs GEOMETRY: Educational Summary")
     print("=" * 70)
-    print("""
+    print(
+        """
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    TOPOLOGY vs GEOMETRY                             │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -482,7 +488,8 @@ CFD/FEA Relevance:
 - Mesh deformation changes geometry but preserves topology
 - Structured grids have implicit topology but variable geometry
 - Understanding this distinction helps with mesh quality assessment
-""")
+"""
+    )
 
 
 def main():

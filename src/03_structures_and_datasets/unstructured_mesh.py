@@ -199,9 +199,7 @@ def create_vtk_unstructured_mesh(
     return ugrid
 
 
-def build_node_neighbors(
-    n_nodes: int, triangles: np.ndarray
-) -> dict[int, set[int]]:
+def build_node_neighbors(n_nodes: int, triangles: np.ndarray) -> dict[int, set[int]]:
     """
     Build adjacency map for nodes in the mesh.
 
@@ -232,9 +230,7 @@ def build_node_neighbors(
     return neighbors
 
 
-def initialize_temperature_field(
-    n_nodes: int, T_init: float = 0.0
-) -> np.ndarray:
+def initialize_temperature_field(n_nodes: int, T_init: float = 0.0) -> np.ndarray:
     """
     Initialize the temperature field for all mesh nodes.
 
@@ -352,9 +348,7 @@ def solve_laplace_gauss_seidel(
     return T, max_iterations, residual
 
 
-def add_temperature_to_mesh(
-    ugrid: vtk.vtkUnstructuredGrid, T: np.ndarray
-) -> None:
+def add_temperature_to_mesh(ugrid: vtk.vtkUnstructuredGrid, T: np.ndarray) -> None:
     """
     Add the computed temperature field to the VTK mesh.
 
@@ -593,12 +587,12 @@ def main():
     radius = 1.0  # meters
 
     # Mesh resolution
-    n_radial = 10   # Radial divisions
+    n_radial = 10  # Radial divisions
     n_angular = 24  # Angular divisions
 
     # Temperature boundary conditions (Celsius)
-    T_hot = 100.0   # Upper half
-    T_cold = 0.0    # Lower half
+    T_hot = 100.0  # Upper half
+    T_cold = 0.0  # Lower half
 
     # Solver parameters
     tolerance = 1e-6
@@ -623,9 +617,7 @@ def main():
     # =========================================================================
     print("Solving heat diffusion equation...")
     T = initialize_temperature_field(len(nodes), T_init=0.0)
-    boundary_set = apply_boundary_conditions(
-        T, nodes, boundary_ids, T_hot, T_cold
-    )
+    boundary_set = apply_boundary_conditions(T, nodes, boundary_ids, T_hot, T_cold)
     T, iterations, residual = solve_laplace_gauss_seidel(
         T, neighbors, boundary_set, tolerance, max_iterations
     )
@@ -658,7 +650,7 @@ def main():
     # Add title
     title = create_text_annotation(
         "Unstructured Mesh: 2D Heat Diffusion\nUpper half: 100°C | Lower half: 0°C",
-        (10, 550)
+        (10, 550),
     )
     renderer.AddActor2D(title)
 

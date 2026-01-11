@@ -65,9 +65,9 @@ DEFAULT_POINT_SIZE = 15
 
 # Colors for different point sets
 POINT_COLORS = {
-    "original": (1.0, 0.0, 0.0),    # Red
+    "original": (1.0, 0.0, 0.0),  # Red
     "transformed": (0.0, 1.0, 0.0),  # Green
-    "numpy": (0.0, 0.0, 1.0),        # Blue
+    "numpy": (0.0, 0.0, 1.0),  # Blue
 }
 
 
@@ -90,9 +90,9 @@ def create_vtk_points_simple():
     """
     points = vtk.vtkPoints()
     # Define three points forming an equilateral triangle in the XY plane
-    points.InsertNextPoint(0.0, 0.0, 0.0)       # Point 0: Origin
-    points.InsertNextPoint(1.0, 0.0, 0.0)       # Point 1: X-axis
-    points.InsertNextPoint(0.5, 0.866, 0.0)    # Point 2: Apex (height = sqrt(3)/2)
+    points.InsertNextPoint(0.0, 0.0, 0.0)  # Point 0: Origin
+    points.InsertNextPoint(1.0, 0.0, 0.0)  # Point 1: X-axis
+    points.InsertNextPoint(0.5, 0.866, 0.0)  # Point 2: Apex (height = sqrt(3)/2)
     return points
 
 
@@ -125,9 +125,14 @@ def create_structured_point_grid(nx, ny, nz, spacing=1.0):
     return points
 
 
-def create_boundary_layer_points(wall_y=0.0, first_cell_height=0.01,
-                                  growth_rate=1.2, num_layers=10, x_points=5,
-                                  streamwise_spacing=0.5):
+def create_boundary_layer_points(
+    wall_y=0.0,
+    first_cell_height=0.01,
+    growth_rate=1.2,
+    num_layers=10,
+    x_points=5,
+    streamwise_spacing=0.5,
+):
     """
     Create points with boundary layer clustering near a wall.
 
@@ -220,16 +225,21 @@ def print_points_info(points, name="Points"):
     n_points = points.GetNumberOfPoints()
     print(f"\n{'='*60}")
     print(f"{name}: {n_points} points")
-    print('='*60)
+    print("=" * 60)
 
     if n_points == 0:
         print("  No points defined")
         return
 
     # Calculate bounds
-    bounds = [float('inf'), float('-inf'),
-              float('inf'), float('-inf'),
-              float('inf'), float('-inf')]
+    bounds = [
+        float("inf"),
+        float("-inf"),
+        float("inf"),
+        float("-inf"),
+        float("inf"),
+        float("-inf"),
+    ]
 
     for i in range(n_points):
         x, y, z = points.GetPoint(i)
@@ -318,11 +328,7 @@ def transform_points(points, translation=(0, 0, 0), scale=1.0, rotation_deg=0.0)
     # Apply rotation around Z-axis
     angle_rad = math.radians(rotation_deg)
     cos_a, sin_a = math.cos(angle_rad), math.sin(angle_rad)
-    rotation_matrix = np.array([
-        [cos_a, -sin_a, 0],
-        [sin_a, cos_a, 0],
-        [0, 0, 1]
-    ])
+    rotation_matrix = np.array([[cos_a, -sin_a, 0], [sin_a, cos_a, 0], [0, 0, 1]])
     np_points = np_points @ rotation_matrix.T
 
     # Apply scaling
@@ -428,7 +434,8 @@ def print_educational_summary():
     print("\n" + "=" * 70)
     print("VTK Points: Educational Summary for CFD/FEA")
     print("=" * 70)
-    print("""
+    print(
+        """
 1. WHAT ARE POINTS?
    - Locations in 3D space defined by (x, y, z) coordinates
    - Foundation for all geometric representations in VTK
@@ -461,7 +468,8 @@ def print_educational_summary():
    - Cluster points near walls for boundary layers
    - Check point distribution quality before simulation
    - Use appropriate coordinate system for geometry
-""")
+"""
+    )
 
 
 def main():
@@ -492,8 +500,7 @@ def main():
 
     # Boundary layer points
     bl_points = create_boundary_layer_points(
-        wall_y=0.0, first_cell_height=0.02,
-        growth_rate=1.3, num_layers=8, x_points=6
+        wall_y=0.0, first_cell_height=0.02, growth_rate=1.3, num_layers=8, x_points=6
     )
     print_points_info(bl_points, "Boundary Layer Points")
 
@@ -511,24 +518,21 @@ def main():
     print(f"  Array contents:\n{np_array}")
 
     # Create new points from NumPy
-    new_np_points = np.array([
-        [2.0, 0.0, 0.0],
-        [3.0, 0.0, 0.0],
-        [2.5, 0.866, 0.0]
-    ])
+    new_np_points = np.array([[2.0, 0.0, 0.0], [3.0, 0.0, 0.0], [2.5, 0.866, 0.0]])
     from_numpy = numpy_to_vtk_points(new_np_points)
     print_points_info(from_numpy, "Points from NumPy")
 
     # Transform points
-    transformed = transform_points(simple_points, translation=(0, 0, 1),
-                                   scale=1.5, rotation_deg=45)
+    transformed = transform_points(
+        simple_points, translation=(0, 0, 1), scale=1.5, rotation_deg=45
+    )
     print_points_info(transformed, "Transformed Points")
 
     # Visualize multiple point sets
     visualize_points(
         [simple_points, from_numpy, transformed],
         names=["Original", "From NumPy", "Transformed"],
-        colors=[(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+        colors=[(1, 0, 0), (0, 1, 0), (0, 0, 1)],
     )
 
 

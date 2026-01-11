@@ -217,9 +217,9 @@ class HeatConductionSolver:
                         max_residual = max(max_residual, residual)
 
                         # SOR update
-                        self.temperature[i, j, k] = (
-                            1 - self.omega
-                        ) * self.temperature[i, j, k] + self.omega * t_new
+                        self.temperature[i, j, k] = (1 - self.omega) * self.temperature[
+                            i, j, k
+                        ] + self.omega * t_new
 
             # Apply boundary conditions after each iteration
             self._apply_boundary_conditions()
@@ -251,7 +251,9 @@ class VolumeRenderer:
         t_max: Maximum temperature for transfer function scaling.
     """
 
-    def __init__(self, temperature: np.ndarray, t_min: float = 0.0, t_max: float = 100.0):
+    def __init__(
+        self, temperature: np.ndarray, t_min: float = 0.0, t_max: float = 100.0
+    ):
         """
         Initialize the volume renderer.
 

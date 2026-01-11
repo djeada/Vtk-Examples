@@ -100,7 +100,11 @@ def create_poly_vertex():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(poly_vertex.GetCellType(), poly_vertex.GetPointIds())
 
-    return ugrid, "PolyVertex (VTK_POLY_VERTEX)", "0D cell: Multiple disconnected points"
+    return (
+        ugrid,
+        "PolyVertex (VTK_POLY_VERTEX)",
+        "0D cell: Multiple disconnected points",
+    )
 
 
 def create_line():
@@ -179,7 +183,11 @@ def create_triangle_strip():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(strip.GetCellType(), strip.GetPointIds())
 
-    return ugrid, "TriangleStrip (VTK_TRIANGLE_STRIP)", "2D cell: Strip of connected triangles"
+    return (
+        ugrid,
+        "TriangleStrip (VTK_TRIANGLE_STRIP)",
+        "2D cell: Strip of connected triangles",
+    )
 
 
 def create_polygon():
@@ -203,7 +211,11 @@ def create_polygon():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(polygon.GetCellType(), polygon.GetPointIds())
 
-    return ugrid, "Polygon (VTK_POLYGON)", "2D cell: N-sided planar polygon (pentagon shown)"
+    return (
+        ugrid,
+        "Polygon (VTK_POLYGON)",
+        "2D cell: N-sided planar polygon (pentagon shown)",
+    )
 
 
 def create_quad():
@@ -242,7 +254,11 @@ def create_pixel():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(pixel.GetCellType(), pixel.GetPointIds())
 
-    return ugrid, "Pixel (VTK_PIXEL)", "2D cell: Axis-aligned quadrilateral (image element)"
+    return (
+        ugrid,
+        "Pixel (VTK_PIXEL)",
+        "2D cell: Axis-aligned quadrilateral (image element)",
+    )
 
 
 def create_tetra():
@@ -311,7 +327,11 @@ def create_hexahedron():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(hexa.GetCellType(), hexa.GetPointIds())
 
-    return ugrid, "Hexahedron (VTK_HEXAHEDRON)", "3D cell: Eight-point hexahedron (cube)"
+    return (
+        ugrid,
+        "Hexahedron (VTK_HEXAHEDRON)",
+        "3D cell: Eight-point hexahedron (cube)",
+    )
 
 
 def create_wedge():
@@ -387,7 +407,11 @@ def create_pentagonal_prism():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(prism.GetCellType(), prism.GetPointIds())
 
-    return ugrid, "PentagonalPrism (VTK_PENTAGONAL_PRISM)", "3D cell: Ten-point pentagonal prism"
+    return (
+        ugrid,
+        "PentagonalPrism (VTK_PENTAGONAL_PRISM)",
+        "3D cell: Ten-point pentagonal prism",
+    )
 
 
 def create_hexagonal_prism():
@@ -418,7 +442,11 @@ def create_hexagonal_prism():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(prism.GetCellType(), prism.GetPointIds())
 
-    return ugrid, "HexagonalPrism (VTK_HEXAGONAL_PRISM)", "3D cell: Twelve-point hexagonal prism"
+    return (
+        ugrid,
+        "HexagonalPrism (VTK_HEXAGONAL_PRISM)",
+        "3D cell: Twelve-point hexagonal prism",
+    )
 
 
 def create_quadratic_edge():
@@ -436,7 +464,11 @@ def create_quadratic_edge():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(edge.GetCellType(), edge.GetPointIds())
 
-    return ugrid, "QuadraticEdge (VTK_QUADRATIC_EDGE)", "1D cell: Three-point quadratic line"
+    return (
+        ugrid,
+        "QuadraticEdge (VTK_QUADRATIC_EDGE)",
+        "1D cell: Three-point quadratic line",
+    )
 
 
 def create_quadratic_triangle():
@@ -459,7 +491,11 @@ def create_quadratic_triangle():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(tri.GetCellType(), tri.GetPointIds())
 
-    return ugrid, "QuadraticTriangle (VTK_QUADRATIC_TRIANGLE)", "2D cell: Six-point quadratic triangle"
+    return (
+        ugrid,
+        "QuadraticTriangle (VTK_QUADRATIC_TRIANGLE)",
+        "2D cell: Six-point quadratic triangle",
+    )
 
 
 def create_quadratic_quad():
@@ -484,7 +520,11 @@ def create_quadratic_quad():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(quad.GetCellType(), quad.GetPointIds())
 
-    return ugrid, "QuadraticQuad (VTK_QUADRATIC_QUAD)", "2D cell: Eight-point quadratic quadrilateral"
+    return (
+        ugrid,
+        "QuadraticQuad (VTK_QUADRATIC_QUAD)",
+        "2D cell: Eight-point quadratic quadrilateral",
+    )
 
 
 def create_quadratic_tetra():
@@ -511,7 +551,11 @@ def create_quadratic_tetra():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(tetra.GetCellType(), tetra.GetPointIds())
 
-    return ugrid, "QuadraticTetra (VTK_QUADRATIC_TETRA)", "3D cell: Ten-point quadratic tetrahedron"
+    return (
+        ugrid,
+        "QuadraticTetra (VTK_QUADRATIC_TETRA)",
+        "3D cell: Ten-point quadratic tetrahedron",
+    )
 
 
 def create_quadratic_hexahedron():
@@ -548,7 +592,11 @@ def create_quadratic_hexahedron():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(hexa.GetCellType(), hexa.GetPointIds())
 
-    return ugrid, "QuadraticHexahedron (VTK_QUADRATIC_HEXAHEDRON)", "3D cell: Twenty-point quadratic hexahedron"
+    return (
+        ugrid,
+        "QuadraticHexahedron (VTK_QUADRATIC_HEXAHEDRON)",
+        "3D cell: Twenty-point quadratic hexahedron",
+    )
 
 
 def create_quadratic_wedge():
@@ -580,7 +628,11 @@ def create_quadratic_wedge():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(wedge.GetCellType(), wedge.GetPointIds())
 
-    return ugrid, "QuadraticWedge (VTK_QUADRATIC_WEDGE)", "3D cell: Fifteen-point quadratic wedge"
+    return (
+        ugrid,
+        "QuadraticWedge (VTK_QUADRATIC_WEDGE)",
+        "3D cell: Fifteen-point quadratic wedge",
+    )
 
 
 def create_quadratic_pyramid():
@@ -610,7 +662,11 @@ def create_quadratic_pyramid():
     ugrid.SetPoints(points)
     ugrid.InsertNextCell(pyramid.GetCellType(), pyramid.GetPointIds())
 
-    return ugrid, "QuadraticPyramid (VTK_QUADRATIC_PYRAMID)", "3D cell: Thirteen-point quadratic pyramid"
+    return (
+        ugrid,
+        "QuadraticPyramid (VTK_QUADRATIC_PYRAMID)",
+        "3D cell: Thirteen-point quadratic pyramid",
+    )
 
 
 # Dictionary mapping cell type names to their creation functions

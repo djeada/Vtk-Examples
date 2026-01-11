@@ -43,8 +43,8 @@ class DistanceToPointFilter(vtk.vtkPolyDataAlgorithm):
         distances.SetNumberOfTuples(num_points)
 
         tx, ty, tz = self.__TargetPoint
-        min_dist = float('inf')
-        max_dist = float('-inf')
+        min_dist = float("inf")
+        max_dist = float("-inf")
 
         for i in range(num_points):
             point = input_data.GetPoint(i)
@@ -153,8 +153,10 @@ def create_visualization():
         interactor.SetRenderWindow(render_window)
 
         # Add orientation widgets to both views
-        for renderer, viewport_coords in [(left_renderer, (0.0, 0.0, 0.2, 0.2)),
-                                          (right_renderer, (0.5, 0.0, 0.7, 0.2))]:
+        for renderer, viewport_coords in [
+            (left_renderer, (0.0, 0.0, 0.2, 0.2)),
+            (right_renderer, (0.5, 0.0, 0.7, 0.2)),
+        ]:
             axes = vtk.vtkAxesActor()
             widget = vtk.vtkOrientationMarkerWidget()
             widget.SetOrientationMarker(axes)
@@ -192,13 +194,16 @@ def create_visualization():
     except Exception as e:
         print(f"Error in visualization setup: {str(e)}")
         import traceback
+
         print(f"Traceback:\n{traceback.format_exc()}")
         return None
 
 
 if __name__ == "__main__":
-    print("Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted):",
-          datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S'))
+    print(
+        "Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted):",
+        datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"),
+    )
     print("Current User's Login: djeada")
 
     interactor = create_visualization()

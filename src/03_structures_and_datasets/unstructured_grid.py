@@ -154,14 +154,18 @@ def create_single_hexahedron(x_offset=0.0, y_offset=0.0, z_offset=0.0, size=1.0)
     points = vtk.vtkPoints()
     # Hexahedron vertices (in VTK ordering)
     vertices = [
-        (0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0),  # Bottom face
-        (0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1),  # Top face
+        (0, 0, 0),
+        (1, 0, 0),
+        (1, 1, 0),
+        (0, 1, 0),  # Bottom face
+        (0, 0, 1),
+        (1, 0, 1),
+        (1, 1, 1),
+        (0, 1, 1),  # Top face
     ]
     for v in vertices:
         points.InsertNextPoint(
-            x_offset + v[0] * size,
-            y_offset + v[1] * size,
-            z_offset + v[2] * size
+            x_offset + v[0] * size, y_offset + v[1] * size, z_offset + v[2] * size
         )
 
     hexa = vtk.vtkHexahedron()
@@ -279,8 +283,14 @@ def create_hybrid_mesh():
 
     # Hexahedron at origin
     hex_pts = [
-        (0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0),
-        (0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1),
+        (0, 0, 0),
+        (1, 0, 0),
+        (1, 1, 0),
+        (0, 1, 0),
+        (0, 0, 1),
+        (1, 0, 1),
+        (1, 1, 1),
+        (0, 1, 1),
     ]
     hex_ids = []
     for p in hex_pts:
@@ -442,8 +452,10 @@ def compute_mesh_statistics(ugrid):
     for cell_type, count in sorted(cell_type_counts.items()):
         if cell_type in CELL_TYPE_INFO:
             info = CELL_TYPE_INFO[cell_type]
-            print(f"  {info['name']}: {count} cells "
-                  f"({info['vertices']} vertices, {info['faces']} faces)")
+            print(
+                f"  {info['name']}: {count} cells "
+                f"({info['vertices']} vertices, {info['faces']} faces)"
+            )
         else:
             print(f"  Type {cell_type}: {count} cells")
 
@@ -461,8 +473,10 @@ def compute_mesh_statistics(ugrid):
         print("  (none)")
     for i in range(pd.GetNumberOfArrays()):
         arr = pd.GetArray(i)
-        print(f"  {arr.GetName()}: {arr.GetNumberOfTuples()} values, "
-              f"{arr.GetNumberOfComponents()} components")
+        print(
+            f"  {arr.GetName()}: {arr.GetNumberOfTuples()} values, "
+            f"{arr.GetNumberOfComponents()} components"
+        )
 
     print("\nCell data arrays:")
     cd = ugrid.GetCellData()
@@ -470,8 +484,10 @@ def compute_mesh_statistics(ugrid):
         print("  (none)")
     for i in range(cd.GetNumberOfArrays()):
         arr = cd.GetArray(i)
-        print(f"  {arr.GetName()}: {arr.GetNumberOfTuples()} values, "
-              f"{arr.GetNumberOfComponents()} components")
+        print(
+            f"  {arr.GetName()}: {arr.GetNumberOfTuples()} values, "
+            f"{arr.GetNumberOfComponents()} components"
+        )
 
 
 def visualize_unstructured_grid(ugrid, show_edges=True, color_by_field=None):
@@ -567,7 +583,8 @@ def print_educational_summary():
     print("\n" + "=" * 70)
     print("VTK Unstructured Grid: Educational Summary for CFD")
     print("=" * 70)
-    print("""
+    print(
+        """
 1. WHAT IS AN UNSTRUCTURED GRID?
    - Explicit connectivity stored for each cell
    - Mixed cell types allowed (hex, tet, wedge, pyramid)
@@ -609,7 +626,8 @@ def print_educational_summary():
    - Aspect ratio: edge length ratios
    - Volume ratio: neighbor cell size ratio
    - Orthogonality: face normal alignment
-""")
+"""
+    )
 
 
 def main():
@@ -630,20 +648,28 @@ def main():
     print("-" * 70)
 
     _, _, tet_grid = create_single_tetrahedron()
-    print(f"Tetrahedron: {tet_grid.GetNumberOfPoints()} points, "
-          f"{tet_grid.GetNumberOfCells()} cells")
+    print(
+        f"Tetrahedron: {tet_grid.GetNumberOfPoints()} points, "
+        f"{tet_grid.GetNumberOfCells()} cells"
+    )
 
     _, _, hex_grid = create_single_hexahedron()
-    print(f"Hexahedron: {hex_grid.GetNumberOfPoints()} points, "
-          f"{hex_grid.GetNumberOfCells()} cells")
+    print(
+        f"Hexahedron: {hex_grid.GetNumberOfPoints()} points, "
+        f"{hex_grid.GetNumberOfCells()} cells"
+    )
 
     _, _, wedge_grid = create_single_wedge()
-    print(f"Wedge: {wedge_grid.GetNumberOfPoints()} points, "
-          f"{wedge_grid.GetNumberOfCells()} cells")
+    print(
+        f"Wedge: {wedge_grid.GetNumberOfPoints()} points, "
+        f"{wedge_grid.GetNumberOfCells()} cells"
+    )
 
     _, _, pyr_grid = create_single_pyramid()
-    print(f"Pyramid: {pyr_grid.GetNumberOfPoints()} points, "
-          f"{pyr_grid.GetNumberOfCells()} cells")
+    print(
+        f"Pyramid: {pyr_grid.GetNumberOfPoints()} points, "
+        f"{pyr_grid.GetNumberOfCells()} cells"
+    )
 
     # Create hybrid mesh
     print("\n" + "-" * 70)

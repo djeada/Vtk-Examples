@@ -148,13 +148,13 @@ def create_geometric_stretch_coords(n_points, length, stretch_ratio, reverse=Fal
         dx0 = length / (n_points - 1)
     else:
         n_cells = n_points - 1
-        dx0 = length * (stretch_ratio - 1) / (stretch_ratio ** n_cells - 1)
+        dx0 = length * (stretch_ratio - 1) / (stretch_ratio**n_cells - 1)
 
     # Generate coordinates
     positions = [0.0]
     x = 0.0
     for i in range(n_points - 1):
-        dx = dx0 * (stretch_ratio ** i)
+        dx = dx0 * (stretch_ratio**i)
         x += dx
         positions.append(x)
 
@@ -198,8 +198,9 @@ def create_tanh_stretch_coords(n_points, length, beta=1.5):
     return coords
 
 
-def create_boundary_layer_grid(length_x, length_y, length_z, nx, ny, nz,
-                                 y_stretch=1.2, cluster_both_walls=True):
+def create_boundary_layer_grid(
+    length_x, length_y, length_z, nx, ny, nz, y_stretch=1.2, cluster_both_walls=True
+):
     """
     Create a rectilinear grid optimized for boundary layer resolution.
 
@@ -348,7 +349,7 @@ def add_scalar_field(rgrid, field_name="Temperature", mode="gradient"):
                     value = math.sin(2 * math.pi * x_norm) * math.cos(math.pi * y_norm)
                 elif mode == "gaussian":
                     # Gaussian hot spot
-                    r2 = (x_norm - 0.5)**2 + (y_norm - 0.5)**2
+                    r2 = (x_norm - 0.5) ** 2 + (y_norm - 0.5) ** 2
                     value = math.exp(-10 * r2)
                 else:
                     value = x_norm + y_norm
@@ -446,7 +447,11 @@ def compute_grid_statistics(rgrid):
 
             min_size = min(sizes)
             max_size = max(sizes)
-            ratios = [sizes[i + 1] / sizes[i] for i in range(len(sizes) - 1)] if len(sizes) > 1 else [1.0]
+            ratios = (
+                [sizes[i + 1] / sizes[i] for i in range(len(sizes) - 1)]
+                if len(sizes) > 1
+                else [1.0]
+            )
             max_ratio = max(ratios)
 
             print(f"\n{name}-direction cell sizes:")
@@ -539,7 +544,8 @@ def print_educational_summary():
     print("\n" + "=" * 70)
     print("VTK Rectilinear Grid: Educational Summary for CFD")
     print("=" * 70)
-    print("""
+    print(
+        """
 1. WHAT IS A RECTILINEAR GRID?
    - Axis-aligned grid with non-uniform spacing
    - Defined by three 1D coordinate arrays (x, y, z)
@@ -574,7 +580,8 @@ def print_educational_summary():
    - vs ImageData: allows non-uniform spacing
    - vs StructuredGrid: restricted to axis-aligned
    - vs UnstructuredGrid: more memory efficient
-""")
+"""
+    )
 
 
 def main():
@@ -603,9 +610,14 @@ def main():
     # 2. Boundary layer grid
     print("\n2. BOUNDARY LAYER GRID (channel flow)")
     bl_grid = create_boundary_layer_grid(
-        length_x=10.0, length_y=2.0, length_z=3.0,
-        nx=20, ny=30, nz=8,
-        y_stretch=1.15, cluster_both_walls=True
+        length_x=10.0,
+        length_y=2.0,
+        length_z=3.0,
+        nx=20,
+        ny=30,
+        nz=8,
+        y_stretch=1.15,
+        cluster_both_walls=True,
     )
     compute_grid_statistics(bl_grid)
 
@@ -618,8 +630,7 @@ def main():
     print("Visualizing boundary layer grid...")
     print("-" * 70)
 
-    visualize_rectilinear_grid(bl_grid, show_edges=True,
-                                color_by_field="Temperature")
+    visualize_rectilinear_grid(bl_grid, show_edges=True, color_by_field="Temperature")
 
 
 if __name__ == "__main__":

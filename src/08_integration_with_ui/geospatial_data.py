@@ -10,8 +10,7 @@ from typing import Tuple, List
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -33,17 +32,20 @@ def generate_sample_geospatial_data(n_points: int = 10000) -> pd.DataFrame:
     lon = np.random.uniform(-180, 180, n_points)
 
     # Simulate population density (higher near equator and certain longitudes)
-    population_density = 1000 * np.exp(-np.abs(lat) / 30) * (1 + 0.5 * np.sin(np.radians(lon)))
+    population_density = (
+        1000 * np.exp(-np.abs(lat) / 30) * (1 + 0.5 * np.sin(np.radians(lon)))
+    )
     population_density *= np.random.lognormal(0, 0.5, n_points)
 
     # Simulate elevation (create some mountain ranges)
     elevation = np.zeros(n_points)
-    for mountain_lat, mountain_lon in [(35, 140), (45, -120), (30, 80)]:  # Example mountain ranges
-        distance = np.sqrt(
-            (lat - mountain_lat) ** 2 +
-            (lon - mountain_lon) ** 2
-        )
-        elevation += 8000 * np.exp(-distance ** 2 / 1000)
+    for mountain_lat, mountain_lon in [
+        (35, 140),
+        (45, -120),
+        (30, 80),
+    ]:  # Example mountain ranges
+        distance = np.sqrt((lat - mountain_lat) ** 2 + (lon - mountain_lon) ** 2)
+        elevation += 8000 * np.exp(-(distance**2) / 1000)
     elevation += np.random.normal(0, 200, n_points)  # Add noise
     elevation = np.maximum(0, elevation)  # No negative elevation
 
@@ -52,16 +54,20 @@ def generate_sample_geospatial_data(n_points: int = 10000) -> pd.DataFrame:
     pollution_index += 0.3 * np.random.beta(2, 5, n_points)
     pollution_index = np.clip(pollution_index, 0, 1)
 
-    return pd.DataFrame({
-        'latitude': lat,
-        'longitude': lon,
-        'population_density': population_density,
-        'elevation': elevation,
-        'pollution_index': pollution_index
-    })
+    return pd.DataFrame(
+        {
+            "latitude": lat,
+            "longitude": lon,
+            "population_density": population_density,
+            "elevation": elevation,
+            "pollution_index": pollution_index,
+        }
+    )
 
 
-def lat_lon_to_xyz(lat: float, lon: float, elevation: float = 0, radius: float = 6371000) -> Tuple[float, float, float]:
+def lat_lon_to_xyz(
+    lat: float, lon: float, elevation: float = 0, radius: float = 6371000
+) -> Tuple[float, float, float]:
     """
     Convert latitude and longitude to 3D coordinates.
     Args:
@@ -97,7 +103,9 @@ def create_earth_surface() -> vtk.vtkPolyData:
     return sphere.GetOutput()
 
 
-def create_vtk_points(df: pd.DataFrame) -> Tuple[vtk.vtkPoints, List[vtk.vtkDoubleArray]]:
+def create_vtk_points(
+    df: pd.DataFrame,
+) -> Tuple[vtk.vtkPoints, List[vtk.vtkDoubleArray]]:
     """
     Convert DataFrame to VTK points and arrays.
     Returns points and arrays for population density, elevation, and pollution.
@@ -116,19 +124,21 @@ def create_vtk_points(df: pd.DataFrame) -> Tuple[vtk.vtkPoints, List[vtk.vtkDoub
 
     # Convert each point and add data
     for idx, row in df.iterrows():
-        x, y, z = lat_lon_to_xyz(row['latitude'], row['longitude'], row['elevation'])
+        x, y, z = lat_lon_to_xyz(row["latitude"], row["longitude"], row["elevation"])
         points.InsertNextPoint(x, y, z)
 
-        population_array.InsertNextValue(row['population_density'])
-        elevation_array.InsertNextValue(row['elevation'])
-        pollution_array.InsertNextValue(row['pollution_index'])
+        population_array.InsertNextValue(row["population_density"])
+        elevation_array.InsertNextValue(row["elevation"])
+        pollution_array.InsertNextValue(row["pollution_index"])
 
     return points, [population_array, elevation_array, pollution_array]
 
 
-def create_visualization(earth_surface: vtk.vtkPolyData,
-                         points: vtk.vtkPoints,
-                         data_arrays: List[vtk.vtkDoubleArray]) -> None:
+def create_visualization(
+    earth_surface: vtk.vtkPolyData,
+    points: vtk.vtkPoints,
+    data_arrays: List[vtk.vtkDoubleArray],
+) -> None:
     """Create the visualization with Earth surface and data points."""
     # Create polydata for points
     point_data = vtk.vtkPolyData()

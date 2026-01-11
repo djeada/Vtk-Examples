@@ -381,7 +381,7 @@ def create_3d_cells(points):
     hexahedra = [
         # (front-left-bot, front-right-bot, back-right-bot, back-left-bot,
         #  front-left-top, front-right-top, back-right-top, back-left-top)
-        (0, 1, 4, 3, 9, 10, 13, 12),   # Hex 0: bottom-left in XY
+        (0, 1, 4, 3, 9, 10, 13, 12),  # Hex 0: bottom-left in XY
         (1, 2, 5, 4, 10, 11, 14, 13),  # Hex 1: bottom-right in XY
         (3, 4, 7, 6, 12, 13, 16, 15),  # Hex 2: top-left in XY
         (4, 5, 8, 7, 13, 14, 17, 16),  # Hex 3: top-right in XY
@@ -772,9 +772,7 @@ class ConnectivityDemo(QMainWindow):
                 lut.SetTableValue(2, 0.95, 0.70, 0.20, 1.0)  # (0,1)
                 lut.SetTableValue(3, 0.90, 0.30, 0.30, 1.0)  # (1,1)
                 surface_mapper.SetScalarRange(0, 3)
-                legend_entries.append(
-                    "Cell colors = logical index (0..3, row-major)."
-                )
+                legend_entries.append("Cell colors = logical index (0..3, row-major).")
             elif scalar_name == "CellType":
                 lut.SetNumberOfColors(2)
                 lut.SetTableValue(0, 0.20, 0.60, 0.90, 1.0)  # Triangles
@@ -905,7 +903,6 @@ class ConnectivityDemo(QMainWindow):
         label_actor.SetMapper(label_mapper)
         return label_actor
 
-
     def closeEvent(self, event):
         """Clean up VTK resources on close."""
         self.vtk_widget.Finalize()
@@ -917,7 +914,8 @@ def print_educational_summary():
     print("\n" + "=" * 75)
     print("VTK CONNECTIVITY: Understanding Multiple Levels of Connectivity")
     print("=" * 75)
-    print("""
+    print(
+        """
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                    LEVELS OF CONNECTIVITY IN VTK                        │
 ├─────────────────────────────────────────────────────────────────────────┤
@@ -961,7 +959,8 @@ This demonstration covers:
 - Point-Cell: How points form cells (vertices, lines, triangles, quads, hexes)
 - Cell-Cell: How cells share faces/edges/vertices (adjacency)
 - Logical: Structured (implicit) vs Unstructured (explicit) connectivity
-""")
+"""
+    )
 
 
 def main():

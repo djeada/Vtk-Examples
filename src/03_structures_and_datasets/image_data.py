@@ -62,7 +62,9 @@ import math
 import vtk
 
 
-def create_uniform_image_data(nx, ny, nz, spacing=(1.0, 1.0, 1.0), origin=(0.0, 0.0, 0.0)):
+def create_uniform_image_data(
+    nx, ny, nz, spacing=(1.0, 1.0, 1.0), origin=(0.0, 0.0, 0.0)
+):
     """
     Create a uniform vtkImageData grid.
 
@@ -135,8 +137,7 @@ def create_box_turbulence_domain(size, n_points):
     spacing = size / n_points
 
     return create_uniform_image_data(
-        n_points, n_points, n_points,
-        spacing=(spacing, spacing, spacing)
+        n_points, n_points, n_points, spacing=(spacing, spacing, spacing)
     )
 
 
@@ -241,7 +242,7 @@ def add_scalar_field(image_data, field_name="Temperature", mode="gradient"):
                     value = 300 + 100 * x_norm
                 elif mode == "hot_spot":
                     # Gaussian hot spot
-                    r2 = (x_norm - 0.5)**2 + (y_norm - 0.5)**2
+                    r2 = (x_norm - 0.5) ** 2 + (y_norm - 0.5) ** 2
                     value = 300 + 200 * math.exp(-20 * r2)
                 elif mode == "layers":
                     # Horizontal temperature layers
@@ -360,8 +361,10 @@ def compute_grid_info(image_data):
         print("  (none)")
     for i in range(pd.GetNumberOfArrays()):
         arr = pd.GetArray(i)
-        print(f"  {arr.GetName()}: {arr.GetNumberOfTuples()} values, "
-              f"{arr.GetNumberOfComponents()} components")
+        print(
+            f"  {arr.GetName()}: {arr.GetNumberOfTuples()} values, "
+            f"{arr.GetNumberOfComponents()} components"
+        )
 
 
 def visualize_image_data(image_data, color_by_field=None, show_outline=True):
@@ -492,7 +495,8 @@ def print_educational_summary():
     print("\n" + "=" * 70)
     print("VTK Image Data: Educational Summary for CFD")
     print("=" * 70)
-    print("""
+    print(
+        """
 1. WHAT IS IMAGE DATA?
    - Uniform rectilinear grid (constant spacing)
    - Defined by origin, spacing, and dimensions
@@ -527,7 +531,8 @@ def print_educational_summary():
    - Contour extraction
    - Volume rendering
    - Resampling between grids
-""")
+"""
+    )
 
 
 def main():
@@ -548,8 +553,7 @@ def main():
     print("-" * 70)
 
     channel = create_channel_flow_domain(
-        length=4.0, height=2.0, width=2.0,
-        resolution=10
+        length=4.0, height=2.0, width=2.0, resolution=10
     )
 
     # Add fields

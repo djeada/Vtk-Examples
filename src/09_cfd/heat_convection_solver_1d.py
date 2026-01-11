@@ -93,9 +93,7 @@ def tdma_solve(
     return x
 
 
-def setup_matrix(
-    n: int, dx: float, Gamma: float, F: float, use_uds: bool
-) -> tuple:
+def setup_matrix(n: int, dx: float, Gamma: float, F: float, use_uds: bool) -> tuple:
     """
     Sets up the coefficient matrix for the TDMA solver based on the chosen scheme.
 
@@ -124,7 +122,7 @@ def setup_matrix(
     num_nodes = n + 1
     D = Gamma / dx  # Diffusion conductance
 
-    A = np.zeros(num_nodes)   # Main diagonal (a_P)
+    A = np.zeros(num_nodes)  # Main diagonal (a_P)
     Au = np.zeros(num_nodes)  # Upper diagonal (coefficient for phi[i+1])
     Ad = np.zeros(num_nodes)  # Lower diagonal (coefficient for phi[i-1])
 
@@ -136,8 +134,8 @@ def setup_matrix(
         a_P = a_W + a_E
 
         A.fill(a_P)
-        Au.fill(-a_E)   # Upper: -a_E (coefficient for phi[i+1])
-        Ad.fill(-a_W)   # Lower: -a_W (coefficient for phi[i-1])
+        Au.fill(-a_E)  # Upper: -a_E (coefficient for phi[i+1])
+        Ad.fill(-a_W)  # Lower: -a_W (coefficient for phi[i-1])
     else:
         # Central Difference Scheme (second-order, conditionally stable)
         a_W = D + F / 2
@@ -200,8 +198,14 @@ def plot_solution(
     plt.figure(figsize=(10, 6))
     plt.plot(x, phi_analytical, "r-", linewidth=2, label="Analytical Solution")
     plt.plot(
-        x, phi_numerical, "b--", linewidth=2, marker="o", markersize=3,
-        markevery=max(1, len(x) // 20), label=f"Numerical ({scheme_name})"
+        x,
+        phi_numerical,
+        "b--",
+        linewidth=2,
+        marker="o",
+        markersize=3,
+        markevery=max(1, len(x) // 20),
+        label=f"Numerical ({scheme_name})",
     )
     plt.xlabel("Position x (m)", fontsize=12)
     plt.ylabel("Phi (Transported Scalar)", fontsize=12)
@@ -409,7 +413,11 @@ def create_velocity_glyph_field(
 
 
 def create_profile_curve_3d(
-    x: np.ndarray, phi: np.ndarray, y_offset: float, color: tuple, line_width: float = 3.0
+    x: np.ndarray,
+    phi: np.ndarray,
+    y_offset: float,
+    color: tuple,
+    line_width: float = 3.0,
 ) -> vtk.vtkActor:
     """
     Create a 3D line showing the phi profile floating above/below the rod.
@@ -497,9 +505,7 @@ def create_contour_bands(
     return actor
 
 
-def create_particle_system(
-    L: float, radius: float, n_particles: int = 20
-) -> tuple:
+def create_particle_system(L: float, radius: float, n_particles: int = 20) -> tuple:
     """
     Create a particle system for animation.
 
@@ -513,13 +519,21 @@ def create_particle_system(
 
     for i in range(n_particles):
         x = np.random.uniform(0, L)
-        y = np.random.uniform(-radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR)
-        z = np.random.uniform(-radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR)
+        y = np.random.uniform(
+            -radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR
+        )
+        z = np.random.uniform(
+            -radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR
+        )
         # Ensure inside cylinder (r^2 < (radius * factor)^2)
         max_r_squared = (radius * PARTICLE_RADIUS_FACTOR) ** 2
         while y * y + z * z > max_r_squared:
-            y = np.random.uniform(-radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR)
-            z = np.random.uniform(-radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR)
+            y = np.random.uniform(
+                -radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR
+            )
+            z = np.random.uniform(
+                -radius * PARTICLE_RADIUS_FACTOR, radius * PARTICLE_RADIUS_FACTOR
+            )
         points.InsertNextPoint(x, y, z)
         initial_positions.append([x, y, z])
 
@@ -703,8 +717,9 @@ def vtk_3d_visualization(
     )
 
     # ========== Particle system for animation ==========
-    particle_points, particle_glyph, particle_actor, initial_positions = \
+    particle_points, particle_glyph, particle_actor, initial_positions = (
         create_particle_system(L, radius, n_particles=30)
+    )
 
     # ========== Boundary annotations ==========
     annotation_offset = radius * 3
@@ -858,7 +873,9 @@ def vtk_3d_visualization(
                 # Convection: particle advected by flow velocity (scaled for visualization)
                 pos[0] += self.u * self.dt * CONVECTION_SCALE_FACTOR
                 # Diffusion: random walk in x-direction based on diffusion coefficient
-                diffusion_std = np.sqrt(2 * self.Gamma * self.dt) * DIFFUSION_SCALE_FACTOR
+                diffusion_std = (
+                    np.sqrt(2 * self.Gamma * self.dt) * DIFFUSION_SCALE_FACTOR
+                )
                 pos[0] += np.random.normal(0, diffusion_std)
                 # Lateral diffusion (small random motion in y and z)
                 pos[1] += np.random.normal(0, LATERAL_DIFFUSION_STD)
@@ -876,7 +893,9 @@ def vtk_3d_visualization(
             self.glyph.Update()
             renderWindow.Render()
 
-    animator = ParticleAnimator(particle_points, particle_glyph, initial_positions, L, u, Gamma)
+    animator = ParticleAnimator(
+        particle_points, particle_glyph, initial_positions, L, u, Gamma
+    )
 
     # Create timer for animation
     renderWindowInteractor.AddObserver("TimerEvent", animator.update)
@@ -897,19 +916,19 @@ def main():
     and compares with the analytical solution.
     """
     # Physical parameters
-    L = 1.0         # Domain length (m)
-    n = 100         # Number of grid divisions
-    rho = 1.0       # Fluid density (kg/m³)
-    Gamma = 0.1     # Diffusion coefficient (kg/m·s)
-    u = 2.5         # Flow velocity (m/s)
-    phi_0 = 0.0     # Left boundary value
-    phi_L = 1.0     # Right boundary value
+    L = 1.0  # Domain length (m)
+    n = 100  # Number of grid divisions
+    rho = 1.0  # Fluid density (kg/m³)
+    Gamma = 0.1  # Diffusion coefficient (kg/m·s)
+    u = 2.5  # Flow velocity (m/s)
+    phi_0 = 0.0  # Left boundary value
+    phi_L = 1.0  # Right boundary value
     use_uds = True  # Use Upwind Difference Scheme
 
     # Derived quantities
     dx = L / n
-    F = rho * u                  # Convective mass flux
-    Pe = rho * u * L / Gamma     # Peclet number
+    F = rho * u  # Convective mass flux
+    Pe = rho * u * L / Gamma  # Peclet number
     Pe_cell = abs(F * dx / Gamma)  # Cell Peclet number
 
     # Scheme name for display

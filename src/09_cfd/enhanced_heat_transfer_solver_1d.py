@@ -534,7 +534,9 @@ def main():
     print(f"Temperature at x=0: {T[0]:.2f}°C")
     print(f"Temperature at x=L: {T[-1]:.2f}°C")
     print(f"Conductivity range: {k_profile.min():.3f} - {k_profile.max():.3f} W/m·K")
-    print(f"Conductivity variation: {100 * (k_profile.max() / k_profile.min() - 1):.1f}%")
+    print(
+        f"Conductivity variation: {100 * (k_profile.max() / k_profile.min() - 1):.1f}%"
+    )
     print("=" * 70)
 
 

@@ -127,7 +127,10 @@ OMEGA: float = 1.0 / (3.0 * NU_LB + 0.5)  # BGK relaxation parameter (1/τ)
 # D2Q9 Lattice Definition
 # =============================================================================
 
-def setup_lattice() -> tuple[np.ndarray, np.ndarray, list[int], np.ndarray, np.ndarray, np.ndarray]:
+
+def setup_lattice() -> (
+    tuple[np.ndarray, np.ndarray, list[int], np.ndarray, np.ndarray, np.ndarray]
+):
     """
     Set up the D2Q9 lattice velocities and weights.
 
@@ -148,30 +151,34 @@ def setup_lattice() -> tuple[np.ndarray, np.ndarray, list[int], np.ndarray, np.n
     """
     # Lattice velocities: c[i] = (cx, cy)
     # Ordering: 0=rest, 1=E, 2=N, 3=W, 4=S, 5=NE, 6=NW, 7=SW, 8=SE
-    c = np.array([
-        [0, 0],    # 0: rest
-        [1, 0],    # 1: East
-        [0, 1],    # 2: North
-        [-1, 0],   # 3: West
-        [0, -1],   # 4: South
-        [1, 1],    # 5: NE
-        [-1, 1],   # 6: NW
-        [-1, -1],  # 7: SW
-        [1, -1],   # 8: SE
-    ])
+    c = np.array(
+        [
+            [0, 0],  # 0: rest
+            [1, 0],  # 1: East
+            [0, 1],  # 2: North
+            [-1, 0],  # 3: West
+            [0, -1],  # 4: South
+            [1, 1],  # 5: NE
+            [-1, 1],  # 6: NW
+            [-1, -1],  # 7: SW
+            [1, -1],  # 8: SE
+        ]
+    )
 
     # Lattice weights for D2Q9
-    t = np.array([
-        4.0 / 9.0,   # rest: w_0 = 4/9
-        1.0 / 9.0,   # E
-        1.0 / 9.0,   # N
-        1.0 / 9.0,   # W
-        1.0 / 9.0,   # S
-        1.0 / 36.0,  # NE
-        1.0 / 36.0,  # NW
-        1.0 / 36.0,  # SW
-        1.0 / 36.0,  # SE
-    ])
+    t = np.array(
+        [
+            4.0 / 9.0,  # rest: w_0 = 4/9
+            1.0 / 9.0,  # E
+            1.0 / 9.0,  # N
+            1.0 / 9.0,  # W
+            1.0 / 9.0,  # S
+            1.0 / 36.0,  # NE
+            1.0 / 36.0,  # NW
+            1.0 / 36.0,  # SW
+            1.0 / 36.0,  # SE
+        ]
+    )
 
     # Bounce-back indices: noslip[i] gives the opposite direction
     noslip = [0, 3, 4, 1, 2, 7, 8, 5, 6]
@@ -191,6 +198,7 @@ C, T, NOSLIP, I1, I2, I3 = setup_lattice()
 # =============================================================================
 # LBM Core Functions
 # =============================================================================
+
 
 def equilibrium(rho: np.ndarray, u: np.ndarray) -> np.ndarray:
     """
@@ -249,6 +257,7 @@ def compute_macroscopic(fin: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 # Visualization Functions
 # =============================================================================
 
+
 def create_points(
     nx: int, ny: int, u: np.ndarray
 ) -> tuple[vtk.vtkPoints, vtk.vtkFloatArray]:
@@ -268,9 +277,9 @@ def create_points(
     velocity_values = vtk.vtkFloatArray()
     velocity_values.SetName("Velocity Magnitude")
 
-    assert u.shape[0] == ny and u.shape[1] == nx, (
-        f"Dimension mismatch: expected ({ny}, {nx}), got {u.shape}"
-    )
+    assert (
+        u.shape[0] == ny and u.shape[1] == nx
+    ), f"Dimension mismatch: expected ({ny}, {nx}), got {u.shape}"
 
     for j in range(ny):
         for i in range(nx):
@@ -437,6 +446,7 @@ def vtk_velocity_plot(nx: int, ny: int, snapshots: list[np.ndarray]) -> None:
 # Main Simulation
 # =============================================================================
 
+
 def run_simulation() -> None:
     """
     Run the Lattice Boltzmann simulation for flow around an obstacle.
@@ -476,7 +486,9 @@ def run_simulation() -> None:
         ),
         (NX, NY),
     )
-    print(f"Obstacle: {obstacle_length}x{obstacle_height} at ({obstacle_x_center}, {obstacle_y_center})")
+    print(
+        f"Obstacle: {obstacle_length}x{obstacle_height} at ({obstacle_x_center}, {obstacle_y_center})"
+    )
 
     # Initialize velocity field with slight perturbation to trigger instability
     vel = np.fromfunction(
@@ -517,7 +529,8 @@ def run_simulation() -> None:
         # Add small safety margin to prevent division by zero
         velocity_factor = np.maximum(1.0 - u[0, 0, :], 1e-10)
         rho[0, :] = (
-            1.0 / velocity_factor
+            1.0
+            / velocity_factor
             * (np.sum(fin[I2, 0, :], axis=0) + 2.0 * np.sum(fin[I1, 0, :], axis=0))
         )
 
@@ -543,8 +556,7 @@ def run_simulation() -> None:
         # -----------------------------------------------------------------
         for i in range(Q):
             fin[i, :, :] = np.roll(
-                np.roll(fout[i, :, :], C[i, 0], axis=0),
-                C[i, 1], axis=1
+                np.roll(fout[i, :, :], C[i, 0], axis=0), C[i, 1], axis=1
             )
 
         # -----------------------------------------------------------------
@@ -554,8 +566,10 @@ def run_simulation() -> None:
             u_magnitude = np.sqrt(u[0] ** 2 + u[1] ** 2)
             # Transpose for visualization (y, x) ordering
             snapshots.append(u_magnitude.T.copy())
-            print(f"  Time step {time_step:5d}/{MAX_ITER}: "
-                  f"max|u| = {np.max(u_magnitude):.4f}")
+            print(
+                f"  Time step {time_step:5d}/{MAX_ITER}: "
+                f"max|u| = {np.max(u_magnitude):.4f}"
+            )
 
     print("\nSimulation complete!")
     print(f"Collected {len(snapshots)} snapshots for visualization")

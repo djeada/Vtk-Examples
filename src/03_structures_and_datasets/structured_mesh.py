@@ -78,7 +78,9 @@ import numpy as np
 import vtk
 
 
-def create_structured_mesh(nx: int, ny: int, lx: float, ly: float) -> vtk.vtkStructuredGrid:
+def create_structured_mesh(
+    nx: int, ny: int, lx: float, ly: float
+) -> vtk.vtkStructuredGrid:
     """
     Create a 2D structured mesh for CFD simulation.
 
@@ -135,9 +137,7 @@ def initialize_temperature_field(nx: int, ny: int, T_init: float = 0.0) -> np.nd
     return np.full((ny, nx), T_init, dtype=np.float64)
 
 
-def apply_boundary_conditions(
-    T: np.ndarray, T_hot: float, T_cold: float
-) -> None:
+def apply_boundary_conditions(T: np.ndarray, T_hot: float, T_cold: float) -> None:
     """
     Apply Dirichlet boundary conditions to the temperature field.
 
@@ -219,9 +219,7 @@ def solve_laplace_gauss_seidel(
             for i in range(1, nx - 1):
                 T_old = T[j, i]
                 # Five-point stencil average
-                T[j, i] = 0.25 * (
-                    T[j, i + 1] + T[j, i - 1] + T[j + 1, i] + T[j - 1, i]
-                )
+                T[j, i] = 0.25 * (T[j, i + 1] + T[j, i - 1] + T[j + 1, i] + T[j - 1, i])
                 change = abs(T[j, i] - T_old)
                 if change > max_change:
                     max_change = change
@@ -238,9 +236,7 @@ def solve_laplace_gauss_seidel(
     return T, max_iterations, residual
 
 
-def add_temperature_to_mesh(
-    grid: vtk.vtkStructuredGrid, T: np.ndarray
-) -> None:
+def add_temperature_to_mesh(grid: vtk.vtkStructuredGrid, T: np.ndarray) -> None:
     """
     Add the computed temperature field to the VTK structured mesh.
 
@@ -430,10 +426,14 @@ def print_educational_summary(quality_metrics: dict, iterations: int, residual: 
     print("=" * 70)
 
     print("\n1. MESH STRUCTURE:")
-    print(f"   - Dimensions: {quality_metrics['dimensions'][0]} x {quality_metrics['dimensions'][1]} nodes")
+    print(
+        f"   - Dimensions: {quality_metrics['dimensions'][0]} x {quality_metrics['dimensions'][1]} nodes"
+    )
     print(f"   - Total nodes: {quality_metrics['num_nodes']}")
     print(f"   - Total cells: {quality_metrics['num_cells']}")
-    print(f"   - Cell spacing: dx={quality_metrics['dx']:.4f}m, dy={quality_metrics['dy']:.4f}m")
+    print(
+        f"   - Cell spacing: dx={quality_metrics['dx']:.4f}m, dy={quality_metrics['dy']:.4f}m"
+    )
     print(f"   - Aspect ratio: {quality_metrics['aspect_ratio']:.2f}")
 
     print("\n2. PHYSICAL PROBLEM:")
@@ -478,8 +478,8 @@ def main():
     nx, ny = 21, 21
 
     # Temperature boundary conditions (Celsius)
-    T_hot = 100.0   # Left wall (heat source)
-    T_cold = 0.0    # Other walls
+    T_hot = 100.0  # Left wall (heat source)
+    T_cold = 0.0  # Other walls
 
     # Solver parameters
     tolerance = 1e-6
@@ -530,7 +530,7 @@ def main():
     # Add title annotation
     title = create_text_annotation(
         "Structured Mesh: 2D Heat Conduction\nLeft wall: 100°C | Other walls: 0°C",
-        (10, 550)
+        (10, 550),
     )
     renderer.AddActor2D(title)
 

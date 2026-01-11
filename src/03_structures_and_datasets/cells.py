@@ -40,13 +40,13 @@ import vtk
 
 # Distinct colors for each cell type (shared between legend and color lookup table)
 CELL_TYPE_COLORS = [
-    (1.0, 0.0, 0.0),    # Red - Vertex
-    (1.0, 0.5, 0.0),    # Orange - Line
-    (1.0, 1.0, 0.0),    # Yellow - Triangle
-    (0.0, 1.0, 0.0),    # Green - Quad
-    (0.0, 1.0, 1.0),    # Cyan - Polygon
-    (0.0, 0.0, 1.0),    # Blue - Tetrahedron
-    (1.0, 0.0, 1.0),    # Magenta - Hexahedron
+    (1.0, 0.0, 0.0),  # Red - Vertex
+    (1.0, 0.5, 0.0),  # Orange - Line
+    (1.0, 1.0, 0.0),  # Yellow - Triangle
+    (0.0, 1.0, 0.0),  # Green - Quad
+    (0.0, 1.0, 1.0),  # Cyan - Polygon
+    (0.0, 0.0, 1.0),  # Blue - Tetrahedron
+    (1.0, 0.0, 1.0),  # Magenta - Hexahedron
 ]
 
 
@@ -542,7 +542,8 @@ def print_cell_info(ugrid, cell_type_names):
     print("\n" + "=" * 70)
     print("Key Concepts for CFD:")
     print("=" * 70)
-    print("""
+    print(
+        """
 1. CELL TOPOLOGY: Cells define connectivity between points, not positions.
    The same topology can represent different physical shapes.
 
@@ -561,7 +562,8 @@ def print_cell_info(ugrid, cell_type_names):
    - Hexahedra/prisms in boundary layers for accuracy
    - Tetrahedra in the bulk for geometric flexibility
    - Pyramids to transition between quad and triangle faces
-""")
+"""
+    )
 
 
 def main():

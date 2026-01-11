@@ -267,9 +267,9 @@ class CavityFlowSolver:
                     dpdy = (self.p[j + 1, i] - self.p[j - 1, i]) / (2 * self.dy)
 
                     # Divergence
-                    div = (self.u[j, i + 1] - self.u[j, i - 1]) / (
-                        2 * self.dx
-                    ) + (self.v[j + 1, i] - self.v[j - 1, i]) / (2 * self.dy)
+                    div = (self.u[j, i + 1] - self.u[j, i - 1]) / (2 * self.dx) + (
+                        self.v[j + 1, i] - self.v[j - 1, i]
+                    ) / (2 * self.dy)
 
                     # Update
                     self.u[j, i] = u_old[j, i] + dt * (-conv_u - dpdx + diff_u)
@@ -312,9 +312,7 @@ class StreamlineVisualizer:
         length: Physical domain size.
     """
 
-    def __init__(
-        self, u: np.ndarray, v: np.ndarray, length: float = 1.0, nz: int = 5
-    ):
+    def __init__(self, u: np.ndarray, v: np.ndarray, length: float = 1.0, nz: int = 5):
         """
         Initialize the streamline visualizer.
 

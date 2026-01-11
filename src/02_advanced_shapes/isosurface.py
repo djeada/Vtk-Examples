@@ -188,10 +188,9 @@ class HeatGenerationSolver:
                         max_residual = max(max_residual, residual)
 
                         # SOR update
-                        self.temperature[i, j, k] = (
-                            (1 - self.omega) * self.temperature[i, j, k]
-                            + self.omega * t_new
-                        )
+                        self.temperature[i, j, k] = (1 - self.omega) * self.temperature[
+                            i, j, k
+                        ] + self.omega * t_new
 
             # Apply boundary conditions
             self._apply_boundary_conditions()
@@ -241,9 +240,7 @@ def create_vtk_image_data(
     return image_data
 
 
-def create_isosurfaces(
-    data: vtk.vtkImageData, isovalues: List[float]
-) -> vtk.vtkActor:
+def create_isosurfaces(data: vtk.vtkImageData, isovalues: List[float]) -> vtk.vtkActor:
     """
     Extract isosurfaces (isotherms) at specified temperature values.
 

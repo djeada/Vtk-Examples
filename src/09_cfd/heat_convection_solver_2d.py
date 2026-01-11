@@ -111,10 +111,10 @@ def solve_convection_diffusion_2d(
     phi = phi_avg * np.ones((ny + 1, nx + 1))
 
     # Apply Dirichlet boundary conditions
-    phi[:, 0] = phi_left      # Left (x = 0)
-    phi[:, -1] = phi_right    # Right (x = Lx)
-    phi[0, :] = phi_bottom    # Bottom (y = 0)
-    phi[-1, :] = phi_top      # Top (y = Ly)
+    phi[:, 0] = phi_left  # Left (x = 0)
+    phi[:, -1] = phi_right  # Right (x = Lx)
+    phi[0, :] = phi_bottom  # Bottom (y = 0)
+    phi[-1, :] = phi_top  # Top (y = Ly)
 
     # Convective fluxes (mass flux per unit area)
     Fx = rho * u  # x-direction
@@ -147,10 +147,10 @@ def solve_convection_diffusion_2d(
         for j in range(1, ny):
             for i in range(1, nx):
                 phi_new = (
-                    a_E * phi[j, i + 1] +
-                    a_W * phi[j, i - 1] +
-                    a_N * phi[j + 1, i] +
-                    a_S * phi[j - 1, i]
+                    a_E * phi[j, i + 1]
+                    + a_W * phi[j, i - 1]
+                    + a_N * phi[j + 1, i]
+                    + a_S * phi[j - 1, i]
                 ) / a_P
 
                 R = abs(phi_new - phi[j, i])
@@ -199,16 +199,20 @@ def plot_solution_2d(
     plt.colorbar(cf, ax=axes[0], label="Phi (Scalar)")
     axes[0].set_xlabel("x (m)", fontsize=12)
     axes[0].set_ylabel("y (m)", fontsize=12)
-    axes[0].set_title(f"2D Convection-Diffusion: Pe_x={Pe_x:.1f}, Pe_y={Pe_y:.1f}", fontsize=14)
+    axes[0].set_title(
+        f"2D Convection-Diffusion: Pe_x={Pe_x:.1f}, Pe_y={Pe_y:.1f}", fontsize=14
+    )
     axes[0].set_aspect("equal")
 
     # Add velocity vector
     center_x, center_y = x[len(x) // 2], y[len(y) // 2]
-    axes[0].quiver(center_x, center_y, u, v, color='white', scale=10, width=0.02)
-    axes[0].annotate(f"u={u}, v={v}", (center_x + 0.1, center_y + 0.1), color='white', fontsize=10)
+    axes[0].quiver(center_x, center_y, u, v, color="white", scale=10, width=0.02)
+    axes[0].annotate(
+        f"u={u}, v={v}", (center_x + 0.1, center_y + 0.1), color="white", fontsize=10
+    )
 
     # Contour lines with streamlines
-    cs = axes[1].contour(X, Y, phi, 20, colors='k', linewidths=0.5)
+    cs = axes[1].contour(X, Y, phi, 20, colors="k", linewidths=0.5)
     axes[1].clabel(cs, inline=True, fontsize=8)
     cf2 = axes[1].contourf(X, Y, phi, levels, cmap="coolwarm", alpha=0.7)
     plt.colorbar(cf2, ax=axes[1], label="Phi (Scalar)")
@@ -216,7 +220,7 @@ def plot_solution_2d(
     # Create velocity field for streamlines
     U = u * np.ones_like(X)
     V = v * np.ones_like(Y)
-    axes[1].streamplot(X, Y, U, V, color='blue', linewidth=0.8, arrowsize=1)
+    axes[1].streamplot(X, Y, U, V, color="blue", linewidth=0.8, arrowsize=1)
 
     axes[1].set_xlabel("x (m)", fontsize=12)
     axes[1].set_ylabel("y (m)", fontsize=12)
@@ -397,9 +401,7 @@ def create_boundary_annotation_2d(
     return text_actor
 
 
-def create_particle_system_2d(
-    Lx: float, Ly: float, n_particles: int = 100
-) -> tuple:
+def create_particle_system_2d(Lx: float, Ly: float, n_particles: int = 100) -> tuple:
     """
     Create a particle system for 2D animation.
 
@@ -511,22 +513,31 @@ def vtk_3d_visualization(
     velocity_glyphs = create_velocity_glyph_field_2d(x, y, u, v, n_glyphs=6)
 
     # ========== Particle system for animation ==========
-    particle_points, particle_glyph, particle_actor, initial_positions = \
+    particle_points, particle_glyph, particle_actor, initial_positions = (
         create_particle_system_2d(Lx, Ly, n_particles=N_PARTICLES_2D)
+    )
 
     # ========== Boundary annotations ==========
     offset = 0.15 * max(Lx, Ly)
     annotations = [
-        create_boundary_annotation_2d(f"phi={phi_left}", (-offset, Ly/2, 0), (0.3, 0.7, 1.0)),
-        create_boundary_annotation_2d(f"phi={phi_right}", (Lx + offset, Ly/2, 0), (1.0, 0.5, 0.4)),
-        create_boundary_annotation_2d(f"phi={phi_bottom}", (Lx/2, -offset, 0), (0.4, 0.9, 0.4)),
-        create_boundary_annotation_2d(f"phi={phi_top}", (Lx/2, Ly + offset, 0), (1.0, 0.8, 0.3)),
+        create_boundary_annotation_2d(
+            f"phi={phi_left}", (-offset, Ly / 2, 0), (0.3, 0.7, 1.0)
+        ),
+        create_boundary_annotation_2d(
+            f"phi={phi_right}", (Lx + offset, Ly / 2, 0), (1.0, 0.5, 0.4)
+        ),
+        create_boundary_annotation_2d(
+            f"phi={phi_bottom}", (Lx / 2, -offset, 0), (0.4, 0.9, 0.4)
+        ),
+        create_boundary_annotation_2d(
+            f"phi={phi_top}", (Lx / 2, Ly + offset, 0), (1.0, 0.8, 0.3)
+        ),
     ]
 
     # ========== Physics label ==========
     physics_label = create_boundary_annotation_2d(
         f"Pe_x={Pe_x:.1f}  Pe_y={Pe_y:.1f}\nu={u} m/s  v={v} m/s\nGamma={Gamma}",
-        (Lx/2, Ly + offset * 2, height_scale * 0.8),
+        (Lx / 2, Ly + offset * 2, height_scale * 0.8),
         color=(0.9, 0.9, 0.4),
     )
 
@@ -549,7 +560,9 @@ def vtk_3d_visualization(
 
     # ========== Governing equation annotation ==========
     equation_actor = vtk.vtkTextActor()
-    equation_actor.SetInput("Governing Equation:\nrho*u*dphi/dx + rho*v*dphi/dy = Gamma*(d2phi/dx2 + d2phi/dy2)")
+    equation_actor.SetInput(
+        "Governing Equation:\nrho*u*dphi/dx + rho*v*dphi/dy = Gamma*(d2phi/dx2 + d2phi/dy2)"
+    )
     equation_actor.GetTextProperty().SetFontSize(12)
     equation_actor.GetTextProperty().SetColor(0.8, 0.8, 0.8)
     equation_actor.GetTextProperty().SetFontFamilyToCourier()
@@ -575,14 +588,14 @@ def vtk_3d_visualization(
 
     # Enhanced lighting
     light1 = vtk.vtkLight()
-    light1.SetPosition(Lx/2, Ly/2, Lx * 2)
-    light1.SetFocalPoint(Lx/2, Ly/2, 0)
+    light1.SetPosition(Lx / 2, Ly / 2, Lx * 2)
+    light1.SetFocalPoint(Lx / 2, Ly / 2, 0)
     light1.SetIntensity(0.8)
     renderer.AddLight(light1)
 
     light2 = vtk.vtkLight()
-    light2.SetPosition(Lx * 2, Ly/2, Lx)
-    light2.SetFocalPoint(Lx/2, Ly/2, 0)
+    light2.SetPosition(Lx * 2, Ly / 2, Lx)
+    light2.SetFocalPoint(Lx / 2, Ly / 2, 0)
     light2.SetIntensity(0.4)
     renderer.AddLight(light2)
 
@@ -612,7 +625,7 @@ def vtk_3d_visualization(
     # ========== Camera position ==========
     camera = renderer.GetActiveCamera()
     camera.SetPosition(Lx * 2.5, -Ly * 1.5, max(Lx, Ly) * 2)
-    camera.SetFocalPoint(Lx/2, Ly/2, height_scale * 0.3)
+    camera.SetFocalPoint(Lx / 2, Ly / 2, height_scale * 0.3)
     camera.SetViewUp(0, 0, 1)
     renderer.ResetCamera()
     camera.Zoom(1.1)
@@ -686,22 +699,22 @@ def main():
     This is the logical extension of the 1D solver to two dimensions.
     """
     # Physical parameters (extending 1D case to 2D)
-    Lx = 1.0        # Domain length in x (m)
-    Ly = 1.0        # Domain length in y (m)
-    nx = 50         # Number of grid divisions in x
-    ny = 50         # Number of grid divisions in y
-    rho = 1.0       # Fluid density (kg/m³)
-    Gamma = 0.1     # Diffusion coefficient (kg/m·s)
-    u = 2.0         # x-velocity (m/s)
-    v = 1.0         # y-velocity (m/s)
+    Lx = 1.0  # Domain length in x (m)
+    Ly = 1.0  # Domain length in y (m)
+    nx = 50  # Number of grid divisions in x
+    ny = 50  # Number of grid divisions in y
+    rho = 1.0  # Fluid density (kg/m³)
+    Gamma = 0.1  # Diffusion coefficient (kg/m·s)
+    u = 2.0  # x-velocity (m/s)
+    v = 1.0  # y-velocity (m/s)
 
     # Boundary conditions (Dirichlet on all edges)
-    phi_left = 0.0      # x = 0
-    phi_right = 1.0     # x = Lx
-    phi_bottom = 0.0    # y = 0
-    phi_top = 1.0       # y = Ly
+    phi_left = 0.0  # x = 0
+    phi_right = 1.0  # x = Lx
+    phi_bottom = 0.0  # y = 0
+    phi_top = 1.0  # y = Ly
 
-    Rtol = 1e-6     # Convergence tolerance
+    Rtol = 1e-6  # Convergence tolerance
 
     # Print header
     print("=" * 70)
@@ -722,8 +735,7 @@ def main():
 
     # Solve the 2D convection-diffusion equation
     x, y, phi, iterations, Pe_x, Pe_y = solve_convection_diffusion_2d(
-        nx, ny, Lx, Ly, Gamma, rho, u, v,
-        phi_left, phi_right, phi_bottom, phi_top, Rtol
+        nx, ny, Lx, Ly, Gamma, rho, u, v, phi_left, phi_right, phi_bottom, phi_top, Rtol
     )
 
     # Print results summary
@@ -739,8 +751,7 @@ def main():
 
     # 3D VTK visualization with all ambitious features
     vtk_3d_visualization(
-        x, y, phi, u, v, Gamma, Pe_x, Pe_y,
-        phi_left, phi_right, phi_bottom, phi_top
+        x, y, phi, u, v, Gamma, Pe_x, Pe_y, phi_left, phi_right, phi_bottom, phi_top
     )
 
 

@@ -70,20 +70,20 @@ import vtk
 
 # Colors for different geometry types
 GEOMETRY_COLORS = {
-    "triangle": (1.0, 0.3, 0.3),     # Light red
-    "quad": (0.3, 1.0, 0.3),         # Light green
-    "polygon": (0.3, 0.3, 1.0),      # Light blue
-    "airfoil": (1.0, 0.8, 0.2),      # Gold
-    "cylinder": (0.8, 0.3, 0.8),     # Purple
+    "triangle": (1.0, 0.3, 0.3),  # Light red
+    "quad": (0.3, 1.0, 0.3),  # Light green
+    "polygon": (0.3, 0.3, 1.0),  # Light blue
+    "airfoil": (1.0, 0.8, 0.2),  # Gold
+    "cylinder": (0.8, 0.3, 0.8),  # Purple
 }
 
 # NACA 4-digit airfoil thickness coefficients
 # From: https://en.wikipedia.org/wiki/NACA_airfoil#Equation_for_a_symmetrical_4-digit_NACA_airfoil
-NACA_COEFF_A0 = 0.2969   # sqrt(x) coefficient
-NACA_COEFF_A1 = 0.1260   # x coefficient
-NACA_COEFF_A2 = 0.3516   # x^2 coefficient
-NACA_COEFF_A3 = 0.2843   # x^3 coefficient
-NACA_COEFF_A4 = 0.1015   # x^4 coefficient (use 0.1036 for closed trailing edge)
+NACA_COEFF_A0 = 0.2969  # sqrt(x) coefficient
+NACA_COEFF_A1 = 0.1260  # x coefficient
+NACA_COEFF_A2 = 0.3516  # x^2 coefficient
+NACA_COEFF_A3 = 0.2843  # x^3 coefficient
+NACA_COEFF_A4 = 0.1015  # x^4 coefficient (use 0.1036 for closed trailing edge)
 
 # Minimum x value to avoid sqrt(0) issues
 MIN_X_NORM = 1e-10
@@ -201,12 +201,17 @@ def create_airfoil_polydata(chord=1.0, num_points=50, thickness=0.12):
         x_norm = x / chord
 
         # NACA thickness distribution using standard coefficients
-        yt = thickness / 0.2 * chord * (
-            NACA_COEFF_A0 * math.sqrt(x_norm) -
-            NACA_COEFF_A1 * x_norm -
-            NACA_COEFF_A2 * x_norm**2 +
-            NACA_COEFF_A3 * x_norm**3 -
-            NACA_COEFF_A4 * x_norm**4
+        yt = (
+            thickness
+            / 0.2
+            * chord
+            * (
+                NACA_COEFF_A0 * math.sqrt(x_norm)
+                - NACA_COEFF_A1 * x_norm
+                - NACA_COEFF_A2 * x_norm**2
+                + NACA_COEFF_A3 * x_norm**3
+                - NACA_COEFF_A4 * x_norm**4
+            )
         )
 
         points.InsertNextPoint(x, yt, 0)
@@ -219,12 +224,17 @@ def create_airfoil_polydata(chord=1.0, num_points=50, thickness=0.12):
         x_norm = x / chord
 
         # NACA thickness distribution (negative for lower surface)
-        yt = -thickness / 0.2 * chord * (
-            NACA_COEFF_A0 * math.sqrt(max(x_norm, MIN_X_NORM)) -
-            NACA_COEFF_A1 * x_norm -
-            NACA_COEFF_A2 * x_norm**2 +
-            NACA_COEFF_A3 * x_norm**3 -
-            NACA_COEFF_A4 * x_norm**4
+        yt = (
+            -thickness
+            / 0.2
+            * chord
+            * (
+                NACA_COEFF_A0 * math.sqrt(max(x_norm, MIN_X_NORM))
+                - NACA_COEFF_A1 * x_norm
+                - NACA_COEFF_A2 * x_norm**2
+                + NACA_COEFF_A3 * x_norm**3
+                - NACA_COEFF_A4 * x_norm**4
+            )
         )
 
         points.InsertNextPoint(x, yt, 0)
@@ -393,7 +403,7 @@ def compute_surface_properties(polydata):
 
     print(f"\n{'='*60}")
     print("Surface Properties")
-    print('='*60)
+    print("=" * 60)
     print(f"  Points: {n_points}")
     print(f"  Cells: {n_cells}")
     print(f"  Bounds:")
@@ -525,7 +535,8 @@ def print_educational_summary():
     print("\n" + "=" * 70)
     print("VTK PolyData: Educational Summary for CFD/FEA")
     print("=" * 70)
-    print("""
+    print(
+        """
 1. WHAT IS POLYDATA?
    - VTK's primary format for surface geometry
    - Contains points, cells, and associated data
@@ -562,7 +573,8 @@ def print_educational_summary():
    - Smoothing: Reduce surface noise
    - Normals: Compute surface normals
    - Subdivision: Increase mesh resolution
-""")
+"""
+    )
 
 
 def main():
@@ -612,7 +624,7 @@ def main():
     visualize_polydata_collection(
         [triangle, quad, airfoil, cylinder, sphere],
         names=["Triangle", "Quad", "Airfoil", "Cylinder", "Sphere"],
-        show_edges=True
+        show_edges=True,
     )
 
 

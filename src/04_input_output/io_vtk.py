@@ -7,7 +7,9 @@ from src.common.simple_pipeline import VisualisationPipeline
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 FILE_NAME = os.path.join(SCRIPT_DIR, "../../data/vtks/grid_of_triangles.vtk")
-OUTPUT_FILE = os.path.join(SCRIPT_DIR, "../../data/vtks/grid_of_triangles_transformed.vtk")
+OUTPUT_FILE = os.path.join(
+    SCRIPT_DIR, "../../data/vtks/grid_of_triangles_transformed.vtk"
+)
 
 
 def write_vtk(data: vtk.vtkUnstructuredGrid, filename: str):

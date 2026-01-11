@@ -279,7 +279,9 @@ def create_multiblock_dataset(blocks, block_names=None):
     for i, block in enumerate(blocks):
         multiblock.SetBlock(i, block)
         if block_names and i < len(block_names):
-            multiblock.GetMetaData(i).Set(vtk.vtkCompositeDataSet.NAME(), block_names[i])
+            multiblock.GetMetaData(i).Set(
+                vtk.vtkCompositeDataSet.NAME(), block_names[i]
+            )
 
     return multiblock
 
@@ -392,10 +394,10 @@ def visualize_multiblock(multiblock):
     legend.SetBackgroundColor(0.1, 0.1, 0.1)
 
     zone_colors = [
-        (0.2, 0.4, 0.8),   # Inlet - Blue
-        (0.2, 0.8, 0.2),   # Core - Green
-        (0.8, 0.4, 0.2),   # Outlet - Orange
-        (0.8, 0.2, 0.2),   # Obstacle - Red
+        (0.2, 0.4, 0.8),  # Inlet - Blue
+        (0.2, 0.8, 0.2),  # Core - Green
+        (0.8, 0.4, 0.2),  # Outlet - Orange
+        (0.8, 0.2, 0.2),  # Obstacle - Red
     ]
     zone_names = ["Inlet Zone", "Core Zone", "Outlet Zone", "Obstacle"]
 
@@ -499,14 +501,17 @@ def print_multiblock_info(multiblock):
                 for j in range(pd.GetNumberOfArrays()):
                     arr = pd.GetArray(j)
                     if arr:
-                        print(f"      - {arr.GetName()}: {arr.GetNumberOfTuples()} values")
+                        print(
+                            f"      - {arr.GetName()}: {arr.GetNumberOfTuples()} values"
+                        )
 
     print(f"\n  TOTAL: {total_points} points, {total_cells} cells")
 
     print("\n" + "=" * 70)
     print("Key Concepts for CFD Multiblock Datasets:")
     print("=" * 70)
-    print("""
+    print(
+        """
 1. DOMAIN DECOMPOSITION:
    - Multiblock enables parallel CFD by splitting domain across processors
    - Each block can be solved independently with interface communication
@@ -532,7 +537,8 @@ def print_multiblock_info(multiblock):
    - Extract individual zones for analysis
    - Compute zone-averaged quantities
    - Visualize interface data transfer
-""")
+"""
+    )
 
 
 def main():
