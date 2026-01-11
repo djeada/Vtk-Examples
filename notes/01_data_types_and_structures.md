@@ -8,7 +8,7 @@ The mental model to keep in your pocket is simple: **data in VTK is more than va
 
 ### Topology vs. Geometry
 
-Topology — *How things are connected*
+Topology, *How things are connected*
 
 **Topology** describes the **connectivity and structure** of the mesh:
 
@@ -25,7 +25,7 @@ Topology answers questions like:
 
 📌 **Topology does *not* care about distances, angles, or shape.**
 
-Geometry — *Where things are in space*
+Geometry, *Where things are in space*
 
 **Geometry** describes the **actual spatial position** of points:
 
