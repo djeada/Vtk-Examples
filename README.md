@@ -272,6 +272,7 @@ Master VTK's data structures—the foundation of all visualization operations.
 | 9 | **Unstructured Mesh** | Build and process unstructured mesh geometries | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/unstructured_mesh.py) |
 | 10 | **Cell Types Demo** | Interactive demo of all VTK cell types with combo box selection | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/cell_types_demo.py) |
 | 11 | **Topology vs Geometry** | Interactive demo showing the difference between mesh connectivity and point positions | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/topology_vs_geometry.py) |
+| 12 | **Connectivity Demo** | Interactive demo of VTK's connectivity filter with multiple extraction modes for identifying and extracting connected regions | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/connectivity_demo.py) |
 
 ### 📥 Input and Output
 
