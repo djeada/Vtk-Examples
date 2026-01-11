@@ -363,15 +363,26 @@ def create_3d_cells(points):
     ugrid.SetPoints(points_3d)
 
     # Create 4 hexahedral cells
-    # Bottom layer indices: 0-8, Top layer indices: 9-17
+    # VTK hexahedron node ordering (8 nodes):
+    #   - Nodes 0-3: Bottom face, counter-clockwise when viewed from above
+    #   - Nodes 4-7: Top face, counter-clockwise when viewed from above
+    #   - Node 4 is directly above node 0, 5 above 1, etc.
+    #
+    # Grid layout:
+    #   Bottom layer (z=-0.5), indices 0-8:     Top layer (z=0.5), indices 9-17:
+    #     6----7----8                             15---16---17
+    #     |    |    |                             |    |    |
+    #     3----4----5                             12---13---14
+    #     |    |    |                             |    |    |
+    #     0----1----2                             9----10---11
+    #
     hexahedra = [
-        # (bottom-front-left, bottom-front-right, bottom-back-right,
-        #  bottom-back-left, top-front-left, top-front-right, top-back-right,
-        #  top-back-left)
-        (0, 1, 4, 3, 9, 10, 13, 12),   # Hex 0
-        (1, 2, 5, 4, 10, 11, 14, 13),  # Hex 1
-        (3, 4, 7, 6, 12, 13, 16, 15),  # Hex 2
-        (4, 5, 8, 7, 13, 14, 17, 16),  # Hex 3
+        # (front-left-bot, front-right-bot, back-right-bot, back-left-bot,
+        #  front-left-top, front-right-top, back-right-top, back-left-top)
+        (0, 1, 4, 3, 9, 10, 13, 12),   # Hex 0: bottom-left in XY
+        (1, 2, 5, 4, 10, 11, 14, 13),  # Hex 1: bottom-right in XY
+        (3, 4, 7, 6, 12, 13, 16, 15),  # Hex 2: top-left in XY
+        (4, 5, 8, 7, 13, 14, 17, 16),  # Hex 3: top-right in XY
     ]
 
     for hex_points in hexahedra:
@@ -586,13 +597,13 @@ def print_educational_summary():
 │                                                                     │
 │  CONNECTIVITY TYPES:                                                │
 │                                                                     │
-│  • No Connectivity (0D): Points exist independently (point cloud)   │
+│  • No Connectivity: Points exist independently (point cloud)        │
 │                                                                     │
 │    *    *    *                                                      │
 │    *    *    *                                                      │
 │    *    *    *                                                      │
 │                                                                     │
-│  • Linear Connectivity (1D): Points form lines/paths                │
+│  • Linear Connectivity (1D cells): Points form lines/paths          │
 │                                                                     │
 │    *────*────*                                                      │
 │              │                                                      │
@@ -600,7 +611,7 @@ def print_educational_summary():
 │    │                                                                │
 │    *────*────*                                                      │
 │                                                                     │
-│  • Surface Connectivity (2D): Points form triangles/quads           │
+│  • Surface Connectivity (2D cells): Points form triangles/quads     │
 │                                                                     │
 │    *────*────*                                                      │
 │    │╲   │╲   │                                                      │
@@ -610,7 +621,7 @@ def print_educational_summary():
 │    │ ╲  │ ╲  │                                                      │
 │    *────*────*                                                      │
 │                                                                     │
-│  • Volume Connectivity (3D): Points form hexahedra/tetrahedra       │
+│  • Volume Connectivity (3D cells): Points form hexahedra/tetrahedra │
 │                                                                     │
 │  ─────────────────────────────────────────────────────────────────  │
 │                                                                     │
@@ -624,7 +635,8 @@ def print_educational_summary():
 └─────────────────────────────────────────────────────────────────────┘
 
 In this demonstration:
-- 9 points arranged in a 3x3 grid
+- 9 points arranged in a 3x3 grid (2D modes)
+- 18 points in two layers for 3D mode (extends the concept)
 - Select different connectivity modes to see how they form structures
 - Notice: SAME POINTS, DIFFERENT STRUCTURES based on connectivity!
 """)
