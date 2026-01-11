@@ -443,19 +443,33 @@ def create_cell_adjacency_demo(points):
             quad.GetPointIds().SetId(i, pt_id)
         ugrid.InsertNextCell(quad.GetCellType(), quad.GetPointIds())
 
-    # Add cell data to color cells and show adjacency info
-    cell_colors = vtk.vtkIntArray()
-    cell_colors.SetName("CellID")
-    cell_colors.SetNumberOfComponents(1)
+    # Add cell data for labels and adjacency-based coloring
+    cell_ids = vtk.vtkIntArray()
+    cell_ids.SetName("CellID")
+    cell_ids.SetNumberOfComponents(1)
+
+    adjacency_type = vtk.vtkIntArray()
+    adjacency_type.SetName("AdjacencyType")
+    adjacency_type.SetNumberOfComponents(1)
+
     for i in range(4):
-        cell_colors.InsertNextValue(i)
-    ugrid.GetCellData().SetScalars(cell_colors)
+        cell_ids.InsertNextValue(i)
+
+    # Relative to Q0: Q0=focus, Q1/Q2=edge-adjacent, Q3=vertex-adjacent
+    adjacency_type.InsertNextValue(2)  # Q0 focus
+    adjacency_type.InsertNextValue(1)  # Q1 edge-adjacent
+    adjacency_type.InsertNextValue(1)  # Q2 edge-adjacent
+    adjacency_type.InsertNextValue(0)  # Q3 vertex-adjacent
+
+    ugrid.GetCellData().AddArray(cell_ids)
+    ugrid.GetCellData().SetScalars(adjacency_type)
 
     description = (
         "CELL-CELL CONNECTIVITY (Adjacency): How cells relate to neighbors.\n"
-        "• Q0↔Q1: Share edge (points 1-4) - EDGE ADJACENCY\n"
-        "• Q0↔Q2: Share edge (points 3-4) - EDGE ADJACENCY\n"
-        "• All 4 quads share vertex (point 4) - VERTEX ADJACENCY\n"
+        "• Q0 is the focus cell\n"
+        "• Q1/Q2 share an edge with Q0 (EDGE adjacency)\n"
+        "• Q3 touches Q0 only at a vertex (VERTEX adjacency)\n"
+        "Cells are colored by adjacency type, labels show Q0..Q3.\n"
         "Cell neighbors matter for gradient calculations & PDE solvers."
     )
 
@@ -509,6 +523,7 @@ def create_structured_connectivity_demo(points):
         "STRUCTURED CONNECTIVITY: Implicit neighbor pattern.\n"
         "• Cell(i,j) neighbors are at (i±1,j) and (i,j±1)\n"
         "• NO explicit neighbor storage needed - derived from indices\n"
+        "Cells are labeled with logical indices (row-major order).\n"
         "• FAST lookups: O(1) neighbor access vs O(n) for unstructured\n"
         "This is why structured grids are preferred when geometry allows."
     )
@@ -597,6 +612,7 @@ def create_unstructured_connectivity_demo(points):
         "UNSTRUCTURED CONNECTIVITY: Explicit, arbitrary topology.\n"
         "• MIXED CELL TYPES: 4 triangles + 2 quads in same mesh\n"
         "• No predictable neighbor pattern - must store explicitly\n"
+        "Cells are colored by type (triangles vs quads).\n"
         "• FLEXIBLE: Can represent any geometry, any topology\n"
         "Trade-off: Flexibility vs. speed of structured grids."
     )
@@ -677,6 +693,7 @@ class ConnectivityDemo(QMainWindow):
         self.surface_actor = vtk.vtkActor()
         self.edge_actor = vtk.vtkActor()
         self.point_actor = vtk.vtkActor()
+        self.label_actor = None
         self.renderer.AddActor(self.surface_actor)
         self.renderer.AddActor(self.edge_actor)
         self.renderer.AddActor(self.point_actor)
@@ -719,38 +736,68 @@ class ConnectivityDemo(QMainWindow):
         # Get cell types present
         cell_types = set()
         for i in range(num_cells):
-            cell_types.add(dataset.GetCellTypeName(dataset.GetCellType(i)))
+            cell_type_id = dataset.GetCellType(i)
+            cell_type_name = vtk.vtkCellTypes.GetClassNameFromTypeId(cell_type_id)
+            cell_types.add(cell_type_name or "Unknown")
         cell_type_str = ", ".join(sorted(cell_types))
 
         # Add dataset type info
         dataset_type = dataset.GetClassName()
-
-        info_text = (
-            f"<b>Mode: {mode}</b><br/>"
-            f"{description}<br/><br/>"
-            f"<b>Dataset:</b> {dataset_type} | "
-            f"<b>Points:</b> {num_points} | <b>Cells:</b> {num_cells} | "
-            f"<b>Cell Types:</b> {cell_type_str}"
-        )
-        self.info_label.setText(info_text)
 
         # Create surface mapper with edge visibility
         surface_mapper = vtk.vtkDataSetMapper()
         surface_mapper.SetInputData(dataset)
 
         # For adjacency and mixed type demos, use cell colors
-        if dataset.GetCellData().GetScalars():
+        legend_entries = []
+        scalars = dataset.GetCellData().GetScalars()
+        if scalars:
             surface_mapper.SetScalarModeToUseCellData()
             surface_mapper.SetColorModeToMapScalars()
-            # Create a distinct color lookup table
+            scalar_name = scalars.GetName()
             lut = vtk.vtkLookupTable()
-            lut.SetNumberOfColors(8)
-            lut.SetHueRange(0.0, 0.7)
+            if scalar_name == "AdjacencyType":
+                lut.SetNumberOfColors(3)
+                lut.SetTableValue(0, 0.60, 0.60, 0.60, 1.0)  # Vertex-adjacent
+                lut.SetTableValue(1, 0.20, 0.60, 0.90, 1.0)  # Edge-adjacent
+                lut.SetTableValue(2, 0.95, 0.70, 0.20, 1.0)  # Focus cell
+                surface_mapper.SetScalarRange(0, 2)
+                legend_entries.append(
+                    "Cell colors = adjacency to Q0 (gray=vertex, blue=edge, orange=focus)."
+                )
+            elif scalar_name == "LogicalIndex":
+                lut.SetNumberOfColors(4)
+                lut.SetTableValue(0, 0.20, 0.60, 0.90, 1.0)  # (0,0)
+                lut.SetTableValue(1, 0.20, 0.80, 0.40, 1.0)  # (1,0)
+                lut.SetTableValue(2, 0.95, 0.70, 0.20, 1.0)  # (0,1)
+                lut.SetTableValue(3, 0.90, 0.30, 0.30, 1.0)  # (1,1)
+                surface_mapper.SetScalarRange(0, 3)
+                legend_entries.append(
+                    "Cell colors = logical index (0..3, row-major)."
+                )
+            elif scalar_name == "CellType":
+                lut.SetNumberOfColors(2)
+                lut.SetTableValue(0, 0.20, 0.60, 0.90, 1.0)  # Triangles
+                lut.SetTableValue(1, 0.95, 0.70, 0.20, 1.0)  # Quads
+                surface_mapper.SetScalarRange(0, 1)
+                legend_entries.append(
+                    "Cell colors = CellType (triangles blue, quads orange)."
+                )
+            else:
+                # Fallback gradient for any other scalar
+                lut.SetNumberOfColors(8)
+                lut.SetHueRange(0.0, 0.7)
+                lut.Build()
+                surface_mapper.SetScalarRange(*scalars.GetRange())
+                legend_entries.append(f"Cell colors = {scalar_name}.")
             lut.Build()
             surface_mapper.SetLookupTable(lut)
 
         self.surface_actor.SetMapper(surface_mapper)
-        self.surface_actor.GetProperty().SetColor(0.3, 0.6, 0.9)
+        if scalars:
+            self.surface_actor.GetProperty().SetColor(1.0, 1.0, 1.0)
+        else:
+            self.surface_actor.GetProperty().SetColor(0.3, 0.6, 0.9)
         self.surface_actor.GetProperty().SetOpacity(0.7)
         self.surface_actor.GetProperty().SetEdgeVisibility(1)
         self.surface_actor.GetProperty().SetEdgeColor(0.1, 0.1, 0.4)
@@ -784,6 +831,30 @@ class ConnectivityDemo(QMainWindow):
         self.point_actor.SetMapper(point_mapper)
         self.point_actor.GetProperty().SetColor(0.9, 0.2, 0.2)
 
+        if self.label_actor:
+            self.renderer.RemoveActor(self.label_actor)
+            self.label_actor = None
+
+        label_array_name = None
+        if dataset.GetCellData().HasArray("CellID"):
+            label_array_name = "CellID"
+        elif dataset.GetCellData().HasArray("LogicalIndex"):
+            label_array_name = "LogicalIndex"
+
+        if label_array_name:
+            label_actor = self._build_cell_label_actor(dataset, label_array_name)
+            self.renderer.AddActor(label_actor)
+            self.label_actor = label_actor
+            legend_entries.append(f"White labels = {label_array_name}.")
+
+        visual_key_lines = [
+            "&bull; Blue translucent faces = cells (point-to-cell connectivity).",
+            "&bull; Dark edges = shared cell boundaries (cell-cell connectivity).",
+            "&bull; Red spheres = points.",
+        ]
+        for entry in legend_entries:
+            visual_key_lines.append(f"&bull; {entry}")
+
         # Reset camera
         self.renderer.ResetCamera()
         camera = self.renderer.GetActiveCamera()
@@ -791,8 +862,49 @@ class ConnectivityDemo(QMainWindow):
         camera.Elevation(CAMERA_ELEVATION)
         self.renderer.ResetCameraClippingRange()
 
+        info_text = (
+            f"<b>Mode: {mode}</b><br/>"
+            f"{description}<br/><br/>"
+            f"<b>Dataset:</b> {dataset_type} | "
+            f"<b>Points:</b> {num_points} | <b>Cells:</b> {num_cells} | "
+            f"<b>Cell Types:</b> {cell_type_str}<br/><br/>"
+            f"<b>What you're seeing:</b><br/>"
+            f"{'<br/>'.join(visual_key_lines)}"
+        )
+        self.info_label.setText(info_text)
+
         # Render the scene
         self.vtk_widget.GetRenderWindow().Render()
+
+    def _build_cell_label_actor(self, dataset, label_array_name):
+        """Create a 2D label actor for cell-centered labels."""
+        centers = vtk.vtkCellCenters()
+        centers.SetInputData(dataset)
+        centers.Update()
+        center_output = centers.GetOutput()
+
+        labels = vtk.vtkIntArray()
+        labels.SetName("Label")
+        labels.SetNumberOfComponents(1)
+        num_cells = dataset.GetNumberOfCells()
+        labels.SetNumberOfTuples(num_cells)
+
+        cell_array = dataset.GetCellData().GetArray(label_array_name)
+        for i in range(num_cells):
+            labels.SetTuple1(i, int(cell_array.GetTuple1(i)))
+
+        center_output.GetPointData().SetScalars(labels)
+
+        label_mapper = vtk.vtkLabeledDataMapper()
+        label_mapper.SetInputData(center_output)
+        label_mapper.SetLabelModeToLabelScalars()
+        label_mapper.GetLabelTextProperty().SetColor(1.0, 1.0, 1.0)
+        label_mapper.GetLabelTextProperty().SetFontSize(14)
+
+        label_actor = vtk.vtkActor2D()
+        label_actor.SetMapper(label_mapper)
+        return label_actor
+
 
     def closeEvent(self, event):
         """Clean up VTK resources on close."""
