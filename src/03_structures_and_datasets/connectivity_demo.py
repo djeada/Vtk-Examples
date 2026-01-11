@@ -1,53 +1,55 @@
 """
-VTK Connectivity Demo: Understanding How Points Connect to Form Cells
+VTK Connectivity Demo: Understanding the Multiple Levels of Connectivity
 
-This module provides an interactive demonstration of the fundamental concept
-of CONNECTIVITY in VTK - how points are connected to form different structures.
+This module provides an interactive demonstration of CONNECTIVITY in VTK,
+covering multiple levels of connectivity that define mesh structures.
 
-What is Connectivity?
----------------------
-Connectivity is the relationship between points that defines the mesh structure.
-The SAME SET OF POINTS can be interpreted completely differently based on how
-they are connected:
+Levels of Connectivity:
+-----------------------
 
-- No connectivity: Just a point cloud (individual vertices)
-- Linear connectivity: Points form lines/edges
-- Surface connectivity: Points form triangles/polygons
-- Volume connectivity: Points form 3D cells (tetrahedra, hexahedra)
+1️⃣ POINT-CELL CONNECTIVITY (Basic Level)
+   "Which points belong to this cell?"
+   - A triangle uses 3 points
+   - A quad uses 4 points
+   - A hexahedron uses 8 points
+   This is the foundation - defining cells from points.
 
-Key Concept:
+2️⃣ CELL-CELL CONNECTIVITY (Adjacency)
+   "Which cells touch this cell?"
+   Cells may share:
+   - A face (strong adjacency)
+   - An edge (medium adjacency)
+   - A vertex (weak adjacency)
+   Important for: neighborhood queries, gradient calculations, PDE solvers
+
+3️⃣ LOGICAL CONNECTIVITY (Index Structure)
+   "Is there a predictable pattern to neighbors?"
+   - Structured grids: neighbors follow (i±1, j±1, k±1) pattern
+   - Unstructured grids: arbitrary connectivity, requires lookup
+   This is why structured grids are faster - connectivity is implicit!
+
+4️⃣ TOPOLOGICAL CONSTRAINTS
+   "What rules govern the mesh structure?"
+   - StructuredGrid: fixed topology, cannot add/remove cells
+   - UnstructuredGrid: arbitrary topology, flexible but slower
+   - Mixed cell types: allowed in unstructured, not in structured
+
+Key Insight:
 -----------
-Points alone have NO structure. Connectivity DEFINES the structure.
-
-    *    *    *    *         <- Points without connectivity (point cloud)
-
-    *----*----*----*         <- Points with linear connectivity (polyline)
-
-    *----*                   <- Points with surface connectivity (polygon)
-    |\\  |
-    | \\ |
-    |  \\|
-    *----*
-
-This is why connectivity is fundamental to VTK:
-- It determines how your data is interpreted
-- It affects rendering (points vs lines vs surfaces)
-- It impacts computations (normals, interpolation, etc.)
-
-Real-World Relevance:
---------------------
-- CFD: Mesh cells are defined by point connectivity
-- FEA: Element types are determined by connectivity patterns
-- Medical Imaging: Surface extraction creates new connectivity
-- Point Cloud Processing: Creating meshes requires defining connectivity
+Points alone have NO structure. Connectivity at ALL LEVELS defines:
+- How data is interpreted (points vs surfaces vs volumes)
+- How cells relate to each other (neighbors, boundaries)
+- How efficiently queries can be performed (implicit vs explicit)
 
 Usage:
 ------
 Run this script directly to launch the interactive viewer:
     python connectivity_demo.py
 
-Select different connectivity modes from the combo box to see how
-the SAME POINTS can form completely different structures!
+The demo shows:
+- Point-Cell connectivity: How points form different cell types
+- Cell-Cell adjacency: How cells share faces/edges/vertices
+- The difference between structured and unstructured connectivity
 """
 
 import sys
@@ -400,14 +402,218 @@ def create_3d_cells(points):
     return ugrid, description
 
 
+def create_cell_adjacency_demo(points):
+    """
+    Create a dataset demonstrating CELL-CELL CONNECTIVITY (adjacency).
+
+    This shows how cells relate to each other through shared geometry:
+    - Face adjacency: Cells sharing a complete face
+    - Edge adjacency: Cells sharing an edge
+    - Vertex adjacency: Cells sharing only a vertex
+
+    The 4 quads share the center point, demonstrating vertex adjacency.
+    Adjacent quads share edges, demonstrating edge adjacency.
+
+        6----7----8
+        | Q2 | Q3 |     Q0-Q1: share edge (1,4)
+        3----4----5     Q0-Q2: share edge (3,4)
+        | Q0 | Q1 |     All 4: share vertex (4)
+        0----1----2
+
+    Args:
+        points: vtkPoints object with the point coordinates
+
+    Returns:
+        tuple: (vtkUnstructuredGrid, description string)
+    """
+    ugrid = vtk.vtkUnstructuredGrid()
+    ugrid.SetPoints(points)
+
+    # Define 4 quads that cover the 3x3 grid
+    quads = [
+        (0, 1, 4, 3),  # Quad 0: bottom-left
+        (1, 2, 5, 4),  # Quad 1: bottom-right
+        (3, 4, 7, 6),  # Quad 2: top-left
+        (4, 5, 8, 7),  # Quad 3: top-right
+    ]
+
+    for quad_points in quads:
+        quad = vtk.vtkQuad()
+        for i, pt_id in enumerate(quad_points):
+            quad.GetPointIds().SetId(i, pt_id)
+        ugrid.InsertNextCell(quad.GetCellType(), quad.GetPointIds())
+
+    # Add cell data to color cells and show adjacency info
+    cell_colors = vtk.vtkIntArray()
+    cell_colors.SetName("CellID")
+    cell_colors.SetNumberOfComponents(1)
+    for i in range(4):
+        cell_colors.InsertNextValue(i)
+    ugrid.GetCellData().SetScalars(cell_colors)
+
+    description = (
+        "CELL-CELL CONNECTIVITY (Adjacency): How cells relate to neighbors.\n"
+        "• Q0↔Q1: Share edge (points 1-4) - EDGE ADJACENCY\n"
+        "• Q0↔Q2: Share edge (points 3-4) - EDGE ADJACENCY\n"
+        "• All 4 quads share vertex (point 4) - VERTEX ADJACENCY\n"
+        "Cell neighbors matter for gradient calculations & PDE solvers."
+    )
+
+    return ugrid, description
+
+
+def create_structured_connectivity_demo(points):
+    """
+    Create a STRUCTURED GRID demonstrating implicit/logical connectivity.
+
+    In structured grids, connectivity is IMPLICIT based on indices:
+    - Cell (i,j) has neighbors at (i±1, j) and (i, j±1)
+    - No need to store explicit neighbor lists
+    - This makes structured grids faster for neighbor lookups
+
+    The grid has logical structure where neighbors follow index patterns:
+        Cell[i,j] neighbors: Cell[i-1,j], Cell[i+1,j], Cell[i,j-1], Cell[i,j+1]
+
+    Args:
+        points: vtkPoints object (not used - creates new structured grid)
+
+    Returns:
+        tuple: (vtkStructuredGrid, description string)
+    """
+    # Create a 3x3 structured grid
+    sgrid = vtk.vtkStructuredGrid()
+    sgrid.SetDimensions(3, 3, 1)
+
+    # Create points for the structured grid
+    pts = vtk.vtkPoints()
+    for j in range(3):
+        for i in range(3):
+            x = i - 1
+            y = j - 1
+            z = 0
+            pts.InsertNextPoint(x, y, z)
+
+    sgrid.SetPoints(pts)
+
+    # Add cell data showing logical indices
+    cell_indices = vtk.vtkIntArray()
+    cell_indices.SetName("LogicalIndex")
+    cell_indices.SetNumberOfComponents(1)
+    # 2x2 cells in a 3x3 point grid
+    for j in range(2):
+        for i in range(2):
+            cell_indices.InsertNextValue(j * 2 + i)
+    sgrid.GetCellData().SetScalars(cell_indices)
+
+    description = (
+        "STRUCTURED CONNECTIVITY: Implicit neighbor pattern.\n"
+        "• Cell(i,j) neighbors are at (i±1,j) and (i,j±1)\n"
+        "• NO explicit neighbor storage needed - derived from indices\n"
+        "• FAST lookups: O(1) neighbor access vs O(n) for unstructured\n"
+        "This is why structured grids are preferred when geometry allows."
+    )
+
+    return sgrid, description
+
+
+def create_unstructured_connectivity_demo(points):
+    """
+    Create an UNSTRUCTURED GRID demonstrating explicit connectivity.
+
+    In unstructured grids, connectivity must be EXPLICITLY stored:
+    - No predictable pattern for neighbors
+    - Arbitrary cell arrangements and types
+    - More flexible but slower neighbor lookups
+
+    This example uses mixed cell types to show unstructured flexibility:
+    - Triangles and quads mixed together
+    - No regular index pattern for neighbors
+
+    Args:
+        points: vtkPoints object with the point coordinates
+
+    Returns:
+        tuple: (vtkUnstructuredGrid, description string)
+    """
+    ugrid = vtk.vtkUnstructuredGrid()
+    ugrid.SetPoints(points)
+
+    # Mix of triangles and quads - this is only possible in unstructured grids!
+    # Use triangles on left, quad on right to show mixed topology
+
+    # Left side: 2 triangles
+    tri1 = vtk.vtkTriangle()
+    tri1.GetPointIds().SetId(0, 0)
+    tri1.GetPointIds().SetId(1, 1)
+    tri1.GetPointIds().SetId(2, 3)
+    ugrid.InsertNextCell(tri1.GetCellType(), tri1.GetPointIds())
+
+    tri2 = vtk.vtkTriangle()
+    tri2.GetPointIds().SetId(0, 1)
+    tri2.GetPointIds().SetId(1, 4)
+    tri2.GetPointIds().SetId(2, 3)
+    ugrid.InsertNextCell(tri2.GetCellType(), tri2.GetPointIds())
+
+    tri3 = vtk.vtkTriangle()
+    tri3.GetPointIds().SetId(0, 3)
+    tri3.GetPointIds().SetId(1, 4)
+    tri3.GetPointIds().SetId(2, 6)
+    ugrid.InsertNextCell(tri3.GetCellType(), tri3.GetPointIds())
+
+    tri4 = vtk.vtkTriangle()
+    tri4.GetPointIds().SetId(0, 4)
+    tri4.GetPointIds().SetId(1, 7)
+    tri4.GetPointIds().SetId(2, 6)
+    ugrid.InsertNextCell(tri4.GetCellType(), tri4.GetPointIds())
+
+    # Right side: 2 quads
+    quad1 = vtk.vtkQuad()
+    quad1.GetPointIds().SetId(0, 1)
+    quad1.GetPointIds().SetId(1, 2)
+    quad1.GetPointIds().SetId(2, 5)
+    quad1.GetPointIds().SetId(3, 4)
+    ugrid.InsertNextCell(quad1.GetCellType(), quad1.GetPointIds())
+
+    quad2 = vtk.vtkQuad()
+    quad2.GetPointIds().SetId(0, 4)
+    quad2.GetPointIds().SetId(1, 5)
+    quad2.GetPointIds().SetId(2, 8)
+    quad2.GetPointIds().SetId(3, 7)
+    ugrid.InsertNextCell(quad2.GetCellType(), quad2.GetPointIds())
+
+    # Add cell type indicator
+    cell_types = vtk.vtkIntArray()
+    cell_types.SetName("CellType")
+    cell_types.SetNumberOfComponents(1)
+    cell_types.InsertNextValue(0)  # Triangle
+    cell_types.InsertNextValue(0)  # Triangle
+    cell_types.InsertNextValue(0)  # Triangle
+    cell_types.InsertNextValue(0)  # Triangle
+    cell_types.InsertNextValue(1)  # Quad
+    cell_types.InsertNextValue(1)  # Quad
+    ugrid.GetCellData().SetScalars(cell_types)
+
+    description = (
+        "UNSTRUCTURED CONNECTIVITY: Explicit, arbitrary topology.\n"
+        "• MIXED CELL TYPES: 4 triangles + 2 quads in same mesh\n"
+        "• No predictable neighbor pattern - must store explicitly\n"
+        "• FLEXIBLE: Can represent any geometry, any topology\n"
+        "Trade-off: Flexibility vs. speed of structured grids."
+    )
+
+    return ugrid, description
+
+
 # Connectivity modes and their creation functions
 CONNECTIVITY_MODES = {
-    "No Connectivity (Point Cloud)": create_point_cloud,
-    "Linear (Polyline)": create_lines,
-    "Surface (Triangles)": create_triangles,
-    "Surface (Quads)": create_quads,
-    "Polygon (Boundary)": create_polygon,
-    "Volume (Hexahedra)": create_3d_cells,
+    "1. Point-Cell: No Connectivity (Point Cloud)": create_point_cloud,
+    "2. Point-Cell: Linear (Polyline)": create_lines,
+    "3. Point-Cell: Surface (Triangles)": create_triangles,
+    "4. Point-Cell: Surface (Quads)": create_quads,
+    "5. Point-Cell: Volume (Hexahedra)": create_3d_cells,
+    "6. Cell-Cell: Adjacency Demo": create_cell_adjacency_demo,
+    "7. Logical: Structured Grid (Implicit)": create_structured_connectivity_demo,
+    "8. Logical: Unstructured Grid (Mixed Types)": create_unstructured_connectivity_demo,
 }
 
 
@@ -415,14 +621,16 @@ class ConnectivityDemo(QMainWindow):
     """
     Interactive VTK Connectivity Demo using PyQt6.
 
-    This widget demonstrates how the same set of points can form
-    completely different structures based on their connectivity.
+    This widget demonstrates multiple levels of connectivity in VTK:
+    - Point-Cell: How points form cells
+    - Cell-Cell: How cells relate to neighbors (adjacency)
+    - Logical: Structured (implicit) vs Unstructured (explicit) connectivity
     """
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("VTK Connectivity Demo: How Points Form Structures")
-        self.resize(1000, 750)
+        self.setWindowTitle("VTK Connectivity Demo: Multiple Levels of Connectivity")
+        self.resize(1100, 800)
 
         # Create the base points
         self.base_points = create_grid_points()
@@ -438,7 +646,7 @@ class ConnectivityDemo(QMainWindow):
 
         self.combo_box = QComboBox()
         self.combo_box.addItems(CONNECTIVITY_MODES.keys())
-        self.combo_box.setMinimumWidth(250)
+        self.combo_box.setMinimumWidth(350)
         self.combo_box.currentTextChanged.connect(self.on_mode_changed)
         header_layout.addWidget(self.combo_box)
 
@@ -502,21 +710,25 @@ class ConnectivityDemo(QMainWindow):
 
         # Create the dataset with the selected connectivity
         create_func = CONNECTIVITY_MODES[mode]
-        ugrid, description = create_func(points)
+        dataset, description = create_func(points)
 
         # Update info label
-        num_points = ugrid.GetNumberOfPoints()
-        num_cells = ugrid.GetNumberOfCells()
+        num_points = dataset.GetNumberOfPoints()
+        num_cells = dataset.GetNumberOfCells()
 
         # Get cell types present
         cell_types = set()
         for i in range(num_cells):
-            cell_types.add(ugrid.GetCellTypeName(ugrid.GetCellType(i)))
+            cell_types.add(dataset.GetCellTypeName(dataset.GetCellType(i)))
         cell_type_str = ", ".join(sorted(cell_types))
+
+        # Add dataset type info
+        dataset_type = dataset.GetClassName()
 
         info_text = (
             f"<b>Mode: {mode}</b><br/>"
             f"{description}<br/><br/>"
+            f"<b>Dataset:</b> {dataset_type} | "
             f"<b>Points:</b> {num_points} | <b>Cells:</b> {num_cells} | "
             f"<b>Cell Types:</b> {cell_type_str}"
         )
@@ -524,7 +736,18 @@ class ConnectivityDemo(QMainWindow):
 
         # Create surface mapper with edge visibility
         surface_mapper = vtk.vtkDataSetMapper()
-        surface_mapper.SetInputData(ugrid)
+        surface_mapper.SetInputData(dataset)
+
+        # For adjacency and mixed type demos, use cell colors
+        if dataset.GetCellData().GetScalars():
+            surface_mapper.SetScalarModeToUseCellData()
+            surface_mapper.SetColorModeToMapScalars()
+            # Create a distinct color lookup table
+            lut = vtk.vtkLookupTable()
+            lut.SetNumberOfColors(8)
+            lut.SetHueRange(0.0, 0.7)
+            lut.Build()
+            surface_mapper.SetLookupTable(lut)
 
         self.surface_actor.SetMapper(surface_mapper)
         self.surface_actor.GetProperty().SetColor(0.3, 0.6, 0.9)
@@ -535,7 +758,7 @@ class ConnectivityDemo(QMainWindow):
 
         # Create explicit edge extraction for better visibility
         edges = vtk.vtkExtractEdges()
-        edges.SetInputData(ugrid)
+        edges.SetInputData(dataset)
 
         edge_mapper = vtk.vtkPolyDataMapper()
         edge_mapper.SetInputConnection(edges.GetOutputPort())
@@ -551,7 +774,7 @@ class ConnectivityDemo(QMainWindow):
         sphere_source.SetPhiResolution(16)
 
         glyph = vtk.vtkGlyph3D()
-        glyph.SetInputData(ugrid)
+        glyph.SetInputData(dataset)
         glyph.SetSourceConnection(sphere_source.GetOutputPort())
         glyph.SetScaleModeToDataScalingOff()
 
@@ -579,66 +802,53 @@ class ConnectivityDemo(QMainWindow):
 
 def print_educational_summary():
     """Print educational information about connectivity in VTK."""
-    print("\n" + "=" * 70)
-    print("VTK CONNECTIVITY: Understanding How Points Form Structures")
-    print("=" * 70)
+    print("\n" + "=" * 75)
+    print("VTK CONNECTIVITY: Understanding Multiple Levels of Connectivity")
+    print("=" * 75)
     print("""
-┌─────────────────────────────────────────────────────────────────────┐
-│                    CONNECTIVITY IN VTK                              │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  What is Connectivity?                                              │
-│  ─────────────────────                                              │
-│  Connectivity defines HOW POINTS ARE CONNECTED to form cells.       │
-│  The SAME POINTS can form completely different structures           │
-│  depending on their connectivity:                                   │
-│                                                                     │
-│  ─────────────────────────────────────────────────────────────────  │
-│                                                                     │
-│  CONNECTIVITY TYPES:                                                │
-│                                                                     │
-│  • No Connectivity: Points exist independently (point cloud)        │
-│                                                                     │
-│    *    *    *                                                      │
-│    *    *    *                                                      │
-│    *    *    *                                                      │
-│                                                                     │
-│  • Linear Connectivity (1D cells): Points form lines/paths          │
-│                                                                     │
-│    *────*────*                                                      │
-│              │                                                      │
-│    *    *    *                                                      │
-│    │                                                                │
-│    *────*────*                                                      │
-│                                                                     │
-│  • Surface Connectivity (2D cells): Points form triangles/quads     │
-│                                                                     │
-│    *────*────*                                                      │
-│    │╲   │╲   │                                                      │
-│    │ ╲  │ ╲  │                                                      │
-│    *────*────*                                                      │
-│    │╲   │╲   │                                                      │
-│    │ ╲  │ ╲  │                                                      │
-│    *────*────*                                                      │
-│                                                                     │
-│  • Volume Connectivity (3D cells): Points form hexahedra/tetrahedra │
-│                                                                     │
-│  ─────────────────────────────────────────────────────────────────  │
-│                                                                     │
-│  WHY THIS MATTERS:                                                  │
-│                                                                     │
-│  • CFD/FEA: Connectivity defines the mesh structure                 │
-│  • Rendering: Lines vs surfaces vs volumes                          │
-│  • Interpolation: How values are interpolated between points        │
-│  • Computation: Normals, gradients, and other derived quantities    │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    LEVELS OF CONNECTIVITY IN VTK                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1️⃣  POINT-CELL CONNECTIVITY (Basic Level)                              │
+│  ─────────────────────────────────────────                              │
+│  "Which points belong to this cell?"                                    │
+│  • Triangle: 3 points   • Quad: 4 points   • Hex: 8 points              │
+│  This defines the fundamental cell structure.                           │
+│                                                                         │
+│  2️⃣  CELL-CELL CONNECTIVITY (Adjacency)                                  │
+│  ─────────────────────────────────────                                  │
+│  "Which cells touch this cell?"                                         │
+│  Cells may share: faces, edges, or vertices                             │
+│  Important for: gradients, PDE solvers, neighborhood queries            │
+│                                                                         │
+│  3️⃣  LOGICAL CONNECTIVITY (Index Structure)                              │
+│  ─────────────────────────────────────────                              │
+│  "Is there a predictable pattern to neighbors?"                         │
+│  • Structured grids: neighbors at (i±1, j±1, k±1) - IMPLICIT            │
+│  • Unstructured grids: arbitrary - must store EXPLICITLY                │
+│  This is why structured grids are FASTER!                               │
+│                                                                         │
+│  4️⃣  TOPOLOGICAL CONSTRAINTS                                             │
+│  ────────────────────────────                                           │
+│  "What rules govern the mesh?"                                          │
+│  • StructuredGrid: fixed topology, regular pattern                      │
+│  • UnstructuredGrid: arbitrary topology, mixed cell types               │
+│                                                                         │
+│  ─────────────────────────────────────────────────────────────────────  │
+│                                                                         │
+│  WHY THIS MATTERS:                                                      │
+│                                                                         │
+│  • CFD/FEA: All connectivity levels affect solver behavior              │
+│  • Performance: Structured = fast, Unstructured = flexible              │
+│  • Algorithms: Gradient, interpolation depend on cell neighbors         │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 
-In this demonstration:
-- 9 points arranged in a 3x3 grid (2D modes)
-- 18 points in two layers for 3D mode (extends the concept)
-- Select different connectivity modes to see how they form structures
-- Notice: SAME POINTS, DIFFERENT STRUCTURES based on connectivity!
+This demonstration covers:
+- Point-Cell: How points form cells (vertices, lines, triangles, quads, hexes)
+- Cell-Cell: How cells share faces/edges/vertices (adjacency)
+- Logical: Structured (implicit) vs Unstructured (explicit) connectivity
 """)
 
 
@@ -647,9 +857,11 @@ def main():
     print_educational_summary()
 
     print("\nStarting interactive demonstration...")
-    print("Use the combo box to select different connectivity modes.")
-    print("Watch how the SAME POINTS form different structures!")
-    print("-" * 70)
+    print("Explore all levels of connectivity:")
+    print("  - Point-Cell: How points form different cell types")
+    print("  - Cell-Cell: How cells share faces/edges/vertices")
+    print("  - Logical: Structured (implicit) vs Unstructured (explicit)")
+    print("-" * 75)
 
     app = QApplication(sys.argv)
     window = ConnectivityDemo()
