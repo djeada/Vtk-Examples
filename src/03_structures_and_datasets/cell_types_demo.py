@@ -51,6 +51,11 @@ import sys
 
 import vtk
 from PyQt6.QtCore import Qt
+
+# Visual constants for cell rendering
+VERTEX_SPHERE_RADIUS = 0.08  # Radius of spheres showing cell vertices
+CAMERA_AZIMUTH = 30  # Initial camera azimuth angle in degrees
+CAMERA_ELEVATION = 20  # Initial camera elevation angle in degrees
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -740,7 +745,7 @@ class CellTypesDemo(QMainWindow):
 
         # Create point glyph visualization
         sphere_source = vtk.vtkSphereSource()
-        sphere_source.SetRadius(0.08)
+        sphere_source.SetRadius(VERTEX_SPHERE_RADIUS)
         sphere_source.SetThetaResolution(16)
         sphere_source.SetPhiResolution(16)
 
@@ -758,8 +763,8 @@ class CellTypesDemo(QMainWindow):
         # Reset camera to show the cell clearly
         self.renderer.ResetCamera()
         camera = self.renderer.GetActiveCamera()
-        camera.Azimuth(30)
-        camera.Elevation(20)
+        camera.Azimuth(CAMERA_AZIMUTH)
+        camera.Elevation(CAMERA_ELEVATION)
         self.renderer.ResetCameraClippingRange()
 
         # Render the scene

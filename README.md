@@ -270,6 +270,7 @@ Master VTK's data structures—the foundation of all visualization operations.
 | 7 | **Unstructured Grid** | Work with arbitrary cell types and connectivity | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/unstructured_grid.py) |
 | 8 | **Structured Mesh** | Create and manipulate structured mesh geometries | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/structured_mesh.py) |
 | 9 | **Unstructured Mesh** | Build and process unstructured mesh geometries | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/unstructured_mesh.py) |
+| 10 | **Cell Types Demo** | Interactive demo of all VTK cell types with combo box selection | [📄 Code](https://github.com/djeada/VTK-Examples/blob/main/src/03_structures_and_datasets/cell_types_demo.py) |
 
 ### 📥 Input and Output
 
