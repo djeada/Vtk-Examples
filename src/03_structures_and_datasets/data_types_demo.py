@@ -79,7 +79,7 @@ def create_image_data():
         tuple: (vtkImageData, display_name, description)
     """
     image_data = vtk.vtkImageData()
-    image_data.SetDimensions(2, 2, 2)  # 2x2x2 points = 1 voxel
+    image_data.SetDimensions(2, 2, 2)  # 2x2x2 points creates 1 cell
     image_data.SetSpacing(1.0, 1.0, 1.0)
     image_data.SetOrigin(-0.5, -0.5, -0.5)  # Center at origin
 
@@ -147,16 +147,17 @@ def create_structured_grid():
 
     points = vtk.vtkPoints()
     # Create a slightly warped hexahedron to show curvilinear nature
-    # Bottom face (z=0)
-    points.InsertNextPoint(-0.6, -0.5, -0.5)  # (0,0,0)
-    points.InsertNextPoint(0.6, -0.4, -0.5)  # (1,0,0) - slightly warped
-    points.InsertNextPoint(-0.5, 0.5, -0.4)  # (0,1,0) - slightly warped
-    points.InsertNextPoint(0.5, 0.6, -0.5)  # (1,1,0) - slightly warped
-    # Top face (z=1)
-    points.InsertNextPoint(-0.5, -0.6, 0.5)  # (0,0,1) - slightly warped
-    points.InsertNextPoint(0.5, -0.5, 0.6)  # (1,0,1) - slightly warped
-    points.InsertNextPoint(-0.6, 0.5, 0.5)  # (0,1,1) - slightly warped
-    points.InsertNextPoint(0.6, 0.5, 0.5)  # (1,1,1)
+    # Points ordered by VTK structured grid convention: i varies fastest, then j, then k
+    # Bottom face (k=0)
+    points.InsertNextPoint(-0.6, -0.5, -0.5)  # Point 0: bottom-front-left
+    points.InsertNextPoint(0.6, -0.4, -0.5)  # Point 1: bottom-front-right (warped)
+    points.InsertNextPoint(-0.5, 0.5, -0.4)  # Point 2: bottom-back-left (warped)
+    points.InsertNextPoint(0.5, 0.6, -0.5)  # Point 3: bottom-back-right (warped)
+    # Top face (k=1)
+    points.InsertNextPoint(-0.5, -0.6, 0.5)  # Point 4: top-front-left (warped)
+    points.InsertNextPoint(0.5, -0.5, 0.6)  # Point 5: top-front-right (warped)
+    points.InsertNextPoint(-0.6, 0.5, 0.5)  # Point 6: top-back-left (warped)
+    points.InsertNextPoint(0.6, 0.5, 0.5)  # Point 7: top-back-right
 
     grid.SetPoints(points)
 
