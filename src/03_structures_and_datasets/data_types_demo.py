@@ -9,32 +9,38 @@ Each dataset type is displayed clearly in the center of the view with:
 - Visible edges for better understanding of topology
 - Data type information displayed as text overlay
 
-Dataset Types Covered:
----------------------
-1. vtkImageData: Handles regular, rectilinear grid data
+Dataset Types Hierarchy (Primitive -> Powerful):
+-----------------------------------------------
+The data types form a hierarchy from most constrained to most flexible:
+
+1. vtkImageData (MOST CONSTRAINED / MOST EFFICIENT):
    - Uniform spacing in all directions
-   - Most memory-efficient grid type
-   - Used for volumetric data, images, uniform grids
+   - No explicit point storage (computed from origin + spacing)
+   - Fastest access, lowest memory footprint
+   - Use when: Regular grids, medical imaging, volumetric data
 
-2. vtkRectilinearGrid: Manages grid data with varying spacing
-   - Axis-aligned cells with non-uniform spacing
-   - Defined by 1D coordinate arrays
-   - Used for stretched grids, boundary layer meshes
+2. vtkRectilinearGrid (+VARIABLE SPACING):
+   - Adds non-uniform spacing via 1D coordinate arrays
+   - Still axis-aligned cells only
+   - Use when: Stretched grids, boundary layer clustering
 
-3. vtkStructuredGrid: Deals with structured data points in 3D space
-   - Regular i-j-k topology with curvilinear coordinates
-   - Grid lines can be curved
-   - Used for body-fitted meshes, O-grids, C-grids
+3. vtkStructuredGrid (+CURVED GEOMETRY):
+   - Adds curvilinear coordinates (points at any position)
+   - Grid lines can be curved (body-fitted meshes)
+   - Stores all 3D points explicitly
+   - Use when: O-grids around airfoils, pipe flows, curved boundaries
 
-4. vtkPolyData: Specializes in representing polygonal data
+4. vtkPolyData (SURFACE SPECIALIST):
    - Vertices, lines, polygons, and triangle strips
-   - Primary format for surface meshes
-   - Used for STL, OBJ, and surface visualization
+   - Optimized for surface representation
+   - Explicit connectivity but surface elements only
+   - Use when: STL/OBJ files, surface visualization, rendering
 
-5. vtkUnstructuredGrid: Ideal for representing complex, irregular grid data
-   - Explicit connectivity, any cell type
-   - Maximum geometric flexibility
-   - Used for FEM/CFD with complex geometries
+5. vtkUnstructuredGrid (MOST POWERFUL / HIGHEST COST):
+   - Any cell type (tetra, hexa, wedge, pyramid, polyhedra)
+   - Mixed cell types in same mesh
+   - Arbitrary connectivity
+   - Use when: Complex FEM/CFD geometries, adaptive meshes
 
 Usage:
 ------
@@ -85,9 +91,9 @@ def create_image_data():
 
     return (
         image_data,
-        "vtkImageData",
-        "Regular grid with uniform spacing. "
-        "Most memory-efficient for volumetric data and images.",
+        "vtkImageData (Most Constrained)",
+        "⚡ SIMPLEST: Uniform spacing only. No point storage needed--positions computed "
+        "from origin + spacing. Fastest access, lowest memory. Limited to regular grids.",
     )
 
 
@@ -124,9 +130,9 @@ def create_rectilinear_grid():
 
     return (
         rgrid,
-        "vtkRectilinearGrid",
-        "Axis-aligned grid with non-uniform spacing. "
-        "Defined by 1D coordinate arrays for each axis.",
+        "vtkRectilinearGrid (+Variable Spacing)",
+        "📊 ADDS: Non-uniform spacing via 1D coordinate arrays. Still axis-aligned cells. "
+        "More flexible than ImageData for boundary layers and stretched meshes.",
     )
 
 
@@ -163,9 +169,9 @@ def create_structured_grid():
 
     return (
         grid,
-        "vtkStructuredGrid",
-        "Curvilinear structured grid. Regular i-j-k topology "
-        "but points can be at any position (curved grid lines).",
+        "vtkStructuredGrid (+Curved Geometry)",
+        "🔄 ADDS: Curvilinear coordinates--points at ANY position with curved grid lines. "
+        "Enables body-fitted meshes around airfoils, cylinders. Stores all 3D points explicitly.",
     )
 
 
@@ -203,9 +209,9 @@ def create_poly_data():
 
     return (
         polydata,
-        "vtkPolyData",
-        "Polygonal surface mesh. Primary format for vertices, lines, "
-        "and polygons. Used for STL/OBJ files and surface visualization.",
+        "vtkPolyData (Surface Specialist)",
+        "🎨 SURFACE-FOCUSED: Optimized for polygonal surfaces (vertices, lines, polys, strips). "
+        "Standard for STL/OBJ. Explicit connectivity but limited to surface elements only.",
     )
 
 
@@ -242,9 +248,9 @@ def create_unstructured_grid():
 
     return (
         ugrid,
-        "vtkUnstructuredGrid",
-        "Flexible mesh with explicit connectivity. Supports any cell type "
-        "and can mix different cell types. Used for complex FEM/CFD geometries.",
+        "vtkUnstructuredGrid (Most Powerful)",
+        "🚀 MAXIMUM FLEXIBILITY: Any cell type, mixed cells, arbitrary connectivity. "
+        "Essential for complex FEM/CFD. Highest memory cost but handles ANY geometry.",
     )
 
 
