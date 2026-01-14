@@ -25,8 +25,8 @@ Experience the power of VTK through these interactive demonstrations. Click on a
 
 | Visualization Demo | Animation Showcase |
 |:------------------:|:------------------:|
-| [![Watch Demo 1](https://img.youtube.com/vi/Qgoh9NbNqdc/maxresdefault.jpg)](https://youtube.com/shorts/Qgoh9NbNqdc?feature=share) | [![Watch Demo 2](https://img.youtube.com/vi/0jAN9Q-GGCk/maxresdefault.jpg)](https://youtube.com/shorts/0jAN9Q-GGCk?feature=share) |
-| *3D Rendering & Interaction* | *Dynamic Visualization* |
+| [![Watch Demo 1](https://img.youtube.com/vi/Qgoh9NbNqdc/maxresdefault.jpg)](https://youtube.com/shorts/Qgoh9NbNqdc?feature=share) | [![Watch Demo 2](https://github.com/user-attachments/assets/079dd1e2-c00e-4a3b-9b0c-12f4ac98d6e2)](https://youtube.com/shorts/ix_DqMRmafU) |
+| *3D Rendering & Interaction* | *VTK Short Demo* |
 
 </div>
 
