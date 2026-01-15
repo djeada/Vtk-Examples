@@ -207,8 +207,15 @@ class NACAGenerator:
             closed_te: Close trailing edge to zero thickness
         """
         self.naca_code = naca_code.strip()
+
+        if chord <= 0:
+            raise ValueError("Chord length must be positive")
         self.chord = chord
+
+        if num_points < 2:
+            raise ValueError("Number of points must be at least 2")
         self.num_points = num_points
+
         self.cosine_spacing = cosine_spacing
         self.closed_te = closed_te
 
@@ -237,14 +244,19 @@ class NACAGenerator:
         Raises:
             ValueError: If NACA code is invalid
         """
-        code = self.naca_code
+        code = self.naca_code.upper()
 
-        # Remove common prefixes
-        for prefix in ["NACA", "naca", "NACA-", "NACA "]:
-            if code.upper().startswith(prefix.upper()):
+        # Remove common prefixes (all uppercase for comparison)
+        prefixes = ["NACA-", "NACA ", "NACA"]
+        for prefix in prefixes:
+            if code.startswith(prefix):
                 code = code[len(prefix) :]
+                break
 
         code = code.strip()
+
+        # Update stored naca_code to the clean version
+        self.naca_code = code
 
         if len(code) == 4 and code.isdigit():
             return self._parse_4_digit(code)
@@ -502,14 +514,20 @@ class NACAGenerator:
         Returns ordered points going around the airfoil clockwise:
         TE (upper) -> LE -> TE (lower)
 
+        The upper surface is reversed (TE to LE), then the lower surface
+        continues from LE to TE. The first point of the lower surface is
+        skipped because it's the same as the last point of the reversed
+        upper surface (both are at the leading edge).
+
         Returns:
             Tuple of (x_coords, y_coords) for closed profile
         """
-        # Upper surface from TE to LE
+        # Upper surface from TE to LE (reversed)
         x_upper = self._x_upper[::-1]
         y_upper = self._y_upper[::-1]
 
-        # Lower surface from LE to TE (skip first point to avoid duplicate at LE)
+        # Lower surface from LE to TE
+        # Skip first point (index 0) which is at LE - same as last point of upper
         x_lower = self._x_lower[1:]
         y_lower = self._y_lower[1:]
 
@@ -762,6 +780,9 @@ class NACAGenerator:
         if not HAS_VTK:
             raise ImportError("VTK is required")
 
+        if self.chord <= 0:
+            raise ValueError("Chord length must be positive for pressure field computation")
+
         scalars = vtk.vtkFloatArray()
         scalars.SetName(field_name)
         scalars.SetNumberOfComponents(1)
@@ -905,6 +926,9 @@ class NACAGenerator:
 
     def _export_dat(self, filename: str) -> bool:
         """Export to XFOIL/XFLR5 DAT format."""
+        if self.chord <= 0:
+            raise ValueError("Chord length must be positive for DAT export")
+
         x, y = self.get_closed_profile()
 
         with open(filename, "w") as f:
@@ -1189,9 +1213,13 @@ def create_comparison_visualization(
     if not HAS_MATPLOTLIB:
         raise ImportError("Matplotlib is required for comparison visualization")
 
+    if not airfoil_codes:
+        raise ValueError("At least one airfoil code is required for comparison")
+
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-    colors = plt.cm.tab10(np.linspace(0, 1, len(airfoil_codes)))
+    n_airfoils = len(airfoil_codes)
+    colors = plt.cm.tab10(np.linspace(0, 1, max(n_airfoils, 1)))
 
     # Profile comparison (top-left)
     ax1 = axes[0, 0]
