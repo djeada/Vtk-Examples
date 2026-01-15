@@ -327,10 +327,10 @@ class TopologyGeometryDemo:
         slider_rep.SetTitleText(title)
 
         # Position slider using normalized display coordinates
-        # The slider panel is at x: 0.7-1.0 of the window
-        # Map slider positions to that region
-        x_start = 0.72  # Start 2% into the slider panel
-        x_end = 0.98    # End 2% before the edge
+        # Sliders are placed on the right side of the window (x: 0.72-0.98)
+        # to avoid overlapping with the visualization in the center
+        x_start = 0.72  # Start position
+        x_end = 0.98    # End position
         
         slider_rep.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
         slider_rep.GetPoint1Coordinate().SetValue(x_start, y_pos)
@@ -396,8 +396,7 @@ class TopologyGeometryDemo:
 
     def setup_sliders(self):
         """Set up all parameter sliders."""
-        # Adjusted Y positions for the slider panel (0.7-1.0 viewport)
-        # Spread sliders from top to bottom with appropriate spacing
+        # Y positions for vertical spacing of sliders (top to bottom)
         slider_configs = [
             ("Scale X", 0.2, 3.0, 1.0, 0.85, self.on_scale_x_changed),
             ("Scale Y", 0.2, 3.0, 1.0, 0.70, self.on_scale_y_changed),
