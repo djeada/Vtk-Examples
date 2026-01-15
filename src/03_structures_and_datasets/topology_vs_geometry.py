@@ -103,7 +103,7 @@ class TopologyGeometryDemo:
         self.ugrid = vtk.vtkUnstructuredGrid()
         self.setup_topology()
 
-        # Renderer and window setup
+        # Renderer and window setup (single renderer)
         self.renderer = vtk.vtkRenderer()
         self.render_window = vtk.vtkRenderWindow()
         self.interactor = vtk.vtkRenderWindowInteractor()
@@ -255,17 +255,18 @@ class TopologyGeometryDemo:
     def create_info_text(self):
         """
         Create text annotations explaining topology vs geometry.
+        Text is positioned on the left side to avoid overlap with sliders on the right.
         """
-        # Title
+        # Title at top left
         title = vtk.vtkTextActor()
         title.SetInput("Topology vs Geometry Demonstration")
-        title.GetTextProperty().SetFontSize(24)
+        title.GetTextProperty().SetFontSize(20)
         title.GetTextProperty().SetColor(1.0, 1.0, 1.0)
         title.GetTextProperty().SetBold(True)
-        title.SetPosition(10, 560)
+        title.SetPosition(10, 660)
         self.renderer.AddActor2D(title)
 
-        # Topology info (constant)
+        # Topology info (constant) - positioned on left side
         topology_text = vtk.vtkTextActor()
         topology_text.SetInput(
             "TOPOLOGY (Constant):\n"
@@ -275,26 +276,26 @@ class TopologyGeometryDemo:
             "  • 1 hexahedral cell\n"
             "  → Connectivity unchanged!"
         )
-        topology_text.GetTextProperty().SetFontSize(14)
+        topology_text.GetTextProperty().SetFontSize(13)
         topology_text.GetTextProperty().SetColor(0.4, 0.9, 0.4)  # Green
-        topology_text.SetPosition(10, 420)
+        topology_text.SetPosition(10, 520)
         self.renderer.AddActor2D(topology_text)
 
-        # Geometry info (variable)
+        # Geometry info (variable) - positioned on left side
         geometry_text = vtk.vtkTextActor()
         geometry_text.SetInput(
             "GEOMETRY (Variable):\n"
             "  • Point positions change\n"
             "  • Shape/size changes\n"
             "  • Angles change\n"
-            "  → Use sliders to modify!"
+            "  → Use sliders on right!"
         )
-        geometry_text.GetTextProperty().SetFontSize(14)
+        geometry_text.GetTextProperty().SetFontSize(13)
         geometry_text.GetTextProperty().SetColor(0.9, 0.6, 0.3)  # Orange
-        geometry_text.SetPosition(10, 320)
+        geometry_text.SetPosition(10, 400)
         self.renderer.AddActor2D(geometry_text)
 
-        # Instructions
+        # Instructions at bottom
         instructions = vtk.vtkTextActor()
         instructions.SetInput(
             "Drag sliders to change GEOMETRY while TOPOLOGY stays constant"
@@ -325,17 +326,29 @@ class TopologyGeometryDemo:
         slider_rep.SetValue(initial_val)
         slider_rep.SetTitleText(title)
 
-        # Position slider on right side of window
+        # Position slider using normalized display coordinates
+        # Sliders are placed on the right side of the window (x: 0.72-0.98)
+        # to avoid overlapping with the visualization in the center
+        x_start = 0.72  # Start position
+        x_end = 0.98    # End position
+        
         slider_rep.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
-        slider_rep.GetPoint1Coordinate().SetValue(0.65, y_pos)
+        slider_rep.GetPoint1Coordinate().SetValue(x_start, y_pos)
         slider_rep.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
-        slider_rep.GetPoint2Coordinate().SetValue(0.95, y_pos)
+        slider_rep.GetPoint2Coordinate().SetValue(x_end, y_pos)
 
-        # Style
+        # Style - make slider more visible
         slider_rep.GetTitleProperty().SetColor(1, 1, 1)
         slider_rep.GetSliderProperty().SetColor(0.3, 0.6, 0.9)
         slider_rep.GetCapProperty().SetColor(0.2, 0.4, 0.6)
         slider_rep.GetSelectedProperty().SetColor(0.5, 0.8, 1.0)
+        slider_rep.GetLabelProperty().SetColor(1, 1, 1)
+        slider_rep.GetTubeProperty().SetColor(0.5, 0.5, 0.5)
+        slider_rep.SetSliderLength(0.02)
+        slider_rep.SetSliderWidth(0.03)
+        slider_rep.SetEndCapLength(0.01)
+        slider_rep.SetEndCapWidth(0.02)
+        slider_rep.SetTubeWidth(0.005)
 
         slider_widget = vtkSliderWidget()
         slider_widget.SetInteractor(self.interactor)
@@ -383,13 +396,14 @@ class TopologyGeometryDemo:
 
     def setup_sliders(self):
         """Set up all parameter sliders."""
+        # Y positions for vertical spacing of sliders (top to bottom)
         slider_configs = [
-            ("Scale X", 0.2, 3.0, 1.0, 0.90, self.on_scale_x_changed),
-            ("Scale Y", 0.2, 3.0, 1.0, 0.78, self.on_scale_y_changed),
-            ("Scale Z", 0.2, 3.0, 1.0, 0.66, self.on_scale_z_changed),
-            ("Shear XY", -1.0, 1.0, 0.0, 0.54, self.on_shear_changed),
-            ("Twist (deg)", -90.0, 90.0, 0.0, 0.42, self.on_twist_changed),
-            ("Bend", -0.5, 0.5, 0.0, 0.30, self.on_bend_changed),
+            ("Scale X", 0.2, 3.0, 1.0, 0.85, self.on_scale_x_changed),
+            ("Scale Y", 0.2, 3.0, 1.0, 0.70, self.on_scale_y_changed),
+            ("Scale Z", 0.2, 3.0, 1.0, 0.55, self.on_scale_z_changed),
+            ("Shear XY", -1.0, 1.0, 0.0, 0.40, self.on_shear_changed),
+            ("Twist (deg)", -90.0, 90.0, 0.0, 0.25, self.on_twist_changed),
+            ("Bend", -0.5, 0.5, 0.0, 0.10, self.on_bend_changed),
         ]
 
         for title, min_val, max_val, initial, y_pos, callback in slider_configs:
@@ -410,12 +424,12 @@ class TopologyGeometryDemo:
 
     def run(self):
         """Run the interactive demonstration."""
-        # Set up renderer
+        # Set up renderer with full viewport
         self.renderer.SetBackground(0.1, 0.1, 0.15)
 
         # Set up render window
         self.render_window.AddRenderer(self.renderer)
-        self.render_window.SetSize(1200, 600)
+        self.render_window.SetSize(1400, 700)
         self.render_window.SetWindowName("Topology vs Geometry - VTK Demonstration")
 
         # Set up interactor
@@ -427,7 +441,7 @@ class TopologyGeometryDemo:
         self.setup_sliders()
         self.setup_axes()
 
-        # Set up camera for good initial view
+        # Set up camera for good initial view - position object more to the left
         camera = self.renderer.GetActiveCamera()
         camera.SetPosition(3, -3, 2)
         camera.SetFocalPoint(0, 0, 0)
