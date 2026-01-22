@@ -1,54 +1,69 @@
 ## Filters and Algorithms
 
-VTK’s filters and algorithms are where your data stops being “a static dataset” and starts becoming dynamic: you generate something, clean it up, extract meaning, and reshape it into a form that’s easier to analyze or visualize. Think of this like a workshop pipeline, raw material comes in, tools operate on it, and what comes out is clearer, lighter, or more informative.
+VTK’s filters and algorithms allow you to convert your data from “a static dataset” to a dynamic pipeline: you generate something, clean it up, extract meaning, and reshape it into a form that’s easier to analyze or visualize. Think of it like a workshop line: raw material comes in, tools operate on it, and what comes out is clearer, lighter, or more informative.
 
-The reason this matters is simple: in VTK you rarely render raw input directly. You almost always *process* it first, remove noise, compute derived quantities, simplify meshes, extract surfaces, or organize time steps. Filters are the “verbs” of VTK: they are how you *do things* to data.
+In real VTK projects you rarely render raw input directly. You almost always process it first: remove noise, compute derived quantities, simplify meshes, extract surfaces, reorganize time steps, or convert data into a representation that downstream steps can handle. Filters are the verbs of VTK. They’re how you *do things* to data.
 
-One of the major components of VTK is its extensive range of filters and algorithms, which are designed to process, manipulate, and generate data objects. Here’s an overview of how these filters and algorithms function and their significance:
+One of the major components of VTK is its extensive range of filters and algorithms, designed to process, manipulate, and generate data objects. The important part is not memorizing names, but recognizing what kind of change a filter is making and what assumptions it relies on.
 
-I. Purpose and Functionality
+### Purpose and functionality
 
-* Filters and algorithms are primarily used for processing, manipulating, and generating data objects.
-* They are capable of creating new data sets, extracting important features, or transforming existing data into a more useful format.
+Filters and algorithms are primarily used for:
 
-II. Interaction with Data Connectivity
+* processing and manipulating existing data objects
+* generating new datasets (e.g., contours, glyphs, resampled volumes)
+* extracting features (regions, surfaces, edges, connected components)
+* transforming data into a more useful format (triangles instead of polygons, cleaned points, computed attributes)
 
-* A significant aspect of these operations often involves altering or utilizing the 'connectivity' within data structures.
-* **Connectivity** refers to the relationship between points or cells in a data structure. It is a fundamental concept that dictates how individual elements of data are linked or associated with each other.
-* Understanding the connectivity is essential for grasping how filters and algorithms operate, as it impacts the outcome of these processes.
+A practical habit is to ask: is this step changing **geometry**, **topology**, **attributes**, or **time**?
 
-The big “why you should care” here is connectivity: it’s the difference between “dots in space” and “a surface,” “a volume,” or “a meaningful region.” Two datasets can have the *same points* but totally different meaning depending on how those points connect. That’s why filters often feel powerful: they’re not just moving numbers around, they’re preserving or rewriting the relationships that make the data interpretable.
+* When only the spatial coordinates are adjusted, *geometry* is affected because point positions move while cells continue to reference the same points, whereas omitting this type of operation leaves shapes unchanged; for example, a shrink or transform filter relocates vertices but keeps the original mesh connectivity intact.
+* In cases where the structure of the mesh itself must change, *topology* is involved because connections between points are altered, while skipping such processing preserves the original cell relationships; for instance, a clipping or triangulation filter can split cells and introduce new triangles that did not previously exist.
+* When derived data values are needed for analysis or visualization, modifying *attributes* is useful because new arrays are computed or existing scalars, vectors, or tensors are updated, whereas leaving attributes untouched limits what can be colored or analyzed; for example, computing normals or gradients adds vectors that can drive lighting or glyphs.
+* For datasets that evolve over time, handling *time* explicitly is beneficial because multiple timesteps can be interpolated, shifted, or summarized, while ignoring time reduces the data to a single static snapshot; for example, a temporal averaging filter can condense many simulation steps into one representative result.
 
-**Do:** ask yourself “is this filter changing geometry, topology, or attributes?” before you apply it.
-**Don’t:** treat filters as cosmetic, many of them fundamentally change what your data *is* and what later steps can assume.
+That single question helps you predict what will break later, or why something that “should be the same shape” suddenly behaves differently.
 
-### Understanding Connectivity
+### Interaction with data connectivity
 
-Connectivity is one of those ideas that seems obvious right until it bites you. If you’ve ever smoothed a mesh and wondered why sharp features disappeared, or triangulated polygons and got different results than expected, you’ve already felt the impact of connectivity. It’s the “glue” that defines structure.
+A significant part of many operations involves altering or depending on the dataset’s *connectivity*.
 
-**Do:** use connectivity-aware filters when your goal is structural (re-meshing, region extraction, triangulation).
-**Don’t:** assume a filter works the same on every dataset type, connectivity varies across `vtkPolyData`, structured grids, and unstructured grids, and that changes outcomes.
+**Connectivity** refers to relationships inside the data structure: which points belong to which cells, how cells touch, and what “togetherness” means for the dataset. It’s the difference between “points in space” and “a surface,” “a volume,” or “a meaningful region.”
 
-* Connectivity is a fundamental concept in VTK and many other data processing libraries. It's the relationship between data elements, such as points or cells.
-* Filters in VTK often operate based on the connectivity of data. For example, a geometric filter might move points around without changing their connections, while a topological filter may alter these connections entirely.
-* The importance of connectivity comes from the fact that it provides context to the data. A collection of points becomes meaningful when we know how these points connect to form lines, polygons, or other complex structures.
-* An understanding of connectivity is crucial when choosing the appropriate filter for a particular task. Some filters may only work with certain types of connectivity, or the same filter may produce different results depending on the connectivity of the input data.
+Two datasets can have the *same coordinates* and still behave differently if connectivity differs. That’s why filters can feel so powerful: they’re not just moving numbers around, they’re preserving or rewriting the relationships that make the data interpretable.
 
-Examples:
+A practical way to phrase it:
 
-1. Individual data points without any connectivity
+* Some filters mainly move coordinates and assume the wiring stays meaningful.
+* Other filters explicitly rewrite the wiring.
+* Many filters do both, but one of those effects is usually the “main point.”
+
+### Understanding connectivity
+
+Connectivity is one of those ideas that seems obvious right until it bites you. If you’ve ever smoothed a mesh and wondered why sharp features disappeared, triangulated polygons and got unexpected results, or extracted a region and got too many pieces, you’ve already seen connectivity in action.
+
+In `vtkPolyData`, this is especially important because cells (polygons/triangles/lines) don’t store coordinates directly. They store **point ids** into a shared `Points` array. That means there’s a crucial difference between:
+
+* **Sharing coordinates** (two points happen to be in the same place)
+* **Sharing point ids** (two cells literally reference the same point in the points array)
+
+Only the second one is “connected” in the topological sense.
+
+*Examples:*
+
+1. Individual data points without any connectivity:
 
 ```
 *    *    *    *
 ```
 
-2. Points connected in a simple linear fashion
+2. Points connected in a simple linear fashion:
 
 ```
 *---*---*---*
 ```
 
-3. Points connected to form a complex structure, like a polygon
+3. Points connected to form a polygon:
 
 ```
 polygon:
@@ -59,19 +74,25 @@ polygon:
     *---*
 ```
 
+And here’s the same idea visually (points + edges + faces as “glue”):
+
 ![connectivity](https://github.com/djeada/Vtk-Examples/assets/37275728/f3a63ec5-0197-4aca-944c-6a5e61ae6878)
 
-### Data Flow
+*A common real-world pitfall: “looks connected” vs “is connected”*
 
-VTK’s pipeline is intentionally predictable: sources produce data, filters transform it, and outputs feed into the next step. That predictability is what makes large visualization workflows manageable, you can swap filters in and out without rewriting everything.
+Many meshes coming from certain file formats or pipelines duplicate vertices per face (each polygon has its own private set of points). Visually it can still look like a single surface because the duplicated points have identical coordinates. But topologically it’s a set of separate faces.
 
-The “human” takeaway: pipelines keep you honest. Instead of doing a bunch of hidden one-off transformations, you build a chain where each step has a purpose. That’s also why debugging in VTK often means checking *which stage* introduced a change in connectivity or attributes.
+This shows up immediately with filters that act per-cell (or per-face), especially shrink-like operations. You shrink each polygon toward its own center and suddenly the mesh “explodes” into detached tiles. The filter isn’t being random; it’s revealing the true connectivity.
 
-**Do:** build and test pipelines in small steps, checking outputs after major transformations.
-**Don’t:** stack many filters at once and only inspect the final output, when something looks wrong, it’s painful to figure out where it went sideways.
+### Data flow
 
-* The flow of data in VTK usually follows this pattern: Source -> Data object -> Filter -> Data object.
-* Each stage of this pipeline can modify the data and its connectivity, which determines how the data elements relate to each other.
+VTK’s pipeline is intentionally predictable: sources produce data, filters transform it, and outputs feed into the next step. That predictability is what makes large visualization workflows manageable. You can swap filters in and out without rewriting everything because the interfaces and execution model are consistent.
+
+It also makes debugging more systematic. When something looks wrong, the best approach is usually to inspect the pipeline stage-by-stage and find where geometry, topology, or attributes changed in a way you didn’t expect.
+
+The flow typically looks like this:
+
+* Source → Data object → Filter → Data object → (more filters) → Mapper/Renderer
 
 ```
   Input(s)          Filter         Output(s)
@@ -80,122 +101,124 @@ The “human” takeaway: pipelines keep you honest. Instead of doing a bunch of
 +-------------+   +-----------+   +-------------+
 ```
 
----
+A small, practical note: when you’re not inside an active render loop, `Update()` is what forces a pipeline stage to execute. When you’re “just testing,” it’s very easy to forget `Update()` and accidentally inspect stale data.
 
 ### vtkAlgorithm
 
-`vtkAlgorithm` is the “standard interface” that makes the whole pipeline system work. When something is a `vtkAlgorithm`, it plays nicely in the VTK world: it has input ports, output ports, and can be connected into pipelines without special casing. You care because this is what turns a collection of tools into an ecosystem.
+`vtkAlgorithm` is the standard interface that makes the pipeline work. If something is a `vtkAlgorithm`, it plays nicely in VTK: it has input ports, output ports, and can be connected into pipelines without special casing.
 
 A practical way to think about it:
 
-* **Sources**: start the pipeline (create/read data)
-* **Filters**: reshape/compute/convert data
-* **Mappers/renderers** (not covered here): turn data into graphics
+* **Sources** start the pipeline (create or read data).
+* **Filters** reshape/compute/convert data.
+* **(Downstream consumers)** like mappers and writers consume outputs.
 
-**Do:** recognize `vtkAlgorithm` as your compatibility badge, if it’s an algorithm, it plugs into the pipeline.
-**Don’t:** manually pass raw objects around when a connection-based pipeline (`SetInputConnection`) makes the flow clearer and more reusable.
+If you’re building VTK programs in C++ or Python, you’ll constantly see this pattern:
 
-I. The class **vtkAlgorithm** serves as the foundational class for all algorithm types in the Visualization Toolkit (VTK), providing a standard structure for implementing various algorithms.
+* connect algorithms through ports (`SetInputConnection`)
+* adjust parameters
+* trigger execution (`Update()` or rendering)
 
-II. The **subclasses and functions** within vtkAlgorithm include:
+*Subclasses and roles*
 
-* Source algorithms, such as **vtkSphereSource** and **vtkConeSource**, are responsible for generating or reading data objects, initiating the data processing workflow.
-* Filter algorithms, like **vtkShrinkFilter** and **vtkSmoothPolyDataFilter**, process and transform data objects, typically modifying their geometry or connectivity to refine the data for further use.
+* Source algorithms (e.g., `vtkSphereSource`, `vtkConeSource`) generate or read data objects.
+* Filter algorithms (e.g., `vtkShrinkFilter`, `vtkSmoothPolyDataFilter`) process and transform data.
 
-III. Managing data flow and computational tasks is a key role of the **vtkAlgorithm** class within VTK, enabling a wide range of algorithmic operations and ensuring efficient pipeline execution.
+The base class and its conventions are what let you create long, readable pipelines instead of one-off transformations.
 
 ### Sources
 
-Sources are where your story begins: they generate data (procedural geometry) or read it from files. The reason sources matter isn’t just “they produce input,” it’s that they set the initial *structure*, including connectivity, so everything downstream inherits those assumptions.
+Sources are where your story begins: they generate data (procedural geometry) or read it from files. The reason sources matter isn’t just that they provide input; they define the initial *structure*, including connectivity, and that structure influences everything downstream.
 
-**Do:** choose sources that match your intent (surface vs volume vs grid) so you aren’t converting immediately.
-**Don’t:** ignore what the source outputs (e.g., `vtkPolyData` vs `vtkImageData`), that choice decides which filters will naturally fit.
+Examples of sources include:
 
-I. The primary focus of **source algorithms** is to generate data objects or read data from files, providing the initial input for further processing.
+* Procedural generators: `vtkSphereSource`, `vtkConeSource`
+* Readers: `vtkSTLReader`, `vtkXMLPolyDataReader`
 
-II. Examples of source algorithms include:
+For instance, `vtkSphereSource` produces `vtkPolyData` whose faces share points along edges. That means it’s already a welded surface. Many filters behave “cleanly” on it because the topology is consistent.
 
-* Algorithms like **vtkSphereSource**, which generates spherical polydata, and **vtkConeSource**, which creates conical polydata.
-* Readers such as **vtkSTLReader**, handling STL format files, and **vtkXMLPolyDataReader**, dealing with VTK's XML polydata files.
+### Geometric filters
 
-III. The way data points are connected and structured is determined by the specific source used. For instance, **vtkSphereSource** creates points that are interconnected to form triangular facets, constructing a spherical surface.
+Geometric filters are the “shape editors.” They change point coordinates (move, rotate, smooth, shrink, warp) while often preserving the existing connectivity graph.
 
-### Geometric Filters
+This is the category you reach for when you want the *same object* but with different geometry: less noise, a different scale, a smoother surface, or a transformed pose.
 
-Geometric filters are the “shape editors.” They change point coordinates, move, smooth, shrink, transform, while typically preserving the connectivity graph. These are perfect when you want the *same object*, just a different pose, scale, or less noise.
+Examples include:
 
-The key reason to care: because connectivity stays the same, geometric filters are usually safe when you want to preserve mesh identity (faces remain faces, neighbors remain neighbors). That makes them great for cleanup and presentation.
+* `vtkShrinkFilter` (shrinks cells inward)
+* `vtkSmoothPolyDataFilter` (adjusts point positions to smooth a surface)
+* `vtkTransformPolyDataFilter` (applies a general transform)
+* `vtkDecimatePro` (often treated as simplification; it reduces triangles and therefore can affect topology too—this one sits on the boundary between “geometric” and “topological” in effect)
 
-**Do:** use geometric filters for smoothing, transforms, or visual adjustments that shouldn’t rewrite structure.
-**Don’t:** assume they’re purely visual, moving points changes curvature, normals, and measurements.
+Even when connectivity is preserved, geometry changes still affect derived quantities such as normals, curvature, and measurements. That’s why geometric filters aren’t merely cosmetic.
 
-I. Filters that focus on modifying the geometry, or coordinates of points, without altering their connectivity, are known as **geometric filters**.
+### Topological filters
 
-II. Examples include:
+Topological filters are the “rewire the structure” tools. Instead of moving points, they change how points are connected, or generate entirely new cells from existing data.
 
-* The **vtkShrinkFilter**, which compresses the geometry of a dataset without changing point connections.
-* The **vtkSmoothPolyDataFilter**, enhancing the smoothness of a polydata surface by adjusting point positions while maintaining connectivity.
-* The **vtkDecimatePro**, aimed at reducing the number of triangles in a mesh, affecting both geometry and connectivity.
+This matters because topology changes are a different kind of decision: you’re producing a derived representation. That’s often exactly what you want (triangles for rendering, contours for analysis), but it means downstream steps will see a new connectivity structure.
 
-### Topological Filters
+Examples include:
 
-Topological filters are the “rewire the structure” tools. Instead of moving points, they change *how* points are connected, triangulating polygons, building new meshes, extracting surfaces, or generating contours.
+* `vtkTriangleFilter` (converts polygons to triangles)
+* `vtkDelaunay2D` (constructs 2D Delaunay triangulation, creating new connectivity)
+* `vtkContourFilter` (generates contours/isosurfaces, producing new geometry and new connectivity)
 
-Why this matters: topology changes can be irreversible in spirit. Once you triangulate or contour, you’ve created a derived representation. That’s not bad, it’s often exactly the goal, but it’s a different kind of operation than “just smoothing.”
+A normal sign that a topological filter did its job is that counts change: number of points, number of cells, cell types, or the number of connected components.
 
-**Do:** use topological filters when you need a new mesh representation (triangles for rendering, contours for analysis).
-**Don’t:** be surprised when counts change (cells, polygons, connectivity) and downstream algorithms behave differently, that’s expected.
+### Scalars and attribute filters in VTK
 
-I. Filters that alter the topology, or how points are connected, of data objects are referred to as **topological filters**.
+Attribute filters make your data “smarter.” They add meaning by computing new arrays: gradients, curvature, magnitudes, and other derived quantities. This is where visualization turns into analysis: you’re not just looking at shape, you’re looking at computed properties of the shape.
 
-II. Examples include:
+Examples include:
 
-* The **vtkTriangleFilter**, which transforms polygons into triangles, altering connectivity but not geometry.
-* The **vtkDelaunay2D**, creating a 2D Delaunay triangulation, forming new connectivity while preserving the original geometry.
-* The **vtkContourFilter**, producing contours or isosurfaces from scalar fields, generating both new geometry and connectivity.
+* `vtkGradientFilter` (adds a vector field representing gradient)
+* `vtkVectorNorm` (computes vector magnitude as a scalar)
+* `vtkCurvatures` (computes Gaussian/mean curvature scalars)
 
-### Scalars and Attribute Filters in VTK
+One detail that comes up constantly: attributes can live on **points** or on **cells**.
 
-Attribute filters are the “make the data smarter” category. They don’t need to change shape or topology at all, they can add meaning by computing derived quantities: gradients, curvature, magnitude, and so on.
+* Point data tends to interpolate smoothly across a surface.
+* Cell data tends to look piecewise-constant (each polygon has a single value).
 
-This is where visualization becomes insight. A raw surface becomes informative once you can color it by curvature, or show flow direction using a computed gradient.
+If a filter outputs cell data but your mapper expects point data (or vice versa), the visualization can look wrong even though the numbers are fine.
 
-**Do:** use these filters when your goal is analysis or better visual encoding (color maps, glyphs, thresholds).
-**Don’t:** forget that attributes have locations (point data vs cell data). A filter might produce values on points or on cells, and that affects how it looks and what later filters expect.
+### Temporal filters in VTK
 
-I. Filters designed to modify or generate data attributes like scalars, vectors, or tensors are called **scalars and attribute filters**.
+Temporal filters exist because time series data has its own problems: timesteps may have changing values, changing attributes, and sometimes changing geometry. Temporal filters help interpolate, normalize, or compute statistics across time without reinventing that logic manually.
 
-II. Examples include:
+Examples include:
 
-* The **vtkGradientFilter**, calculating the gradient of a scalar field, adding a new vector attribute for the gradient without altering geometry or connectivity.
-* The **vtkVectorNorm**, computing the magnitude of vector data, resulting in a new scalar attribute derived from an existing vector attribute.
-* The **vtkCurvatures**, determining the Gaussian and mean curvatures of a surface, introducing new scalar attributes to represent these curvatures.
+* `vtkTemporalInterpolator` (interpolates between timesteps)
+* `vtkTemporalShiftScale` (shifts and scales time values)
+* `vtkTemporalStatistics` (computes statistics over time, producing new attributes)
 
-### Temporal Filters in VTK
+### Why some meshes detach and others stay connected?
 
-Temporal filters exist because time-series visualization has its own challenges: different timesteps may have different values, sometimes different geometry, and you often want derived statistics over time (not just a single frame).
+Shrink filters are a perfect example of why connectivity matters.
 
-If you’re building animations or analyzing change, these filters keep you from reinventing the wheel.
+`vtkShrinkPolyData` / `vtkShrinkFilter` conceptually shrink each cell toward its own center. If the input mesh is welded (adjacent faces share point ids), the output often still looks like a connected surface—because shared points enforce shared motion at boundaries.
 
-**Do:** use temporal filters to interpolate, normalize time, or compute over-time summaries.
-**Don’t:** assume time is “just another attribute”, VTK treats time as a first-class pipeline concept in many workflows.
+If each polygon has its own unique points (duplicated vertices per face), then each polygon shrinks independently and gaps appear immediately. This is usually the explanation when people see “detached polygons” and wonder why a demo example stays connected.
 
-I. Filters specialized in handling time-varying data or creating animations are known as **temporal filters**.
+That leads to three practical approaches depending on intent:
 
-II. Examples include:
+1. **If the mesh should be a single surface:** merge coincident points first
+   A cleaning step (commonly `vtkCleanPolyData`) can weld duplicated points (within a tolerance), restoring connectivity.
 
-* The **vtkTemporalInterpolator**, performing data interpolation between different time steps, potentially creating new geometry and connectivity for the interpolated states.
-* The **vtkTemporalShiftScale**, modifying the time values through shifting and scaling, affecting the time attribute without changing geometry or connectivity.
-* The **vtkTemporalStatistics**, calculating statistical data over time, generating new attributes that encapsulate the computed statistics without altering the geometry or connectivity.
+2. **If you want to shrink the entire object uniformly:** don’t use per-cell shrink
+   Compute a centroid and scale the entire mesh about that centroid (e.g., `vtkTransform` + `vtkTransformPolyDataFilter`). This preserves connectivity because you move shared points once, not cell-by-cell.
 
-## Example: Creating a Sphere Source and Applying a Shrink Filter
+3. **If you truly want an “exploded” look:** per-cell shrink is doing exactly that
+   In that case detaching is not a bug; it’s the visual effect of independent cells.
+
+A good mental shortcut: if the shrink filter reveals gaps, it’s usually exposing that your mesh wasn’t welded in the first place.
+
+### Example: Creating a Sphere Source and Applying a Shrink Filter
 
 Examples like this are useful because they show the pipeline idea in miniature: a source generates data with connectivity, then a filter modifies geometry while keeping connectivity intact. Once you internalize that pattern, most VTK workflows become variations on the same theme.
 
-**Do:** notice the “connection” pattern, filters take input ports, not just raw objects, which keeps pipelines composable.
-**Don’t:** forget that `Update()` is what forces computation when you’re not in a rendering loop; without it, you may be inspecting an uncomputed pipeline.
-
-In this example, we will demonstrate how to create a basic 3D object, a sphere, and then apply a shrink filter to modify its appearance.
+In this example, we create a sphere and apply a shrink filter:
 
 ```python
 import vtk
@@ -219,36 +242,161 @@ shrink_filter.SetShrinkFactor(0.8)
 shrink_filter.Update()
 ```
 
-We start by creating a `vtkSphereSource` object to generate a sphere with a radius of 1.0 units, which produces points connected to form a spherical surface. Then, we apply a `vtkShrinkFilter` to this sphere; this filter, connected to the sphere source's output, is set with a shrink factor of 0.8 to reduce the size of the sphere while maintaining its triangular connectivity. Finally, we update the filter to produce the shrunken sphere, resulting in a smaller yet structurally consistent 3D object.
+We start by creating a `vtkSphereSource` object to generate a sphere with a radius of 1.0 units, which produces points connected to form a spherical surface. Then we apply a `vtkShrinkFilter`, connected to the sphere source’s output, and set a shrink factor of 0.8. Finally, we call `Update()` to force execution and obtain the shrunken output.
 
 Below is a visual representation of the shrunken sphere:
 
-![sphere\_shrink](https://github.com/djeada/Vtk-Examples/assets/37275728/aa343642-994f-46d9-ae84-11474860df6b)
+![sphere_shrink](https://github.com/djeada/Vtk-Examples/assets/37275728/aa343642-994f-46d9-ae84-11474860df6b)
 
-## Summary of VTK Algorithms and Filters
+### A practical “connected shrink” alternative (C++)
 
-This table is your “cheat sheet,” but the real win is knowing *why* each category exists: sources start your data story, geometric filters reshape it, topological filters rewrite structure, attribute filters add meaning, and temporal filters let you reason across time.
+If your goal is “make the whole mesh smaller toward its center” *without* breaking it into detached faces, a global transform is usually the cleanest solution. Unlike `vtkShrinkPolyData` / `vtkShrinkFilter` (which act per-cell), a transform acts on **points**. If your mesh is connected (adjacent cells share point ids), moving points with a single global transform keeps the surface connected automatically.
 
-**Do:** pick filters by intent (geometry vs topology vs attributes vs time).
-**Don’t:** pick by name alone, two filters can sound similar but operate at totally different levels of the data.
+The idea is simple:
 
-| **Category**                    | **Class Name**          | **Description**                                              |
-| ------------------------------- | ----------------------- | ------------------------------------------------------------ |
-| **Sources**                     | vtkSphereSource         | Generates spherical polydata.                                |
-|                                 | vtkConeSource           | Creates conical polydata.                                    |
-|                                 | vtkSTLReader            | Reads STL files.                                             |
-|                                 | vtkXMLPolyDataReader    | Reads VTK's XML polydata files.                              |
-| **Geometric Filters**           | vtkShrinkFilter         | Compresses dataset geometry.                                 |
-|                                 | vtkSmoothPolyDataFilter | Smoothens polydata surfaces.                                 |
-|                                 | vtkDecimatePro          | Reduces triangles in a mesh.                                 |
-| **Topological Filters**         | vtkTriangleFilter       | Converts polygons to triangles.                              |
-|                                 | vtkDelaunay2D           | Constructs 2D Delaunay triangulation.                        |
-|                                 | vtkContourFilter        | Generates contours/isosurfaces.                              |
-| **Scalars & Attribute Filters** | vtkGradientFilter       | Calculates scalar field gradient.                            |
-|                                 | vtkVectorNorm           | Computes vector data magnitude.                              |
-|                                 | vtkCurvatures           | Computes surface curvatures.                                 |
-| **Temporal Filters**            | vtkTemporalInterpolator | Interpolates data between time steps.                        |
-|                                 | vtkTemporalShiftScale   | Shifts and scales time values.                               |
-|                                 | vtkTemporalStatistics   | Computes statistical information over time.                  |
-| **Other Algorithms**            | vtkAlgorithmBaseClass   | Base class for various algorithms.                           |
-|                                 | [Additional Classes]    | Other relevant algorithms as per specific application needs. |
+* choose a center (mesh centroid or bounding-box center)
+* translate so that center is at the origin
+* scale
+* translate back
+
+That’s it. You’re scaling the entire object as one piece.
+
+*Option A: Scale about the centroid (good “physical” center)*
+
+The centroid here is computed from the mesh’s points (optionally weighted). This often feels like “shrink toward the mass center” and is a good default for irregular shapes.
+
+```cpp
+#include <vtkSmartPointer.h>
+#include <vtkPolyData.h>
+#include <vtkCenterOfMass.h>
+#include <vtkTransform.h>
+#include <vtkTransformPolyDataFilter.h>
+
+// Scales a vtkPolyData uniformly about its centroid.
+// scale < 1.0 shrinks, scale > 1.0 grows.
+vtkSmartPointer<vtkPolyData> ScalePolyDataAboutCentroid(vtkPolyData* input, double scale)
+{
+    if (!input)
+        return nullptr;
+
+    // 1) Compute centroid (center of mass) from points.
+    auto com = vtkSmartPointer<vtkCenterOfMass>::New();
+    com->SetInputData(input);
+    com->SetUseScalarsAsWeights(false); // set true if you want scalar-weighted centroid
+    com->Update();
+
+    double c[3];
+    com->GetCenter(c);
+
+    // 2) Build transform: T(c) * S(scale) * T(-c)
+    auto transform = vtkSmartPointer<vtkTransform>::New();
+    transform->PostMultiply();                 // apply in the order we add them
+    transform->Translate(c[0], c[1], c[2]);
+    transform->Scale(scale, scale, scale);
+    transform->Translate(-c[0], -c[1], -c[2]);
+
+    // 3) Apply transform to the polydata
+    auto tfilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+    tfilter->SetInputData(input);
+    tfilter->SetTransform(transform);
+    tfilter->Update();
+
+    return tfilter->GetOutput();
+}
+```
+
+**What this does**
+
+* Every point in the mesh is scaled relative to the same center.
+* Connectivity is preserved because cells still reference the same point ids—only point coordinates change.
+* You get a “connected shrink” effect even when per-cell shrink would create gaps.
+
+**When centroid is a good choice**
+
+* organic or irregular shapes
+* meshes where “visual center” should track the distribution of points
+
+*Option B: Scale about the bounding-box center (fast, predictable)*
+
+Sometimes you want the center of the mesh’s bounds (midpoint of min/max in x/y/z). This is simpler and doesn’t require computing a centroid, and it matches what many people expect as a “visual center” for symmetric objects.
+
+```cpp
+#include <vtkSmartPointer.h>
+#include <vtkPolyData.h>
+#include <vtkPoints.h>
+#include <vtkTransform.h>
+#include <vtkTransformPolyDataFilter.h>
+
+vtkSmartPointer<vtkPolyData> ScalePolyDataAboutBoundsCenter(vtkPolyData* input, double scale)
+{
+    if (!input)
+        return nullptr;
+
+    double bounds[6];
+    input->GetBounds(bounds);
+
+    const double cx = 0.5 * (bounds[0] + bounds[1]);
+    const double cy = 0.5 * (bounds[2] + bounds[3]);
+    const double cz = 0.5 * (bounds[4] + bounds[5]);
+
+    auto transform = vtkSmartPointer<vtkTransform>::New();
+    transform->PostMultiply();
+    transform->Translate(cx, cy, cz);
+    transform->Scale(scale, scale, scale);
+    transform->Translate(-cx, -cy, -cz);
+
+    auto tfilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+    tfilter->SetInputData(input);
+    tfilter->SetTransform(transform);
+    tfilter->Update();
+
+    return tfilter->GetOutput();
+}
+```
+
+**When bounds center is a good choice**
+
+* symmetric objects (CAD-like)
+* when you want behavior that’s stable even if point distribution is uneven
+
+Why this preserves connectivity (and shrink filters may not)?
+
+A `vtkPolyData` surface stays connected when adjacent polygons share **the same point ids**. A global transform modifies point coordinates in the `Points` array, but it does not change which points each cell references. So adjacency remains intact.
+
+By contrast, cell-based shrink filters conceptually pull each cell toward its own center. If your mesh isn’t welded (each polygon has its own duplicate vertices), cells don’t share points, so they shrink independently and gaps appear.
+
+* When adjusting the amount of shrink visually, choosing a *scale factor* such as 0.95, 0.8, or 0.5 is helpful because the geometry becomes progressively smaller in a controlled way, whereas omitting this choice or using extreme values like 0.0 can collapse cells into unusable shapes; for example, a factor of 0.8 is often used in mesh inspection to clearly separate cells without destroying their overall form.
+* In scenes that rely on lighting for depth perception, recomputing *surface normals* after shrinking is useful because lighting will correctly reflect the updated geometry, while skipping this step can result in flat or incorrect shading; for instance, applying `vtkPolyDataNormals` after shrinking a model ensures a rendered sphere still appears smoothly lit instead of patchy.
+* If different amounts of shrink are desired along different axes, applying *anisotropic scaling* through separate x, y, and z scale values can be beneficial for controlled deformation, whereas omitting this option limits you to uniform changes that preserve proportions; for example, scaling more along the z-axis than x and y can intentionally flatten a sphere into an oblate shape for visualization experiments.
+
+This transform approach is a good “first choice” when the mental model is “shrink the object” rather than “shrink each face.”
+
+### Summary
+
+This is a quick reference, but the more important takeaway is what each category *means*:
+
+* sources start the data story
+* geometric filters reshape existing geometry
+* topological filters rewrite structure
+* attribute filters add computed meaning
+* temporal filters operate across timesteps
+
+| Category                    | Class Name              | Description                                                       |
+| --------------------------- | ----------------------- | ----------------------------------------------------------------- |
+| Sources                     | vtkSphereSource         | Generates spherical polydata.                                     |
+|                             | vtkConeSource           | Creates conical polydata.                                         |
+|                             | vtkSTLReader            | Reads STL files.                                                  |
+|                             | vtkXMLPolyDataReader    | Reads VTK’s XML polydata files.                                   |
+| Geometric Filters           | vtkShrinkFilter         | Shrinks cells inward (appearance depends on connectivity).        |
+|                             | vtkSmoothPolyDataFilter | Smooths polydata by adjusting point positions.                    |
+|                             | vtkDecimatePro          | Reduces triangle count (often affects topology).                  |
+| Topological Filters         | vtkTriangleFilter       | Converts polygons to triangles.                                   |
+|                             | vtkDelaunay2D           | Constructs a 2D Delaunay triangulation.                           |
+|                             | vtkContourFilter        | Generates contours/isosurfaces from scalar fields.                |
+| Scalars & Attribute Filters | vtkGradientFilter       | Computes gradient of a scalar field (adds vector attribute).      |
+|                             | vtkVectorNorm           | Computes magnitude of vector data (adds scalar attribute).        |
+|                             | vtkCurvatures           | Computes curvature measures (adds scalar attributes).             |
+| Temporal Filters            | vtkTemporalInterpolator | Interpolates data between time steps.                             |
+|                             | vtkTemporalShiftScale   | Shifts and scales time values.                                    |
+|                             | vtkTemporalStatistics   | Computes statistics over time (adds attributes).                  |
+| Other                       | vtkAlgorithm            | Base pipeline interface for algorithms (ports + execution model). |
