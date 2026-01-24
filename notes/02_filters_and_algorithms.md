@@ -148,7 +148,7 @@ Examples include:
 * `vtkShrinkFilter` (shrinks cells inward)
 * `vtkSmoothPolyDataFilter` (adjusts point positions to smooth a surface)
 * `vtkTransformPolyDataFilter` (applies a general transform)
-* `vtkDecimatePro` (often treated as simplification; it reduces triangles and therefore can affect topology too—this one sits on the boundary between “geometric” and “topological” in effect)
+* `vtkDecimatePro` (often treated as simplification; it reduces triangles and therefore can affect topology too, this one sits on the boundary between “geometric” and “topological” in effect)
 
 Even when connectivity is preserved, geometry changes still affect derived quantities such as normals, curvature, and measurements. That’s why geometric filters aren’t merely cosmetic.
 
@@ -197,7 +197,7 @@ Examples include:
 
 Shrink filters are a perfect example of why connectivity matters.
 
-`vtkShrinkPolyData` / `vtkShrinkFilter` conceptually shrink each cell toward its own center. If the input mesh is welded (adjacent faces share point ids), the output often still looks like a connected surface—because shared points enforce shared motion at boundaries.
+`vtkShrinkPolyData` / `vtkShrinkFilter` conceptually shrink each cell toward its own center. If the input mesh is welded (adjacent faces share point ids), the output often still looks like a connected surface, because shared points enforce shared motion at boundaries.
 
 If each polygon has its own unique points (duplicated vertices per face), then each polygon shrinks independently and gaps appear immediately. This is usually the explanation when people see “detached polygons” and wonder why a demo example stays connected.
 
@@ -308,7 +308,7 @@ vtkSmartPointer<vtkPolyData> ScalePolyDataAboutCentroid(vtkPolyData* input, doub
 **What this does**
 
 * Every point in the mesh is scaled relative to the same center.
-* Connectivity is preserved because cells still reference the same point ids—only point coordinates change.
+* Connectivity is preserved because cells still reference the same point ids, only point coordinates change.
 * You get a “connected shrink” effect even when per-cell shrink would create gaps.
 
 **When centroid is a good choice**
