@@ -1,6 +1,6 @@
 ## Data Types and Structures
 
-VTK is built to carry *real-world* 2D/3D data all the way from “numbers in memory” to “something you can see and reason about.” That means it needs data types that don’t just store values, but also store **where** those values live in space and **how** they connect. If you pick the right structure early, everything downstream, filters, rendering, memory usage, speed, gets smoother. Pick the wrong one, and you’ll spend time converting, losing information, or wondering why performance tanks.
+VTK is built to carry *real-world* 2D/3D data all the way from “numbers in memory” to “something you can see and reason about.” That means it needs data types that store values, but also store **where** those values live in space and **how** they connect. If you pick the right structure early, everything downstream, filters, rendering, memory usage, speed, gets smoother. Pick the wrong one, and you’ll spend time converting, losing information, or wondering why performance tanks.
 
 VTK uses 3D geometries, including points, lines, polygons, and volumes. It handles images and volumetric data for 2D and 3D visualization. It works with scalar, vector, and tensor fields for complex data representation. Supports structured and unstructured grid types for various spatial data layouts. Includes support for time-series data and hierarchical datasets.
 
