@@ -39,7 +39,7 @@ Geometry answers questions like:
 * “Is this cell stretched, bent, or rotated?”
 * “Does this mesh follow a curved boundary?”
 
-📌 **Geometry does *not* care about connectivity rules—only positions.**
+📌 **Geometry does *not* care about connectivity rules, only positions.**
 
 > **Topology is about “who is connected to whom.”
 > Geometry is about “where they are.”**
@@ -234,7 +234,7 @@ It assumes:
 * No need for volumetric neighbors
 * No 3D cell traversal
 
-That’s why it’s **much faster and lighter** than volumetric grids—but also more limited.
+That’s why it’s **much faster and lighter** than volumetric grids, but also more limited.
 
 ### vtkStructuredGrid
 
@@ -333,12 +333,12 @@ This is one of the most important and practical decision points in VTK. If you r
 
 > **Structured grids buy you speed and simplicity; unstructured grids buy you geometric freedom.**
 
-The “best” grid is almost always the **simplest structure that can still represent your data faithfully**. More flexibility comes with real costs—in memory, performance, and complexity.
+The “best” grid is almost always the **simplest structure that can still represent your data faithfully**. More flexibility comes with real costs, in memory, performance, and complexity.
 
 As a rule of thumb:
 
 * **Do** choose structured grids when indexing is predictable and the domain is reasonably regular.
-* **Don’t** choose unstructured grids just because they sound more powerful. They *are* powerful—but you pay for that power.
+* **Don’t** choose unstructured grids just because they sound more powerful. They *are* powerful, but you pay for that power.
 
 High-level comparison:
 
