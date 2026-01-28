@@ -6,6 +6,16 @@ In real VTK projects you rarely render raw input directly. You almost always pro
 
 One of the major components of VTK is its extensive range of filters and algorithms, designed to process, manipulate, and generate data objects. The important part is not memorizing names, but recognizing what kind of change a filter is making and what assumptions it relies on.
 
+An algorithm is basically *anything that runs in the pipeline and does work when you call Update()*. A filter is just a very specific kind of algorithm: one that takes data in, changes it, and hands data back out. So `vtkSphereSource` is an algorithm but not a filter because it doesn’t transform anything — there’s no input, it just generates geometry from scratch. `vtkPolyDataMapper` is also an algorithm but not a filter because it consumes data and turns it into rendering instructions instead of producing new data for the pipeline. Your `DistanceToPointFilter`, on the other hand, is a filter because it sits in the middle, takes polydata, computes something new (distances), and outputs modified polydata. The useful gut check is: if you can logically put it between two other pipeline stages and say “this step modifies the data,” it’s a filter; if it creates data or consumes it for rendering, it’s an algorithm but not a filter.
+
+**Everything in the pipeline ultimately derives from `vtkAlgorithm`.** That’s the common base class. If something has `SetInputConnection`, `GetOutputPort`, participates in `Update()`, and runs `RequestData`, it’s coming from `vtkAlgorithm`.
+
+There is **no single class called “vtkFilter”** in the sense people often expect. Instead, filters are defined *by behavior*, not by one named base class. In practice, most filters inherit from a *more specific* algorithm subclass that matches the data they operate on:
+
+* `vtkPolyDataAlgorithm` → filters that take and produce `vtkPolyData`
+* `vtkImageAlgorithm` → image/volume filters
+* `vtkUnstructuredGridAlgorithm`, etc.
+
 ### Purpose and functionality
 
 Filters and algorithms are primarily used for:
@@ -214,39 +224,51 @@ That leads to three practical approaches depending on intent:
 
 A good mental shortcut: if the shrink filter reveals gaps, it’s usually exposing that your mesh wasn’t welded in the first place.
 
-### Example: Creating a Sphere Source and Applying a Shrink Filter
+### Example: Custom Distance Scalar Filter with Side-by-Side Views
 
-Examples like this are useful because they show the pipeline idea in miniature: a source generates data with connectivity, then a filter modifies geometry while keeping connectivity intact. Once you internalize that pattern, most VTK workflows become variations on the same theme.
+This example matches the repo’s `example.py` and shows a full pipeline with a **custom attribute filter**. A sphere source feeds a Python-defined filter that computes a per-point distance to a target point and stores it as a scalar array. Those scalars then drive coloring in the mapper.
 
-In this example, we create a sphere and apply a shrink filter:
+In Python, the safest base class for a custom VTK filter is `VTKPythonAlgorithmBase`. It ensures `RequestData` is actually called, and it exposes a consistent API for input/output ports.
 
 ```python
-import vtk
+from vtkmodules.util.vtkAlgorithm import VTKPythonAlgorithmBase
 
-# Create a sphere source
-sphere_source = vtk.vtkSphereSource()
-sphere_source.SetRadius(1.0)
+class DistanceToPointFilter(VTKPythonAlgorithmBase):
+    def __init__(self):
+        super().__init__(
+            nInputPorts=1,
+            nOutputPorts=1,
+            inputType="vtkPolyData",
+            outputType="vtkPolyData",
+        )
+        self.TargetPoint = (0.0, 0.0, 0.0)
 
-# The sphere source generates points that are connected to form triangles,
-# creating a spherical surface.
+    def RequestData(self, request, inInfo, outInfo):
+        input_data = vtk.vtkPolyData.GetData(inInfo[0])
+        output_data = vtk.vtkPolyData.GetData(outInfo, 0)
+        output_data.ShallowCopy(input_data)
 
-# Create a shrink filter
-shrink_filter = vtk.vtkShrinkFilter()
-shrink_filter.SetInputConnection(sphere_source.GetOutputPort())
-shrink_filter.SetShrinkFactor(0.8)
+        distances = vtk.vtkFloatArray()
+        distances.SetName("DistanceToTarget")
+        distances.SetNumberOfComponents(1)
+        distances.SetNumberOfTuples(input_data.GetNumberOfPoints())
 
-# The shrink filter changes the positions of the points, making the sphere smaller,
-# but the connectivity (how the points are connected to form triangles) remains the same.
+        tx, ty, tz = self.TargetPoint
+        for i in range(input_data.GetNumberOfPoints()):
+            x, y, z = input_data.GetPoint(i)
+            distances.SetValue(i, ((x - tx)**2 + (y - ty)**2 + (z - tz)**2) ** 0.5)
 
-# Update the filter to generate the output
-shrink_filter.Update()
+        point_data = output_data.GetPointData()
+        point_data.AddArray(distances)
+        point_data.SetActiveScalars("DistanceToTarget")
+        return 1
 ```
 
-We start by creating a `vtkSphereSource` object to generate a sphere with a radius of 1.0 units, which produces points connected to form a spherical surface. Then we apply a `vtkShrinkFilter`, connected to the sphere source’s output, and set a shrink factor of 0.8. Finally, we call `Update()` to force execution and obtain the shrunken output.
+Key takeaways:
 
-Below is a visual representation of the shrunken sphere:
-
-![sphere_shrink](https://github.com/djeada/Vtk-Examples/assets/37275728/aa343642-994f-46d9-ae84-11474860df6b)
+* **Attributes** are attached to point data (`AddArray`) and marked active (`SetActiveScalars`) so the mapper can color by them.
+* In Python, fetch the filter output with `GetOutputDataObject(0)` when you need the scalar range.
+* The rendered scene uses **two independent viewports**: the original sphere on the left and the distance-colored sphere on the right, each with its own label. This makes comparison immediate without altering the underlying geometry.
 
 ### A practical “connected shrink” alternative (C++)
 
