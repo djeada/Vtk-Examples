@@ -52,7 +52,7 @@ A practical way to phrase it:
 
 Connectivity is one of those ideas that seems obvious right until it bites you. If you’ve ever smoothed a mesh and wondered why sharp features disappeared, triangulated polygons and got unexpected results, or extracted a region and got too many pieces, you’ve already seen connectivity in action.
 
-In `vtkPolyData`, this is especially important because cells (polygons/triangles/lines) don’t store coordinates directly. They store **point ids** into a shared `Points` array. That means there’s a crucial difference between:
+In `vtkPolyData`, this is especially important because cells (polygons/triangles/lines) don’t store coordinates directly. They store **point ids** into a shared `Points` array. That means there’s a difference between:
 
 * **Sharing coordinates** (two points happen to be in the same place)
 * **Sharing point ids** (two cells literally reference the same point in the points array)
