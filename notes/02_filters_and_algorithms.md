@@ -267,7 +267,7 @@ class DistanceToPointFilter(VTKPythonAlgorithmBase):
 
 ### Why “Shrink” Can Break a Mesh
 
-When people first see a mesh “shrink” in VTK, they often expect the whole object to scale inward smoothly, like a rubber model getting smaller. In VTK there’s a filter called vtkShrinkPolyData that sounds like it should do exactly that, but it behaves differently: it shrinks each polygon (cell) independently. This is great for inspecting cell structure, but it’s not a global scale.
+If you want to apply "shrink" filter on your mesh, you probably expect the whole object to scale inward smoothly, like a rubber model getting smaller. In VTK there’s a filter called vtkShrinkPolyData that sounds like it should do exactly that, but it behaves differently: it shrinks each polygon (cell) independently. This is great for inspecting cell structure, but it’s not a global scale.
 
 What the filter actually does is take every cell in the mesh and move that cell’s corner points toward that cell’s own center. The result is a set of smaller, detached copies of the original faces. Because each face is handled independently, shared edges and points are no longer shared in position, so the surface opens up and gaps appear between neighboring faces. The mesh looks “broken,” even though the data is still valid.
 
