@@ -273,7 +273,7 @@ What the filter actually does is take every cell in the mesh and move that cell�
 
 <img width="1313" height="677" alt="image" src="https://github.com/user-attachments/assets/a04c2a82-aee5-49da-9b65-10ff886ecf24" />
 
-This pitfall is common because per‑cell operations are easy to implement and useful for debugging or visualizing topology. But if the goal is a “connected shrink” effect—where the object stays intact—you need a single global transform applied to the shared points, not per‑cell shrinking. That’s why global scaling about a chosen center (centroid or bounds center) is the go‑to solution for shrinking a mesh without visible cracks.
+This pitfall is common because per‑cell operations are easy to implement and useful for debugging or visualizing topology. But if the goal is a “connected shrink” effect, where the object stays intact, you need a single global transform applied to the shared points, not per‑cell shrinking. That’s why global scaling about a chosen center (centroid or bounds center) is the go‑to solution for shrinking a mesh without visible cracks.
 
 ### A practical “connected shrink” alternative (C++)
 
