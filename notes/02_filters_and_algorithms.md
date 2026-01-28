@@ -268,7 +268,7 @@ class DistanceToPointFilter(VTKPythonAlgorithmBase):
 * In Python, fetch the filter output with `GetOutputDataObject(0)` when you need the scalar range.
 * The rendered scene uses **two independent viewports**: the original sphere on the left and the distance-colored sphere on the right, each with its own label. This makes comparison immediate without altering the underlying geometry.
 
-![output-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/7548bd8c-17b7-4589-81be-af0afa8c7370)
+![output2-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/36fab8b5-e5dd-4b99-8584-669da9ad0c37)
 
 ### A practical “connected shrink” alternative (C++)
 
