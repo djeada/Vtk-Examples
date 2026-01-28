@@ -213,14 +213,9 @@ If each polygon has its own unique points (duplicated vertices per face), then e
 
 That leads to three practical approaches depending on intent:
 
-1. **If the mesh should be a single surface:** merge coincident points first
-   A cleaning step (commonly `vtkCleanPolyData`) can weld duplicated points (within a tolerance), restoring connectivity.
-
-2. **If you want to shrink the entire object uniformly:** don’t use per-cell shrink
-   Compute a centroid and scale the entire mesh about that centroid (e.g., `vtkTransform` + `vtkTransformPolyDataFilter`). This preserves connectivity because you move shared points once, not cell-by-cell.
-
-3. **If you truly want an “exploded” look:** per-cell shrink is doing exactly that
-   In that case detaching is not a bug; it’s the visual effect of independent cells.
+1. **If the mesh should be a single surface:** merge coincident points first. A cleaning step (commonly `vtkCleanPolyData`) can weld duplicated points (within a tolerance), restoring connectivity.
+2. **If you want to shrink the entire object uniformly:** don’t use per-cell shrink. Compute a centroid and scale the entire mesh about that centroid (e.g., `vtkTransform` + `vtkTransformPolyDataFilter`). This preserves connectivity because you move shared points once, not cell-by-cell.
+3. **If you truly want an “exploded” look:** per-cell shrink is doing exactly that. In that case detaching is not a bug; it’s the visual effect of independent cells.
 
 A good mental shortcut: if the shrink filter reveals gaps, it’s usually exposing that your mesh wasn’t welded in the first place.
 
@@ -269,6 +264,16 @@ class DistanceToPointFilter(VTKPythonAlgorithmBase):
 * The rendered scene uses **two independent viewports**: the original sphere on the left and the distance-colored sphere on the right, each with its own label. This makes comparison immediate without altering the underlying geometry.
 
 ![output2-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/36fab8b5-e5dd-4b99-8584-669da9ad0c37)
+
+### Why “Shrink” Can Break a Mesh
+
+When people first see a mesh “shrink” in VTK, they often expect the whole object to scale inward smoothly, like a rubber model getting smaller. In VTK there’s a filter called vtkShrinkPolyData that sounds like it should do exactly that, but it behaves differently: it shrinks each polygon (cell) independently. This is great for inspecting cell structure, but it’s not a global scale.
+
+What the filter actually does is take every cell in the mesh and move that cell’s corner points toward that cell’s own center. The result is a set of smaller, detached copies of the original faces. Because each face is handled independently, shared edges and points are no longer shared in position, so the surface opens up and gaps appear between neighboring faces. The mesh looks “broken,” even though the data is still valid.
+
+<img width="1313" height="677" alt="image" src="https://github.com/user-attachments/assets/a04c2a82-aee5-49da-9b65-10ff886ecf24" />
+
+This pitfall is common because per‑cell operations are easy to implement and useful for debugging or visualizing topology. But if the goal is a “connected shrink” effect—where the object stays intact—you need a single global transform applied to the shared points, not per‑cell shrinking. That’s why global scaling about a chosen center (centroid or bounds center) is the go‑to solution for shrinking a mesh without visible cracks.
 
 ### A practical “connected shrink” alternative (C++)
 
@@ -338,6 +343,8 @@ vtkSmartPointer<vtkPolyData> ScalePolyDataAboutCentroid(vtkPolyData* input, doub
 * organic or irregular shapes
 * meshes where “visual center” should track the distribution of points
 
+<img width="1312" height="647" alt="image" src="https://github.com/user-attachments/assets/f8c23d36-a92e-44c7-bee0-ce85f6fc7afe" />
+
 *Option B: Scale about the bounding-box center (fast, predictable)*
 
 Sometimes you want the center of the mesh’s bounds (midpoint of min/max in x/y/z). This is simpler and doesn’t require computing a centroid, and it matches what many people expect as a “visual center” for symmetric objects.
@@ -380,6 +387,8 @@ vtkSmartPointer<vtkPolyData> ScalePolyDataAboutBoundsCenter(vtkPolyData* input, 
 
 * symmetric objects (CAD-like)
 * when you want behavior that’s stable even if point distribution is uneven
+
+<img width="1349" height="589" alt="image" src="https://github.com/user-attachments/assets/4296bd8c-8f3f-4251-b172-508caa39c8d8" />
 
 Why this preserves connectivity (and shrink filters may not)?
 
