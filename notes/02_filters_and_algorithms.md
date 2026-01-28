@@ -224,7 +224,7 @@ That leads to three practical approaches depending on intent:
 
 A good mental shortcut: if the shrink filter reveals gaps, it’s usually exposing that your mesh wasn’t welded in the first place.
 
-### Example: Custom Distance Scalar Filter with Side-by-Side Views
+### Example: Custom Distance Scalar Filter
 
 This example matches the repo’s `example.py` and shows a full pipeline with a **custom attribute filter**. A sphere source feeds a Python-defined filter that computes a per-point distance to a target point and stores it as a scalar array. Those scalars then drive coloring in the mapper.
 
@@ -264,11 +264,11 @@ class DistanceToPointFilter(VTKPythonAlgorithmBase):
         return 1
 ```
 
-Key takeaways:
-
 * **Attributes** are attached to point data (`AddArray`) and marked active (`SetActiveScalars`) so the mapper can color by them.
 * In Python, fetch the filter output with `GetOutputDataObject(0)` when you need the scalar range.
 * The rendered scene uses **two independent viewports**: the original sphere on the left and the distance-colored sphere on the right, each with its own label. This makes comparison immediate without altering the underlying geometry.
+
+![output-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/7548bd8c-17b7-4589-81be-af0afa8c7370)
 
 ### A practical “connected shrink” alternative (C++)
 
