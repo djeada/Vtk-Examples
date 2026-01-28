@@ -397,11 +397,12 @@ This transform approach is a good “first choice” when the mental model is �
 
 This is a quick reference, but the more important takeaway is what each category *means*:
 
-* sources start the data story
-* geometric filters reshape existing geometry
-* topological filters rewrite structure
-* attribute filters add computed meaning
-* temporal filters operate across timesteps
+* Sources ingest and initialize datasets from external inputs or generators.
+* Geometric filters perform transformations on spatial representations, modifying coordinate positions or shapes while preserving connectivity.
+* Topological filters alter the connectivity or structural relationships between elements, rewriting the underlying graph or mesh structure.
+* Attribute filters compute, derive, or transform metadata fields, enriching elements with additional semantic or quantitative properties.
+* Temporal filters process data across multiple timesteps, enabling time-based aggregation, interpolation, or evolution analysis.
+
 
 | Category                    | Class Name              | Description                                                       |
 | --------------------------- | ----------------------- | ----------------------------------------------------------------- |
