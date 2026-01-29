@@ -203,22 +203,6 @@ Examples include:
 * `vtkTemporalShiftScale` (shifts and scales time values)
 * `vtkTemporalStatistics` (computes statistics over time, producing new attributes)
 
-### Why some meshes detach and others stay connected?
-
-Shrink filters are a perfect example of why connectivity matters.
-
-`vtkShrinkPolyData` / `vtkShrinkFilter` conceptually shrink each cell toward its own center. If the input mesh is welded (adjacent faces share point ids), the output often still looks like a connected surface, because shared points enforce shared motion at boundaries.
-
-If each polygon has its own unique points (duplicated vertices per face), then each polygon shrinks independently and gaps appear immediately. This is usually the explanation when people see “detached polygons” and wonder why a demo example stays connected.
-
-That leads to three practical approaches depending on intent:
-
-1. **If the mesh should be a single surface:** merge coincident points first. A cleaning step (commonly `vtkCleanPolyData`) can weld duplicated points (within a tolerance), restoring connectivity.
-2. **If you want to shrink the entire object uniformly:** don’t use per-cell shrink. Compute a centroid and scale the entire mesh about that centroid (e.g., `vtkTransform` + `vtkTransformPolyDataFilter`). This preserves connectivity because you move shared points once, not cell-by-cell.
-3. **If you truly want an “exploded” look:** per-cell shrink is doing exactly that. In that case detaching is not a bug; it’s the visual effect of independent cells.
-
-A good mental shortcut: if the shrink filter reveals gaps, it’s usually exposing that your mesh wasn’t welded in the first place.
-
 ### Example: Custom Distance Scalar Filter
 
 This example matches the repo’s `example.py` and shows a full pipeline with a **custom attribute filter**. A sphere source feeds a Python-defined filter that computes a per-point distance to a target point and stores it as a scalar array. Those scalars then drive coloring in the mapper.
