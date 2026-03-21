@@ -176,6 +176,9 @@ class EclipseState:
     umbra_half_angle: float = 0.0
     alignment_angle: float = 0.0
     moon_earth_sun_angle: float = 0.0
+    centerline_offset: float = 0.0
+    penumbra_radius_at_earth: float = 0.0
+    umbra_radius_at_earth: float = 0.0
 
 
 class SimulationClock:
@@ -328,6 +331,7 @@ class EclipseModel:
             # Earth is in the forward shadow direction
             closest_point = moon_pos + proj_dist * shadow_dir
             lateral_dist = np.linalg.norm(earth_pos - closest_point)
+            state.centerline_offset = lateral_dist
 
             # Umbra radius at Earth's distance along shadow axis
             if state.umbra_length > 1e-10 and proj_dist < state.umbra_length:
@@ -336,11 +340,13 @@ class EclipseModel:
                 )
             else:
                 umbra_radius_at_earth = 0.0
+            state.umbra_radius_at_earth = umbra_radius_at_earth
 
             # Penumbra radius at Earth's distance
             penumbra_radius_at_earth = (
                 moon_radius + proj_dist * math.tan(state.penumbra_half_angle)
             )
+            state.penumbra_radius_at_earth = penumbra_radius_at_earth
 
             # Check intersection with Earth sphere
             if lateral_dist < penumbra_radius_at_earth + earth_radius:
@@ -382,10 +388,14 @@ class BodyView:
         label_color: tuple[float, float, float] = (1.0, 1.0, 1.0),
         emissive: bool = False,
         opacity: float = 1.0,
+        glow_color: tuple[float, float, float] | None = None,
+        glow_scale: float = 1.18,
+        glow_opacity: float = 0.18,
     ):
         self.name = name
         self.base_radius = radius
         self.scale_factor = 1.0
+        self.glow_scale = glow_scale
 
         self.source = vtk.vtkSphereSource()
         self.source.SetRadius(radius)
@@ -406,10 +416,30 @@ class BodyView:
             prop.SetDiffuse(0.0)
             prop.SetSpecular(0.0)
         else:
-            prop.SetAmbient(0.15)
-            prop.SetDiffuse(0.85)
-            prop.SetSpecular(0.3)
-            prop.SetSpecularPower(30.0)
+            prop.SetAmbient(0.28)
+            prop.SetDiffuse(0.95)
+            prop.SetSpecular(0.5)
+            prop.SetSpecularPower(38.0)
+            prop.SetInterpolationToPhong()
+
+        self.glow_actor = None
+        if glow_color is not None:
+            self.glow_source = vtk.vtkSphereSource()
+            self.glow_source.SetRadius(radius * glow_scale)
+            self.glow_source.SetThetaResolution(SPHERE_THETA)
+            self.glow_source.SetPhiResolution(SPHERE_PHI)
+
+            self.glow_mapper = vtk.vtkPolyDataMapper()
+            self.glow_mapper.SetInputConnection(self.glow_source.GetOutputPort())
+
+            self.glow_actor = vtk.vtkActor()
+            self.glow_actor.SetMapper(self.glow_mapper)
+            glow_prop = self.glow_actor.GetProperty()
+            glow_prop.SetColor(*glow_color)
+            glow_prop.SetOpacity(glow_opacity)
+            glow_prop.SetAmbient(1.0)
+            glow_prop.SetDiffuse(0.0)
+            glow_prop.SetSpecular(0.0)
 
         # Label — 2D screen-space text (immune to scene lighting)
         self.label = vtk.vtkTextActor()
@@ -427,6 +457,8 @@ class BodyView:
 
     def set_position(self, pos: np.ndarray, label_z_offset: float = 0.0) -> None:
         self.actor.SetPosition(*pos)
+        if self.glow_actor is not None:
+            self.glow_actor.SetPosition(*pos)
         offset = self.base_radius * self.scale_factor * 1.6 + label_z_offset
         self.label_world_pos = np.array([pos[0], pos[1], pos[2] + offset])
 
@@ -441,11 +473,17 @@ class BodyView:
     def set_scale(self, factor: float) -> None:
         self.scale_factor = factor
         self.source.SetRadius(self.base_radius * factor)
+        if self.glow_actor is not None:
+            self.glow_source.SetRadius(self.base_radius * factor * self.glow_scale)
 
     def set_rotation(self, axis: np.ndarray, angle_deg: float) -> None:
         self.actor.SetOrientation(0, 0, 0)
         if np.linalg.norm(axis) > 1e-10:
             self.actor.RotateWXYZ(angle_deg, *axis)
+        if self.glow_actor is not None:
+            self.glow_actor.SetOrientation(0, 0, 0)
+            if np.linalg.norm(axis) > 1e-10:
+                self.glow_actor.RotateWXYZ(angle_deg, *axis)
 
 
 class OrbitView:
@@ -511,8 +549,8 @@ class ShadowView:
         self.umbra_actor = vtk.vtkActor()
         self.umbra_actor.SetMapper(self.umbra_mapper)
         prop = self.umbra_actor.GetProperty()
-        prop.SetColor(0.1, 0.1, 0.1)
-        prop.SetOpacity(0.35)
+        prop.SetColor(0.05, 0.08, 0.16)
+        prop.SetOpacity(0.5)
         prop.SetAmbient(1.0)
         prop.SetDiffuse(0.0)
 
@@ -523,14 +561,14 @@ class ShadowView:
         self.penumbra_actor = vtk.vtkActor()
         self.penumbra_actor.SetMapper(self.penumbra_mapper)
         prop = self.penumbra_actor.GetProperty()
-        prop.SetColor(0.3, 0.3, 0.1)
-        prop.SetOpacity(0.15)
+        prop.SetColor(0.85, 0.62, 0.16)
+        prop.SetOpacity(0.2)
         prop.SetAmbient(1.0)
         prop.SetDiffuse(0.0)
 
     def set_opacity(self, alpha: float) -> None:
         self.umbra_actor.GetProperty().SetOpacity(alpha)
-        self.penumbra_actor.GetProperty().SetOpacity(alpha * 0.4)
+        self.penumbra_actor.GetProperty().SetOpacity(alpha * 0.5)
 
     def update(
         self,
@@ -735,26 +773,62 @@ class SunRayView:
 
 
 class EclipseFootprintView:
-    """Visualizes the shadow footprint on Earth's surface as a dark disk."""
+    """Visualizes the eclipse footprint on Earth with a filled disk and ring."""
 
     def __init__(self):
-        self.source = vtk.vtkDiskSource()
-        self.source.SetInnerRadius(0.0)
-        self.source.SetOuterRadius(1.0)
-        self.source.SetRadialResolution(1)
-        self.source.SetCircumferentialResolution(64)
+        self.disk_source = vtk.vtkDiskSource()
+        self.disk_source.SetInnerRadius(0.0)
+        self.disk_source.SetOuterRadius(1.0)
+        self.disk_source.SetRadialResolution(1)
+        self.disk_source.SetCircumferentialResolution(96)
 
-        self.mapper = vtk.vtkPolyDataMapper()
-        self.mapper.SetInputConnection(self.source.GetOutputPort())
+        self.disk_mapper = vtk.vtkPolyDataMapper()
+        self.disk_mapper.SetInputConnection(self.disk_source.GetOutputPort())
 
-        self.actor = vtk.vtkActor()
-        self.actor.SetMapper(self.mapper)
-        prop = self.actor.GetProperty()
-        prop.SetColor(0.05, 0.05, 0.05)
-        prop.SetOpacity(0.7)
+        self.disk_actor = vtk.vtkActor()
+        self.disk_actor.SetMapper(self.disk_mapper)
+        prop = self.disk_actor.GetProperty()
+        prop.SetColor(0.05, 0.08, 0.12)
+        prop.SetOpacity(0.85)
         prop.SetAmbient(1.0)
         prop.SetDiffuse(0.0)
-        self.actor.SetVisibility(False)
+        self.disk_actor.SetVisibility(False)
+
+        self.ring_source = vtk.vtkDiskSource()
+        self.ring_source.SetInnerRadius(0.85)
+        self.ring_source.SetOuterRadius(1.0)
+        self.ring_source.SetRadialResolution(1)
+        self.ring_source.SetCircumferentialResolution(96)
+
+        self.ring_mapper = vtk.vtkPolyDataMapper()
+        self.ring_mapper.SetInputConnection(self.ring_source.GetOutputPort())
+
+        self.ring_actor = vtk.vtkActor()
+        self.ring_actor.SetMapper(self.ring_mapper)
+        prop = self.ring_actor.GetProperty()
+        prop.SetColor(1.0, 0.85, 0.25)
+        prop.SetOpacity(0.9)
+        prop.SetAmbient(1.0)
+        prop.SetDiffuse(0.0)
+        self.ring_actor.SetVisibility(False)
+
+    @staticmethod
+    def _orient_disk(actor: vtk.vtkActor, footprint_pos: np.ndarray, shadow_dir: np.ndarray) -> None:
+        actor.SetPosition(*footprint_pos)
+        actor.SetOrientation(0, 0, 0)
+
+        z_axis = np.array([0.0, 0.0, 1.0])
+        target = -shadow_dir
+        dot = float(np.clip(np.dot(z_axis, target), -1.0, 1.0))
+        rot_axis = np.cross(z_axis, target)
+        rot_axis_len = np.linalg.norm(rot_axis)
+
+        if rot_axis_len > 1e-10:
+            rot_axis = rot_axis / rot_axis_len
+            angle_deg = math.degrees(math.acos(dot))
+            actor.RotateWXYZ(angle_deg, *rot_axis)
+        elif dot < 0.0:
+            actor.RotateWXYZ(180.0, 1.0, 0.0, 0.0)
 
     def update(
         self,
@@ -763,42 +837,181 @@ class EclipseFootprintView:
         shadow_dir: np.ndarray,
         eclipse: EclipseState,
     ) -> None:
-        """Position and orient a dark disk on the Earth surface facing the Sun."""
+        """Position and orient the eclipse footprint on Earth's sunward face."""
         if not eclipse.aligned:
-            self.actor.SetVisibility(False)
+            self.disk_actor.SetVisibility(False)
+            self.ring_actor.SetVisibility(False)
             return
 
         # Place disk on Earth surface facing the shadow
         offset = earth_radius * 1.01
         footprint_pos = earth_pos - shadow_dir * offset
-
-        self.actor.SetPosition(*footprint_pos)
-
-        # Orient the disk to face along the shadow direction
-        # Compute rotation from Z-axis to -shadow_dir
-        z_axis = np.array([0.0, 0.0, 1.0])
-        target = -shadow_dir
-        rot_axis = np.cross(z_axis, target)
-        rot_axis_len = np.linalg.norm(rot_axis)
-
-        if rot_axis_len > 1e-10:
-            rot_axis = rot_axis / rot_axis_len
-            cos_angle = np.clip(np.dot(z_axis, target), -1.0, 1.0)
-            angle_deg = math.degrees(math.acos(cos_angle))
-            self.actor.SetOrientation(0, 0, 0)
-            self.actor.RotateWXYZ(angle_deg, *rot_axis)
+        self._orient_disk(self.disk_actor, footprint_pos, shadow_dir)
+        self._orient_disk(self.ring_actor, footprint_pos, shadow_dir)
 
         # Scale footprint based on eclipse type
         if eclipse.umbra_hits_earth:
-            self.source.SetOuterRadius(earth_radius * 0.3)
-            self.actor.GetProperty().SetOpacity(0.8)
-            self.actor.SetVisibility(True)
+            self.disk_source.SetOuterRadius(earth_radius * 0.23)
+            self.disk_actor.GetProperty().SetColor(0.04, 0.06, 0.1)
+            self.disk_actor.GetProperty().SetOpacity(0.9)
+            self.ring_source.SetInnerRadius(earth_radius * 0.27)
+            self.ring_source.SetOuterRadius(earth_radius * 0.34)
+            self.ring_actor.GetProperty().SetColor(1.0, 0.88, 0.3)
+            self.ring_actor.GetProperty().SetOpacity(0.95)
+            self.disk_actor.SetVisibility(True)
+            self.ring_actor.SetVisibility(True)
         elif eclipse.penumbra_hits_earth:
-            self.source.SetOuterRadius(earth_radius * 0.7)
-            self.actor.GetProperty().SetOpacity(0.4)
-            self.actor.SetVisibility(True)
+            self.disk_source.SetOuterRadius(earth_radius * 0.52)
+            self.disk_actor.GetProperty().SetColor(0.7, 0.48, 0.1)
+            self.disk_actor.GetProperty().SetOpacity(0.24)
+            self.ring_source.SetInnerRadius(earth_radius * 0.58)
+            self.ring_source.SetOuterRadius(earth_radius * 0.7)
+            self.ring_actor.GetProperty().SetColor(1.0, 0.82, 0.26)
+            self.ring_actor.GetProperty().SetOpacity(0.85)
+            self.disk_actor.SetVisibility(True)
+            self.ring_actor.SetVisibility(True)
         else:
-            self.actor.SetVisibility(False)
+            self.disk_actor.SetVisibility(False)
+            self.ring_actor.SetVisibility(False)
+
+
+class EclipseInsetView:
+    """Shows the eclipse as seen from Earth in a dedicated inset renderer."""
+
+    def __init__(self):
+        self.sun_source = vtk.vtkRegularPolygonSource()
+        self.sun_source.SetNumberOfSides(128)
+        self.sun_source.GeneratePolygonOn()
+        self.sun_source.SetRadius(1.0)
+
+        self.sun_mapper = vtk.vtkPolyDataMapper()
+        self.sun_mapper.SetInputConnection(self.sun_source.GetOutputPort())
+
+        self.sun_actor = vtk.vtkActor()
+        self.sun_actor.SetMapper(self.sun_mapper)
+        sun_prop = self.sun_actor.GetProperty()
+        sun_prop.SetColor(1.0, 0.86, 0.18)
+        sun_prop.SetAmbient(1.0)
+        sun_prop.SetDiffuse(0.0)
+
+        self.sun_outline_actor = vtk.vtkActor()
+        self.sun_outline_actor.SetMapper(self.sun_mapper)
+        outline_prop = self.sun_outline_actor.GetProperty()
+        outline_prop.SetRepresentationToWireframe()
+        outline_prop.SetColor(1.0, 0.97, 0.75)
+        outline_prop.SetOpacity(0.85)
+        outline_prop.SetLineWidth(2.0)
+        outline_prop.SetAmbient(1.0)
+        outline_prop.SetDiffuse(0.0)
+
+        self.moon_source = vtk.vtkRegularPolygonSource()
+        self.moon_source.SetNumberOfSides(128)
+        self.moon_source.GeneratePolygonOn()
+        self.moon_source.SetRadius(1.0)
+
+        self.moon_mapper = vtk.vtkPolyDataMapper()
+        self.moon_mapper.SetInputConnection(self.moon_source.GetOutputPort())
+
+        self.moon_actor = vtk.vtkActor()
+        self.moon_actor.SetMapper(self.moon_mapper)
+        moon_prop = self.moon_actor.GetProperty()
+        moon_prop.SetColor(0.55, 0.59, 0.68)
+        moon_prop.SetAmbient(1.0)
+        moon_prop.SetDiffuse(0.0)
+
+        self.crosshair_polydata = vtk.vtkPolyData()
+        crosshair_points = vtk.vtkPoints()
+        crosshair_lines = vtk.vtkCellArray()
+        segments = [
+            (-0.95, 0.0, 0.0, 0.95, 0.0, 0.0),
+            (0.0, -0.95, 0.0, 0.0, 0.95, 0.0),
+        ]
+        for idx, (x1, y1, z1, x2, y2, z2) in enumerate(segments):
+            p0 = idx * 2
+            crosshair_points.InsertNextPoint(x1, y1, z1)
+            crosshair_points.InsertNextPoint(x2, y2, z2)
+            line = vtk.vtkLine()
+            line.GetPointIds().SetId(0, p0)
+            line.GetPointIds().SetId(1, p0 + 1)
+            crosshair_lines.InsertNextCell(line)
+        self.crosshair_polydata.SetPoints(crosshair_points)
+        self.crosshair_polydata.SetLines(crosshair_lines)
+
+        self.crosshair_mapper = vtk.vtkPolyDataMapper()
+        self.crosshair_mapper.SetInputData(self.crosshair_polydata)
+
+        self.crosshair_actor = vtk.vtkActor()
+        self.crosshair_actor.SetMapper(self.crosshair_mapper)
+        cross_prop = self.crosshair_actor.GetProperty()
+        cross_prop.SetColor(0.75, 0.8, 0.95)
+        cross_prop.SetOpacity(0.18)
+        cross_prop.SetLineWidth(1.0)
+        cross_prop.SetAmbient(1.0)
+        cross_prop.SetDiffuse(0.0)
+
+    def add_to_renderer(self, renderer: vtk.vtkRenderer) -> None:
+        renderer.AddActor(self.crosshair_actor)
+        renderer.AddActor(self.sun_actor)
+        renderer.AddActor(self.sun_outline_actor)
+        renderer.AddActor(self.moon_actor)
+
+        camera = renderer.GetActiveCamera()
+        camera.SetPosition(0.0, 0.0, 8.0)
+        camera.SetFocalPoint(0.0, 0.0, 0.0)
+        camera.SetViewUp(0.0, 1.0, 0.0)
+        camera.ParallelProjectionOn()
+        camera.SetParallelScale(1.15)
+
+    def update(
+        self,
+        sun_pos: np.ndarray,
+        sun_radius: float,
+        earth_pos: np.ndarray,
+        moon_pos: np.ndarray,
+        moon_radius: float,
+    ) -> None:
+        earth_to_sun = sun_pos - earth_pos
+        earth_to_moon = moon_pos - earth_pos
+        sun_dist = np.linalg.norm(earth_to_sun)
+        moon_dist = np.linalg.norm(earth_to_moon)
+
+        if sun_dist < 1e-10 or moon_dist < 1e-10:
+            return
+
+        sun_dir = earth_to_sun / sun_dist
+        moon_dir = earth_to_moon / moon_dist
+
+        ref = np.array([0.0, 0.0, 1.0])
+        if np.linalg.norm(np.cross(ref, sun_dir)) < 1e-6:
+            ref = np.array([0.0, 1.0, 0.0])
+
+        x_axis = np.cross(ref, sun_dir)
+        x_axis = x_axis / np.linalg.norm(x_axis)
+        y_axis = np.cross(sun_dir, x_axis)
+        y_axis = y_axis / np.linalg.norm(y_axis)
+
+        moon_plane = moon_dir - np.dot(moon_dir, sun_dir) * sun_dir
+        moon_x = float(np.dot(moon_plane, x_axis))
+        moon_y = float(np.dot(moon_plane, y_axis))
+
+        sun_ang = math.asin(min(0.999999, sun_radius / sun_dist))
+        moon_ang = math.asin(min(0.999999, moon_radius / moon_dist))
+
+        max_extent = max(
+            sun_ang,
+            moon_ang,
+            abs(moon_x) + moon_ang,
+            abs(moon_y) + moon_ang,
+            1e-3,
+        )
+        scale = 0.78 / max_extent
+
+        self.sun_actor.SetPosition(0.0, 0.0, 0.0)
+        self.sun_actor.SetScale(sun_ang * scale, sun_ang * scale, 1.0)
+        self.sun_outline_actor.SetPosition(0.0, 0.0, 0.01)
+        self.sun_outline_actor.SetScale(sun_ang * scale, sun_ang * scale, 1.0)
+        self.moon_actor.SetPosition(moon_x * scale, moon_y * scale, 0.02)
+        self.moon_actor.SetScale(moon_ang * scale, moon_ang * scale, 1.0)
 
 
 # =============================================================================
@@ -837,33 +1050,51 @@ class StatusDisplay:
         prop3.SetFontFamilyToCourier()
         prop3.SetShadow(True)
 
+        self.inset_actor = vtk.vtkTextActor()
+        self.inset_actor.SetInput("Earth View Inset")
+        prop4 = self.inset_actor.GetTextProperty()
+        prop4.SetFontSize(14)
+        prop4.SetColor(0.8, 0.84, 0.96)
+        prop4.SetBold(True)
+        prop4.SetShadow(True)
+
     def position_for_window(self, width: int, height: int) -> None:
         self.title_actor.SetPosition(15, height - 40)
         self.help_actor.SetPosition(15, height - 65)
         self.actor.SetPosition(15, 15)
+        self.inset_actor.SetPosition(width - 250, height - 335)
 
     def update(self, clock: SimulationClock, eclipse: EclipseState) -> None:
         day = clock.time % MOON_ORBITAL_PERIOD
         status = "PAUSED" if clock.paused else f"Speed: {clock.speed:.1f}x"
-
-        # Eclipse indicator with emphasis
-        if eclipse.eclipse_type == "Total Solar Eclipse":
-            eclipse_str = "*** TOTAL SOLAR ECLIPSE ***"
-        elif eclipse.eclipse_type == "Partial Solar Eclipse":
-            eclipse_str = "* Partial Solar Eclipse *"
+        if eclipse.penumbra_hits_earth:
+            offset_pct = (
+                100.0 * eclipse.centerline_offset
+                / max(eclipse.penumbra_radius_at_earth, 1e-6)
+            )
         else:
-            eclipse_str = "No Eclipse"
+            offset_pct = 100.0
+
+        if eclipse.eclipse_type == "Total Solar Eclipse":
+            header = "TOTAL SOLAR ECLIPSE"
+            color = (1.0, 0.88, 0.3)
+        elif eclipse.eclipse_type == "Partial Solar Eclipse":
+            header = "PARTIAL SOLAR ECLIPSE"
+            color = (1.0, 0.82, 0.42)
+        else:
+            header = "ALIGNMENT MISS"
+            color = (0.85, 0.88, 0.95)
 
         text = (
-            f"Day: {day:6.2f} / {MOON_ORBITAL_PERIOD:.2f}  |  {status}\n"
-            f"Eclipse: {eclipse_str}\n"
-            f"Alignment: {eclipse.alignment_angle:6.2f} deg  |  "
-            f"Moon-Earth-Sun: {eclipse.moon_earth_sun_angle:6.2f} deg\n"
-            f"Umbra length: {eclipse.umbra_length:8.2f}  |  "
-            f"Penumbra: {'YES' if eclipse.penumbra_hits_earth else 'no'}  |  "
-            f"Umbra: {'YES' if eclipse.umbra_hits_earth else 'no'}"
+            f"{header}\n"
+            f"Day {day:5.2f}/{MOON_ORBITAL_PERIOD:.2f}  |  {status}\n"
+            f"Axis offset: {eclipse.centerline_offset:5.2f}  "
+            f"({offset_pct:5.1f}% of penumbra radius)\n"
+            f"Alignment: {eclipse.alignment_angle:5.2f} deg  |  "
+            f"Moon-Earth-Sun: {eclipse.moon_earth_sun_angle:5.2f} deg"
         )
         self.actor.SetInput(text)
+        self.actor.GetTextProperty().SetColor(*color)
 
 
 # =============================================================================
@@ -981,10 +1212,16 @@ class SceneController:
         self.earth_view = BodyView(
             "Earth", EARTH_RADIUS, (0.2, 0.4, 0.9),
             label_color=(0.5, 0.75, 1.0),
+            glow_color=(0.28, 0.58, 1.0),
+            glow_scale=1.22,
+            glow_opacity=0.2,
         )
         self.moon_view = BodyView(
             "Moon", MOON_RADIUS, (0.7, 0.7, 0.7),
             label_color=(0.85, 0.85, 0.9),
+            glow_color=(0.82, 0.86, 0.98),
+            glow_scale=1.3,
+            glow_opacity=0.16,
         )
 
         self.earth_orbit_view = OrbitView((0.15, 0.3, 0.7))
@@ -993,6 +1230,7 @@ class SceneController:
         self.shadow_view = ShadowView()
         self.ray_view = SunRayView()
         self.footprint_view = EclipseFootprintView()
+        self.inset_view = EclipseInsetView()
         self.status = StatusDisplay()
 
         # Visibility toggles
@@ -1003,6 +1241,8 @@ class SceneController:
     def get_all_actors(self) -> list:
         """Return all VTK actors that should be added to the renderer."""
         actors = [
+            self.earth_view.glow_actor,
+            self.moon_view.glow_actor,
             self.sun_view.actor,
             self.earth_view.actor,
             self.moon_view.actor,
@@ -1011,15 +1251,17 @@ class SceneController:
             self.shadow_view.umbra_actor,
             self.shadow_view.penumbra_actor,
             self.ray_view.actor,
-            self.footprint_view.actor,
+            self.footprint_view.disk_actor,
+            self.footprint_view.ring_actor,
             self.sun_view.label,
             self.earth_view.label,
             self.moon_view.label,
             self.status.actor,
             self.status.title_actor,
             self.status.help_actor,
+            self.status.inset_actor,
         ]
-        return actors
+        return [actor for actor in actors if actor is not None]
 
     def update_scene(self) -> None:
         """
@@ -1085,6 +1327,7 @@ class SceneController:
         self.footprint_view.update(
             earth_pos, earth_r, self.eclipse.shadow_axis, self.eclipse
         )
+        self.inset_view.update(sun_pos, sun_r, earth_pos, moon_pos, moon_r)
 
         # Update visibility
         self.earth_orbit_view.actor.SetVisibility(self.show_orbits)
@@ -1169,14 +1412,32 @@ class CameraController:
         )
 
     def shadow_view(self) -> None:
-        """View from above the eclipse shadow region."""
+        """Close-up of the Earth-Moon system and shadow geometry."""
         ep = self.scene.earth_state.position
         mp = self.scene.moon_state.position
         midpoint = (ep + mp) / 2
+
+        shadow_dir = self.scene.eclipse.shadow_axis
+        if np.linalg.norm(shadow_dir) < 1e-10:
+            shadow_dir = mp - ep
+        if np.linalg.norm(shadow_dir) > 1e-10:
+            shadow_dir = shadow_dir / np.linalg.norm(shadow_dir)
+        else:
+            shadow_dir = np.array([1.0, 0.0, 0.0])
+
+        up = np.array([0.0, 0.0, 1.0])
+        side = np.cross(shadow_dir, up)
+        if np.linalg.norm(side) < 1e-10:
+            side = np.array([0.0, 1.0, 0.0])
+        side = side / np.linalg.norm(side)
+        elevated = up + 0.45 * side
+        elevated = elevated / np.linalg.norm(elevated)
+        separation = max(np.linalg.norm(mp - ep), 1.0)
+
         self._apply(
-            position=(midpoint[0], midpoint[1], midpoint[2] + 30),
+            position=tuple(midpoint - shadow_dir * separation * 1.1 + elevated * separation * 1.45),
             focal_point=tuple(midpoint),
-            view_up=(0, 1, 0),
+            view_up=tuple(up),
         )
 
 
@@ -1212,6 +1473,12 @@ def main():
     render_window.SetSize(WINDOW_WIDTH, WINDOW_HEIGHT)
     render_window.SetWindowName("Interactive Solar Eclipse Simulation")
 
+    inset_renderer = vtk.vtkRenderer()
+    inset_renderer.SetViewport(0.72, 0.62, 0.97, 0.94)
+    inset_renderer.SetBackground(0.04, 0.05, 0.1)
+    inset_renderer.SetUseFXAA(True)
+    render_window.AddRenderer(inset_renderer)
+
     interactor = vtk.vtkRenderWindowInteractor()
     interactor.SetRenderWindow(render_window)
 
@@ -1223,6 +1490,7 @@ def main():
     # -------------------------------------------------------------------------
     for actor in scene.get_all_actors():
         renderer.AddActor(actor)
+    scene.inset_view.add_to_renderer(inset_renderer)
 
     # Sun as VTK light source
     sun_light = vtk.vtkLight()
@@ -1294,7 +1562,7 @@ def main():
     # -------------------------------------------------------------------------
     scene.update_scene()
     scene.status.position_for_window(WINDOW_WIDTH, WINDOW_HEIGHT)
-    camera_ctrl.solar_system_view()
+    camera_ctrl.shadow_view()
     scene.project_all_labels(renderer)
 
     # -------------------------------------------------------------------------
@@ -1426,6 +1694,13 @@ def main():
         render_window.Render()
 
     interactor.AddObserver("KeyPressEvent", on_key_press)
+
+    def on_resize(obj, event):
+        width, height = render_window.GetSize()
+        scene.status.position_for_window(width, height)
+        render_window.Render()
+
+    interactor.AddObserver("ConfigureEvent", on_resize)
 
     # -------------------------------------------------------------------------
     # Animation timer
