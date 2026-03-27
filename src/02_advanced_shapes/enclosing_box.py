@@ -23,9 +23,14 @@ Workflow Overview:
 """
 
 import random
+import sys
+from pathlib import Path
 from typing import Tuple
 
 import vtk
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.common.simple_pipeline import VisualisationPipeline
 

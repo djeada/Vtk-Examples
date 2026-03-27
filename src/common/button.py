@@ -2,11 +2,24 @@ import vtk
 
 
 class Button2D:
-    def __init__(self, interactor, label="Button", pos=(100, 100), size=(100, 40)):
+    def __init__(
+        self,
+        interactor,
+        label="Button",
+        pos=(100, 100),
+        size=(100, 40),
+        background_color=(180, 180, 180),
+        text_color=(0.0, 0.0, 0.0),
+        font_size=None,
+    ):
         self.interactor = interactor
         self.label = label
         self.pos = pos
         self.size = size
+        self.background_color = background_color
+        self.text_color = text_color
+        self.font_size = font_size
+        self.text_actor = None
 
         # Create the 2D button representation
         self.button_actor = vtk.vtkTexturedButtonRepresentation2D()
@@ -37,7 +50,7 @@ class Button2D:
         # Fill the image with a color
         for y in range(self.size[1]):
             for x in range(self.size[0]):
-                pixel = [180, 180, 180]  # Light gray color
+                pixel = self.background_color
                 image.SetScalarComponentFromFloat(x, y, 0, 0, pixel[0])
                 image.SetScalarComponentFromFloat(x, y, 0, 1, pixel[1])
                 image.SetScalarComponentFromFloat(x, y, 0, 2, pixel[2])
@@ -53,11 +66,12 @@ class Button2D:
         # Adjust font size and alignment
         text_property = text_actor.GetTextProperty()
         text_property.SetFontSize(
-            min(self.size) // 2
-        )  # Adjust font size based on button size
-        text_property.SetColor(0, 0, 0)  # Black text
+            self.font_size if self.font_size is not None else min(self.size) // 2
+        )
+        text_property.SetColor(*self.text_color)
         text_property.SetJustificationToCentered()
         text_property.SetVerticalJustificationToCentered()
+        text_property.SetBold(True)
 
         # Estimate the vertical centering position
         approx_text_height = text_property.GetFontSize() * 0.5
@@ -65,9 +79,10 @@ class Button2D:
 
         # Position the text in the center of the button
         text_actor.SetPosition(self.pos[0] + self.size[0] / 2, y_position)
+        self.text_actor = text_actor
 
         # Add the text actor to the renderer
-        self.interactor.GetRenderWindow().GetRenderers().GetFirstRenderer().AddActor(
+        self.interactor.GetRenderWindow().GetRenderers().GetFirstRenderer().AddActor2D(
             text_actor
         )
 
