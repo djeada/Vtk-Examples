@@ -87,9 +87,9 @@ Example:
 #### III. Third-Party File Formats
 
 * **Scope**: VTK interfaces seamlessly with many popular 3D graphics and scientific visualization file formats.
-* **STL**: Predominantly used in 3D printing.
-* **PLY**: Specializes in storing polygonal meshes.
-* **OBJ**: Capable of holding complex 3D models encompassing geometry, texture, and material data.
+* **STL**: Predominantly used in 3D printing and CAD exchange. Stores only triangle geometry (no colors, normals arrays, or cell data). Available in ASCII and binary variants.
+* **PLY**: Specializes in storing polygonal meshes with optional per-vertex properties such as color, normals, and custom scalars. Widely used in point cloud workflows and 3D scanning pipelines.
+* **OBJ**: Capable of holding complex 3D models encompassing geometry, texture, and material data. Often paired with `.mtl` material files.
 
 Third-party formats are where interoperability lives. You use these when your data is coming from (or going to) other ecosystems, CAD tools, 3D modeling software, printing pipelines, or simulation packages. The catch is that each format has its own “personality.” Some are geometry-only, some carry materials, some are loose about units, and some ignore advanced attributes.
 
@@ -188,12 +188,15 @@ Tables like this are useful because they prevent a super common beginner mistake
 | ------------ | ------------------------------ | ---------------------- | ------------------------------ | ---------------------- |
 | STL          | `vtkSTLReader`                 | `vtkPolyData`          | `vtkSTLWriter`                 | `vtkPolyData`          |
 | OBJ          | `vtkOBJReader`                 | `vtkPolyData`          | `vtkOBJWriter`                 | `vtkPolyData`          |
+| PLY          | `vtkPLYReader`                 | `vtkPolyData`          | `vtkPLYWriter`                 | `vtkPolyData`          |
 | VTK (Legacy) | `vtkUnstructuredGridReader`    | `vtkUnstructuredGrid`  | `vtkUnstructuredGridWriter`    | `vtkUnstructuredGrid`  |
 |              | `vtkStructuredGridReader`      | `vtkStructuredGrid`    | `vtkStructuredGridWriter`      | `vtkStructuredGrid`    |
 |              | `vtkPolyDataReader`            | `vtkPolyData`          | `vtkPolyDataWriter`            | `vtkPolyData`          |
 |              | `vtkRectilinearGridReader`     | `vtkRectilinearGrid`   | `vtkRectilinearGridWriter`     | `vtkRectilinearGrid`   |
 |              | `vtkStructuredPointsReader`    | `vtkStructuredPoints`  | `vtkStructuredPointsWriter`    | `vtkStructuredPoints`  |
+| VTP          | `vtkXMLPolyDataReader`         | `vtkPolyData`          | `vtkXMLPolyDataWriter`         | `vtkPolyData`          |
 | VTU          | `vtkXMLUnstructuredGridReader` | `vtkUnstructuredGrid`  | `vtkXMLUnstructuredGridWriter` | `vtkUnstructuredGrid`  |
 | VTM          | `vtkXMLMultiBlockDataReader`   | `vtkMultiBlockDataSet` | `vtkXMLMultiBlockDataWriter`   | `vtkMultiBlockDataSet` |
+| Exodus II    | `vtkExodusIIReader`            | `vtkMultiBlockDataSet` | `vtkExodusIIWriter`            | `vtkMultiBlockDataSet` |
 | OpenFOAM     | `vtkOpenFOAMReader`            | `vtkMultiBlockDataSet` | N/A                            | N/A                    |
 | EnSight      | `vtkEnSightGoldReader`         | `vtkMultiBlockDataSet` | N/A                            | N/A                    |
