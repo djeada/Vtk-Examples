@@ -51,9 +51,14 @@ if __name__ == "__main__":
     # Read OpenFOAM case
     foam_data = read_foam(FOAM_CASE_PATH)
 
+    # Convert multiblock dataset to polydata for rendering
+    geometryFilter = vtk.vtkCompositeDataGeometryFilter()
+    geometryFilter.SetInputDataObject(foam_data)
+    geometryFilter.Update()
+
     # Display for verification
-    mapper = vtk.vtkCompositePolyDataMapper2()
-    mapper.SetInputData(foam_data)
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(geometryFilter.GetOutputPort())
 
     # Display
     pipeline = VisualisationPipeline(mappers=[mapper])

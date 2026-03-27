@@ -47,7 +47,7 @@ if __name__ == "__main__":
     stl_data = read_stl(FILE_NAME)
 
     # Display for verification
-    mapper = vtk.vtkDataSetMapper()
+    mapper = vtk.vtkPolyDataMapper()
     mapper.SetInputData(stl_data)
 
     # Display
