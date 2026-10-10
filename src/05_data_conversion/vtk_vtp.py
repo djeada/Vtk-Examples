@@ -4,73 +4,30 @@ import os
 import vtk
 
 try:
-    from .converter_interface import Converter
+    from .converter_interface import VTKConverter
 except ImportError:
-    from converter_interface import Converter
+    from converter_interface import VTKConverter
 
 
-class VtkToVtpConverter(Converter):
+class VtkToVtpConverter(VTKConverter):
     """Converter for VTK to VTP (XML PolyData) file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".vtk")
-            and output_filename.lower().endswith(".vtp")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.vtk' and '.vtp'.")
-
-        try:
-            # Read VTK File
-            reader = vtk.vtkGenericDataObjectReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write VTP File
-            writer = vtk.vtkXMLPolyDataWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".vtk"
+    output_extension = ".vtp"
+    reader_type = vtk.vtkGenericDataObjectReader
+    writer_type = vtk.vtkXMLPolyDataWriter
+    output_type = "vtkPolyData"
+    extract_surface = True
 
 
-class VtpToVtkConverter(Converter):
+class VtpToVtkConverter(VTKConverter):
     """Converter for VTP (XML PolyData) to VTK file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".vtp")
-            and output_filename.lower().endswith(".vtk")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.vtp' and '.vtk'.")
-
-        try:
-            # Read VTP File
-            reader = vtk.vtkXMLPolyDataReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write VTK File
-            writer = vtk.vtkPolyDataWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".vtp"
+    output_extension = ".vtk"
+    reader_type = vtk.vtkXMLPolyDataReader
+    writer_type = vtk.vtkPolyDataWriter
+    output_type = "vtkDataSet"
 
 
 if __name__ == "__main__":

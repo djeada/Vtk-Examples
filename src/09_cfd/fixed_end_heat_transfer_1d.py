@@ -45,41 +45,23 @@ The parabolic profile results from heat generation, with maximum temperature
 occurring in the interior of the rod.
 """
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import vtk
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from src.common.numerics import (
+    tdma_solve,
+    validate_count,
+    validate_finite,
+    validate_positive,
+)
 from matplotlib import pyplot as plt
 
-
-def tdma_solve(
-    a: np.ndarray, ad: np.ndarray, au: np.ndarray, b: np.ndarray
-) -> np.ndarray:
-    """
-    Solves a tridiagonal matrix equation using the Thomas algorithm (TDMA).
-
-    :param a: Main diagonal elements (numpy.ndarray)
-    :param ad: Sub-diagonal (lower) elements (numpy.ndarray)
-    :param au: Super-diagonal (upper) elements (numpy.ndarray)
-    :param b: Right-hand side vector (numpy.ndarray)
-    :return: Solution vector (numpy.ndarray)
-    """
-    n = len(b)
-    # Make copies to avoid modifying original arrays
-    a = a.copy()
-    b = b.copy()
-    T = np.zeros(n)
-
-    # Forward elimination
-    for i in range(1, n):
-        f = ad[i] / a[i - 1]
-        a[i] -= f * au[i - 1]
-        b[i] -= f * b[i - 1]
-
-    # Back substitution
-    T[-1] = b[-1] / a[-1]
-    for i in range(n - 2, -1, -1):
-        T[i] = (b[i] - au[i] * T[i + 1]) / a[i]
-
-    return T
 
 
 def setup_problem(
@@ -102,6 +84,9 @@ def setup_problem(
     :param T_right: Fixed temperature at right boundary (float, °C)
     :return: Tuple of ((A, Ad, Au), b) - matrix diagonals and RHS vector
     """
+    n = validate_count("n", n)
+    validate_positive(L=L, k=k)
+    validate_finite(S=S, T_left=T_left, T_right=T_right)
     dx = L / n
     cond = k / dx
 
@@ -151,11 +136,32 @@ def analytical_solution(
     :param T_right: Temperature at right boundary (float)
     :return: Temperature array (numpy.ndarray)
     """
+    validate_positive(L=L, k=k)
+    validate_finite(S=S, T_left=T_left, T_right=T_right)
+    x = np.asarray(x, dtype=float)
+    if not np.all(np.isfinite(x)):
+        raise ValueError("x must contain only finite values")
     # Linear part from boundary conditions
     T_linear = T_left + (T_right - T_left) * x / L
     # Parabolic part from heat generation
     T_generation = (S / (2 * k)) * x * (L - x)
     return T_linear + T_generation
+
+
+def calculate_energy_balance(T: np.ndarray, dx: float, k: float) -> tuple:
+    """Return left flux, right flux, and total outward flux for a 1D profile."""
+    T = np.asarray(T, dtype=float)
+    validate_count("temperature points", T.size, minimum=3)
+    if T.ndim != 1 or not np.all(np.isfinite(T)):
+        raise ValueError("T must be a one-dimensional array of finite values")
+    validate_positive(dx=dx, k=k)
+
+    derivative_left = (-3 * T[0] + 4 * T[1] - T[2]) / (2 * dx)
+    derivative_right = (3 * T[-1] - 4 * T[-2] + T[-3]) / (2 * dx)
+    left_flux = -k * derivative_left
+    right_flux = -k * derivative_right
+    total_outward_flux = -left_flux + right_flux
+    return left_flux, right_flux, total_outward_flux
 
 
 def plot_temperature_distribution(
@@ -207,6 +213,15 @@ def create_cylinder_rod(
     :param resolution: Number of segments around the cylinder circumference (int)
     :return: Tuple of (polydata, temperature_values) for vtk
     """
+    x = np.asarray(x, dtype=float)
+    T = np.asarray(T, dtype=float)
+    if x.ndim != 1 or T.ndim != 1 or x.size != T.size:
+        raise ValueError("x and T must be one-dimensional arrays of equal length")
+    validate_count("profile points", x.size, minimum=2)
+    validate_count("resolution", resolution, minimum=3)
+    validate_positive(radius=radius)
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(T)):
+        raise ValueError("x and T must contain only finite values")
     points = vtk.vtkPoints()
     temperature_values = vtk.vtkFloatArray()
     temperature_values.SetName("Temperature")
@@ -296,7 +311,7 @@ def create_boundary_annotation(
     text_actor = vtk.vtkBillboardTextActor3D()
     text_actor.SetInput(text)
     text_actor.SetPosition(position)
-    text_actor.GetTextProperty().SetFontSize(14)
+    text_actor.GetTextProperty().SetFontSize(18)
     text_actor.GetTextProperty().SetColor(color)
     text_actor.GetTextProperty().SetJustificationToCentered()
     text_actor.GetTextProperty().SetBold(True)
@@ -387,9 +402,13 @@ def vtk_3d_rod_visualization(
     rod_mapper.SetLookupTable(color_map)
     rod_mapper.SetScalarModeToUsePointData()
     rod_mapper.SetScalarRange(np.min(T), np.max(T))
+    rod_mapper.UseLookupTableScalarRangeOn()
+    rod_mapper.InterpolateScalarsBeforeMappingOn()
 
     rod_actor = vtk.vtkActor()
     rod_actor.SetMapper(rod_mapper)
+    # Preserve the exact lookup-table colors shown by the scalar bar.
+    rod_actor.GetProperty().LightingOff()
     rod_actor.GetProperty().SetInterpolationToPhong()
     rod_actor.GetProperty().SetSpecular(0.3)
     rod_actor.GetProperty().SetSpecularPower(20)
@@ -404,23 +423,26 @@ def vtk_3d_rod_visualization(
     source_text = f"Heat Generation\nS = {S:.0e} W/m³"
 
     left_annotation = create_boundary_annotation(
-        left_text, (x[0] - 0.12 * L, 0, annotation_offset), color=(0.3, 0.6, 1.0)
+        left_text, (x[0] - 0.12 * L, 0, annotation_offset), color=(0.9, 0.95, 1.0)
     )
     right_annotation = create_boundary_annotation(
-        right_text, (x[-1] + 0.12 * L, 0, annotation_offset), color=(1.0, 0.4, 0.4)
+        right_text, (x[-1] + 0.12 * L, 0, annotation_offset), color=(1.0, 0.9, 0.9)
     )
     source_annotation = create_boundary_annotation(
-        source_text, (L / 2, 0, radius * 2.5), color=(1.0, 0.8, 0.0)
+        source_text, (L / 2, 0, radius * 2.5), color=(1.0, 1.0, 0.75)
     )
 
     # Scalar bar
     scalar_bar = vtk.vtkScalarBarActor()
     scalar_bar.SetLookupTable(color_map)
-    scalar_bar.SetTitle("Temperature (°C)")
+    scalar_bar.SetTitle("Temperature\n(°C)")
     scalar_bar.SetNumberOfLabels(5)
-    scalar_bar.SetWidth(0.08)
+    scalar_bar.SetWidth(0.06)
     scalar_bar.SetHeight(0.4)
-    scalar_bar.SetPosition(0.9, 0.3)
+    scalar_bar.SetPosition(0.91, 0.3)
+    scalar_bar.UnconstrainedFontSizeOn()
+    scalar_bar.GetTitleTextProperty().SetFontSize(16)
+    scalar_bar.GetLabelTextProperty().SetFontSize(14)
 
     # Title
     title_actor = vtk.vtkTextActor()
@@ -447,8 +469,7 @@ def vtk_3d_rod_visualization(
 
     # Add lighting
     light = vtk.vtkLight()
-    light.SetPosition(L / 2, L, L)
-    light.SetFocalPoint(L / 2, 0, 0)
+    light.SetLightTypeToHeadlight()
     light.SetIntensity(1.0)
     renderer.AddLight(light)
 
@@ -495,7 +516,7 @@ def main():
     """
     # Physical parameters
     L = 1.0  # Rod length (m)
-    n = 100  # Number of divisions
+    n = 100  # Number of divisions; at least two are needed for 2nd-order end fluxes
     k = 50.0  # Thermal conductivity (W/m·K)
     S = 1e5  # Heat generation rate (W/m³)
     T_left = 100.0  # Left boundary temperature (°C)
@@ -531,11 +552,12 @@ def main():
     print(f"Location of max temp: x = {x[np.argmax(T_numerical)]:.3f} m")
     print("-" * 65)
 
-    # Energy balance verification
+    # Use second-order one-sided temperature derivatives at both ends.
     dx = L / n
-    left_flux = -k * (T_numerical[1] - T_numerical[0]) / dx
-    right_flux = -k * (T_numerical[-1] - T_numerical[-2]) / dx
-    total_flux_out = -left_flux + right_flux  # Heat leaving the rod
+    n = validate_count("n", n, minimum=2)
+    left_flux, right_flux, total_flux_out = calculate_energy_balance(
+        T_numerical, dx, k
+    )
     total_generation = S * L  # Total heat generated
 
     print("Energy Balance Verification:")

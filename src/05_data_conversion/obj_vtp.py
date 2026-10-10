@@ -4,73 +4,29 @@ import os
 import vtk
 
 try:
-    from .converter_interface import Converter
+    from .converter_interface import VTKConverter
 except ImportError:
-    from converter_interface import Converter
+    from converter_interface import VTKConverter
 
 
-class ObjToVtpConverter(Converter):
+class ObjToVtpConverter(VTKConverter):
     """Converter for OBJ to VTP (XML PolyData) file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".obj")
-            and output_filename.lower().endswith(".vtp")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.obj' and '.vtp'.")
-
-        try:
-            # Read OBJ File
-            reader = vtk.vtkOBJReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write VTP File
-            writer = vtk.vtkXMLPolyDataWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".obj"
+    output_extension = ".vtp"
+    reader_type = vtk.vtkOBJReader
+    writer_type = vtk.vtkXMLPolyDataWriter
+    output_type = "vtkPolyData"
 
 
-class VtpToObjConverter(Converter):
+class VtpToObjConverter(VTKConverter):
     """Converter for VTP (XML PolyData) to OBJ file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".vtp")
-            and output_filename.lower().endswith(".obj")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.vtp' and '.obj'.")
-
-        try:
-            # Read VTP File
-            reader = vtk.vtkXMLPolyDataReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write OBJ File
-            writer = vtk.vtkOBJWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".vtp"
+    output_extension = ".obj"
+    reader_type = vtk.vtkXMLPolyDataReader
+    writer_type = vtk.vtkOBJWriter
+    output_type = "vtkPolyData"
 
 
 if __name__ == "__main__":

@@ -4,73 +4,30 @@ import os
 import vtk
 
 try:
-    from .converter_interface import Converter
+    from .converter_interface import VTKConverter
 except ImportError:
-    from converter_interface import Converter
+    from converter_interface import VTKConverter
 
 
-class VtkToObjConverter(Converter):
+class VtkToObjConverter(VTKConverter):
     """Converter for VTK to OBJ file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".vtk")
-            and output_filename.lower().endswith(".obj")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.vtk' and '.obj'.")
-
-        try:
-            # Read VTK File
-            reader = vtk.vtkGenericDataObjectReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write OBJ File
-            writer = vtk.vtkOBJWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".vtk"
+    output_extension = ".obj"
+    reader_type = vtk.vtkGenericDataObjectReader
+    writer_type = vtk.vtkOBJWriter
+    output_type = "vtkPolyData"
+    extract_surface = True
 
 
-class ObjToVtkConverter(Converter):
+class ObjToVtkConverter(VTKConverter):
     """Converter for OBJ to VTK file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".obj")
-            and output_filename.lower().endswith(".vtk")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.obj' and '.vtk'.")
-
-        try:
-            # Read OBJ File
-            reader = vtk.vtkOBJReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write VTK File
-            writer = vtk.vtkDataSetWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".obj"
+    output_extension = ".vtk"
+    reader_type = vtk.vtkOBJReader
+    writer_type = vtk.vtkDataSetWriter
+    output_type = "vtkDataSet"
 
 
 if __name__ == "__main__":

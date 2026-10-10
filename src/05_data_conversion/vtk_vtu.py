@@ -4,73 +4,29 @@ import os
 import vtk
 
 try:
-    from .converter_interface import Converter
+    from .converter_interface import VTKConverter
 except ImportError:
-    from converter_interface import Converter
+    from converter_interface import VTKConverter
 
 
-class VtkToVtuConverter(Converter):
+class VtkToVtuConverter(VTKConverter):
     """Converter for VTK to VTU (XML unstructured grid) file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".vtk")
-            and output_filename.lower().endswith(".vtu")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.vtk' and '.vtu'.")
-
-        try:
-            # Read VTK File
-            reader = vtk.vtkGenericDataObjectReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write VTU File
-            writer = vtk.vtkXMLUnstructuredGridWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".vtk"
+    output_extension = ".vtu"
+    reader_type = vtk.vtkGenericDataObjectReader
+    writer_type = vtk.vtkXMLUnstructuredGridWriter
+    output_type = "vtkUnstructuredGrid"
 
 
-class VtuToVtkConverter(Converter):
+class VtuToVtkConverter(VTKConverter):
     """Converter for VTU (XML unstructured grid) to VTK file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".vtu")
-            and output_filename.lower().endswith(".vtk")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.vtu' and '.vtk'.")
-
-        try:
-            # Read VTU File
-            reader = vtk.vtkXMLUnstructuredGridReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write VTK File
-            writer = vtk.vtkDataSetWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".vtu"
+    output_extension = ".vtk"
+    reader_type = vtk.vtkXMLUnstructuredGridReader
+    writer_type = vtk.vtkDataSetWriter
+    output_type = "vtkDataSet"
 
 
 if __name__ == "__main__":

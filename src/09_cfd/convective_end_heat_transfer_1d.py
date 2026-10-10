@@ -64,41 +64,23 @@ The algorithm involves two steps:
        T[i] = (b[i] - au[i] * T[i+1]) / a[i]
 """
 
+from pathlib import Path
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
 import vtk
 
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-def tdma_solve(
-    a: np.ndarray, ad: np.ndarray, au: np.ndarray, b: np.ndarray
-) -> np.ndarray:
-    """
-    Solves a tridiagonal matrix equation using the Thomas algorithm (TDMA).
+from src.common.numerics import (
+    tdma_solve,
+    validate_count,
+    validate_finite,
+    validate_positive,
+)
 
-    :param a: Main diagonal elements (numpy.ndarray)
-    :param ad: Sub-diagonal (lower) elements (numpy.ndarray)
-    :param au: Super-diagonal (upper) elements (numpy.ndarray)
-    :param b: Right-hand side vector (numpy.ndarray)
-    :return: Solution vector (numpy.ndarray)
-    """
-    n = len(b)
-    # Make copies to avoid modifying original arrays
-    a = a.copy()
-    b = b.copy()
-    T = np.zeros(n)
-
-    # Forward elimination
-    for i in range(1, n):
-        f = ad[i] / a[i - 1]
-        a[i] -= f * au[i - 1]
-        b[i] -= f * b[i - 1]
-
-    # Back substitution
-    T[-1] = b[-1] / a[-1]
-    for i in range(n - 2, -1, -1):
-        T[i] = (b[i] - au[i] * T[i + 1]) / a[i]
-
-    return T
 
 
 def initialize_matrices(
@@ -121,6 +103,9 @@ def initialize_matrices(
     :param T_r: Surrounding temperature at the right boundary (float)
     :return: Tuple of (A, Ad, Au, b) representing the main, lower, and upper diagonals, and the right-hand side vector.
     """
+    n = validate_count("n", n)
+    validate_positive(dx=dx, k=k, h_l=h_l, h_r=h_r)
+    validate_finite(T_l=T_l, T_r=T_r)
     # Number of nodes is n + 1 (from 0 to n)
     num_nodes = n + 1
 
@@ -174,6 +159,11 @@ def analytical_solution(
     :param T_r: Surrounding temperature at right end (float)
     :return: Temperature array (numpy.ndarray)
     """
+    validate_positive(L=L, k=k, h_l=h_l, h_r=h_r)
+    validate_finite(T_l=T_l, T_r=T_r)
+    x = np.asarray(x, dtype=float)
+    if not np.all(np.isfinite(x)):
+        raise ValueError("x must contain only finite values")
     # Total thermal resistance
     R_total = 1 / h_l + L / k + 1 / h_r
 
@@ -235,6 +225,15 @@ def create_cylinder_rod(
     :param resolution: Number of segments around the cylinder circumference (int)
     :return: Tuple of (polydata, temperature_values) for vtk
     """
+    x = np.asarray(x, dtype=float)
+    T = np.asarray(T, dtype=float)
+    if x.ndim != 1 or T.ndim != 1 or x.size != T.size:
+        raise ValueError("x and T must be one-dimensional arrays of equal length")
+    validate_count("profile points", x.size, minimum=2)
+    validate_count("resolution", resolution, minimum=3)
+    validate_positive(radius=radius)
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(T)):
+        raise ValueError("x and T must contain only finite values")
     points = vtk.vtkPoints()
     temperature_values = vtk.vtkFloatArray()
     temperature_values.SetName("Temperature")
@@ -356,6 +355,7 @@ def create_heat_flow_arrow(
     actor = vtk.vtkActor()
     actor.SetMapper(mapper)
     actor.GetProperty().SetColor(1.0, 0.5, 0.0)  # Orange color for heat flow
+    actor.GetProperty().LightingOff()
 
     return actor
 
@@ -374,7 +374,7 @@ def create_boundary_annotation(
     text_actor = vtk.vtkBillboardTextActor3D()
     text_actor.SetInput(text)
     text_actor.SetPosition(position)
-    text_actor.GetTextProperty().SetFontSize(14)
+    text_actor.GetTextProperty().SetFontSize(18)
     text_actor.GetTextProperty().SetColor(color)
     text_actor.GetTextProperty().SetJustificationToCentered()
     text_actor.GetTextProperty().SetBold(True)
@@ -435,21 +435,27 @@ def vtk_3d_rod_visualization(
     rod_mapper.SetLookupTable(color_map)
     rod_mapper.SetScalarModeToUsePointData()
     rod_mapper.SetScalarRange(np.min(T), np.max(T))
+    rod_mapper.UseLookupTableScalarRangeOn()
+    rod_mapper.InterpolateScalarsBeforeMappingOn()
 
     rod_actor = vtk.vtkActor()
     rod_actor.SetMapper(rod_mapper)
+    # Preserve the exact lookup-table colors shown by the scalar bar.
+    rod_actor.GetProperty().LightingOff()
     rod_actor.GetProperty().SetInterpolationToPhong()
     rod_actor.GetProperty().SetSpecular(0.3)
     rod_actor.GetProperty().SetSpecularPower(20)
 
     # Create heat flow arrow (pointing in direction of heat flow)
-    heat_flow_direction = 1 if T_r > T_l else -1
+    heat_flow_direction = int(np.sign(T_l - T_r))
     arrow_y_offset = radius * 2.5
-    arrow = create_heat_flow_arrow(
-        start_pos=(L / 2 - 0.1 * L * heat_flow_direction, arrow_y_offset, 0),
-        direction=(heat_flow_direction, 0, 0),
-        scale=0.2 * L,
-    )
+    arrow = None
+    if heat_flow_direction:
+        arrow = create_heat_flow_arrow(
+            start_pos=(L / 2 - 0.1 * L * heat_flow_direction, arrow_y_offset, 0),
+            direction=(heat_flow_direction, 0, 0),
+            scale=0.2 * L,
+        )
 
     # Create boundary annotations
     annotation_offset = radius * 3
@@ -457,29 +463,36 @@ def vtk_3d_rod_visualization(
     right_text = f"Fluid\nT∞ = {T_r}°C\nh = {h_r} W/m²K"
 
     left_annotation = create_boundary_annotation(
-        left_text, (x[0] - 0.15 * L, 0, annotation_offset), color=(0.3, 0.6, 1.0)
+        left_text, (x[0] - 0.15 * L, 0, annotation_offset), color=(0.9, 0.95, 1.0)
     )
     right_annotation = create_boundary_annotation(
-        right_text, (x[-1] + 0.15 * L, 0, annotation_offset), color=(1.0, 0.4, 0.4)
+        right_text, (x[-1] + 0.15 * L, 0, annotation_offset), color=(1.0, 0.9, 0.9)
     )
 
     # Heat flow label
     flow_label = create_boundary_annotation(
-        "Heat Flow →" if heat_flow_direction > 0 else "← Heat Flow",
+        (
+            "Heat Flow →"
+            if heat_flow_direction > 0
+            else "← Heat Flow"
+            if heat_flow_direction < 0
+            else "No net heat flow"
+        ),
         (L / 2, arrow_y_offset + radius, 0),
-        color=(1.0, 0.6, 0.2),
+        color=(1.0, 0.82, 0.5),
     )
 
     # Scalar bar (legend)
     scalar_bar = vtk.vtkScalarBarActor()
     scalar_bar.SetLookupTable(color_map)
-    scalar_bar.SetTitle("Temperature (°C)")
+    scalar_bar.SetTitle("Temperature\n(°C)")
     scalar_bar.SetNumberOfLabels(5)
     scalar_bar.SetWidth(0.08)
     scalar_bar.SetHeight(0.4)
-    scalar_bar.SetPosition(0.9, 0.3)
-    scalar_bar.GetTitleTextProperty().SetFontSize(12)
-    scalar_bar.GetLabelTextProperty().SetFontSize(10)
+    scalar_bar.SetPosition(0.91, 0.3)
+    scalar_bar.UnconstrainedFontSizeOn()
+    scalar_bar.GetTitleTextProperty().SetFontSize(16)
+    scalar_bar.GetLabelTextProperty().SetFontSize(14)
 
     # Title annotation
     title_actor = vtk.vtkTextActor()
@@ -492,7 +505,8 @@ def vtk_3d_rod_visualization(
     # Renderer setup
     renderer = vtk.vtkRenderer()
     renderer.AddActor(rod_actor)
-    renderer.AddActor(arrow)
+    if arrow is not None:
+        renderer.AddActor(arrow)
     renderer.AddActor(left_annotation)
     renderer.AddActor(right_annotation)
     renderer.AddActor(flow_label)
@@ -506,8 +520,7 @@ def vtk_3d_rod_visualization(
 
     # Add lighting
     light = vtk.vtkLight()
-    light.SetPosition(L / 2, L, L)
-    light.SetFocalPoint(L / 2, 0, 0)
+    light.SetLightTypeToHeadlight()
     light.SetIntensity(1.0)
     renderer.AddLight(light)
 

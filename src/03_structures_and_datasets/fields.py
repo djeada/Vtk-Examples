@@ -53,7 +53,6 @@ and visualizing them using appropriate techniques.
 
 import math
 
-import numpy as np
 import vtk
 
 

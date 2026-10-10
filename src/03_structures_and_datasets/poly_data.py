@@ -406,7 +406,7 @@ def compute_surface_properties(polydata):
     print("=" * 60)
     print(f"  Points: {n_points}")
     print(f"  Cells: {n_cells}")
-    print(f"  Bounds:")
+    print("  Bounds:")
     print(f"    X: [{bounds[0]:.4f}, {bounds[1]:.4f}]")
     print(f"    Y: [{bounds[2]:.4f}, {bounds[3]:.4f}]")
     print(f"    Z: [{bounds[4]:.4f}, {bounds[5]:.4f}]")

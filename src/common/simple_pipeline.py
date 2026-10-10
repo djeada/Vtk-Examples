@@ -74,7 +74,7 @@ class VisualisationPipeline:
         window = vtk.vtkRenderWindow()
         window.AddRenderer(renderer)
         window.SetSize(800, 600)
-        # window.SetTitle(self.window_title)
+        window.SetWindowName(self.window_title)
         return window
 
     def create_interactor(self, window):
@@ -89,6 +89,7 @@ class VisualisationPipeline:
         """
         interactor = vtk.vtkRenderWindowInteractor()
         interactor.SetRenderWindow(window)
+        interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
         return interactor
 
     def run(self):
@@ -97,6 +98,12 @@ class VisualisationPipeline:
         """
         actors = self.create_actors()
         renderer = self.create_renderer(actors)
+        renderer.ResetCamera()
         window = self.create_window(renderer)
         interactor = self.create_interactor(window)
-        interactor.Start()
+        try:
+            interactor.Initialize()
+            window.Render()
+            interactor.Start()
+        finally:
+            window.Finalize()

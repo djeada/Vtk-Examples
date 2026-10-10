@@ -22,14 +22,14 @@ The incompressible Navier-Stokes equations in 2D:
    ∂u/∂x + ∂v/∂y = 0
 
 2. Momentum (x-direction):
-   ∂u/∂t + u(∂u/∂x) + v(∂u/∂y) = -(1/ρ)(∂p/∂x) + ν(∂²u/∂x² + ∂²u/∂y²)
+   ∂u/∂t + u(∂u/∂x) + v(∂u/∂y) = -∂p/∂x + ν(∂²u/∂x² + ∂²u/∂y²)
 
 3. Momentum (y-direction):
-   ∂v/∂t + u(∂v/∂x) + v(∂v/∂y) = -(1/ρ)(∂p/∂y) + ν(∂²v/∂x² + ∂²v/∂y²)
+   ∂v/∂t + u(∂v/∂x) + v(∂v/∂y) = -∂p/∂y + ν(∂²v/∂x² + ∂²v/∂y²)
 
 where:
 - u, v = velocity components in x and y directions (m/s)
-- p = pressure (Pa)
+- p = kinematic pressure p_physical/ρ (m²/s²)
 - ρ = fluid density (kg/m³)
 - ν = kinematic viscosity (m²/s)
 
@@ -46,9 +46,20 @@ As the solution converges to steady state, ∂p/∂t → 0, recovering incompres
 This eliminates the need to solve a Poisson equation at each time step.
 
 Discretization:
+- Collocated node-centered velocity and pressure fields
 - Second-order central differences for pressure gradient and diffusion
-- First-order upwind scheme for convection (stable for all Re)
-- Explicit Euler time integration with stability-limited time step
+- First-order upwind convection
+- Explicit Euler pseudo-time integration with CFL and diffusion limits
+
+Limitations:
+- Explicit Euler is conditionally stable; the time step is limited by
+  convection, artificial-acoustic propagation, and viscous diffusion.
+- Centered pressure and divergence operators on a collocated grid can support
+  checkerboard pressure modes. This compact educational solver does not use a
+  Rhie-Chow face-flux correction and its pressure field is not a benchmark
+  quality pressure solution.
+- Steady state is accepted only when both the discrete divergence and the
+  momentum-equation residual are below tolerance.
 
 Boundary Conditions:
 - No-slip on all walls: u = v = 0
@@ -64,9 +75,24 @@ References:
    Journal of Computational Physics, 48(3), 387-411.
 """
 
+import sys
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import vtk
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from src.common.numerics import (
+    ConvergenceError,
+    validate_count,
+    validate_finite,
+    validate_iteration_controls,
+    validate_positive,
+)
+from src.common.field_visualization import field_points, quad_field
 
 
 def initialize_grid(
@@ -90,6 +116,9 @@ def initialize_grid(
         dx: Grid spacing in x-direction (m).
         dy: Grid spacing in y-direction (m).
     """
+    validate_positive(length=length, height=height)
+    validate_count("nx", nx, minimum=3)
+    validate_count("ny", ny, minimum=3)
     dx = length / (nx - 1)
     dy = height / (ny - 1)
     x = np.linspace(0, length, nx)
@@ -128,8 +157,8 @@ def apply_boundary_conditions(
     - Bottom wall (y=0): u=0, v=0 (no-slip)
     - Top wall (y=H): u=u_lid, v=0 (moving lid)
 
-    For a staggered-like approach on a collocated grid, we use ghost cells
-    conceptually by setting boundary values.
+    Boundary nodes are assigned directly. The side walls own the corners, so
+    the moving lid applies only between them.
 
     Args:
         u: x-velocity field.
@@ -140,7 +169,11 @@ def apply_boundary_conditions(
         u: Updated x-velocity field.
         v: Updated y-velocity field.
     """
-    # Left and right walls: no-slip
+    if u.shape != v.shape or u.ndim != 2 or min(u.shape) < 3:
+        raise ValueError("u and v must be matching two-dimensional fields of at least 3x3")
+    validate_finite(u_lid=u_lid)
+
+    # The side walls own the corners; the moving lid acts between them.
     u[:, 0] = 0.0
     u[:, -1] = 0.0
     v[:, 0] = 0.0
@@ -150,8 +183,9 @@ def apply_boundary_conditions(
     u[0, :] = 0.0
     v[0, :] = 0.0
 
-    # Top wall: moving lid (u = u_lid, v = 0)
-    u[-1, :] = u_lid
+    # Top wall: moving lid (u = u_lid, v = 0), excluding wall corners.
+    u[-1, :] = 0.0
+    u[-1, 1:-1] = u_lid
     v[-1, :] = 0.0
 
     return u, v
@@ -197,9 +231,9 @@ def step_acm(
 
     As the solution marches to steady state, ∂p/∂t → 0, recovering incompressibility.
 
-    Uses:
-    - First-order upwind for convection (unconditionally stable)
-    - Second-order central differences for diffusion and pressure gradients
+    Uses first-order upwind convection and centered pressure/diffusion terms.
+    The explicit update is conditionally stable; choose dt with
+    :func:`compute_stable_timestep`.
 
     Args:
         u: x-velocity field.
@@ -217,72 +251,66 @@ def step_acm(
         v_new: Updated y-velocity field.
         p_new: Updated pressure field.
     """
-    ny, nx = u.shape
+    if u.shape != v.shape or u.shape != p.shape or u.ndim != 2 or min(u.shape) < 3:
+        raise ValueError("u, v, and p must be matching two-dimensional fields of at least 3x3")
+    validate_positive(dx=dx, dy=dy, dt=dt, nu=nu, beta=beta)
+    validate_finite(u_lid=u_lid)
+
+    rhs_u, rhs_v = momentum_rhs(u, v, p, dx, dy, nu)
     u_new = u.copy()
     v_new = v.copy()
     p_new = p.copy()
+    u_new[1:-1, 1:-1] += dt * rhs_u
+    v_new[1:-1, 1:-1] += dt * rhs_v
 
-    # Update interior points
-    for j in range(1, ny - 1):
-        for i in range(1, nx - 1):
-            # Convection terms using upwind differencing
-            # u-component convection
-            if u[j, i] >= 0:
-                dudx = (u[j, i] - u[j, i - 1]) / dx
-            else:
-                dudx = (u[j, i + 1] - u[j, i]) / dx
-
-            if v[j, i] >= 0:
-                dudy = (u[j, i] - u[j - 1, i]) / dy
-            else:
-                dudy = (u[j + 1, i] - u[j, i]) / dy
-
-            # v-component convection
-            if u[j, i] >= 0:
-                dvdx = (v[j, i] - v[j, i - 1]) / dx
-            else:
-                dvdx = (v[j, i + 1] - v[j, i]) / dx
-
-            if v[j, i] >= 0:
-                dvdy = (v[j, i] - v[j - 1, i]) / dy
-            else:
-                dvdy = (v[j + 1, i] - v[j, i]) / dy
-
-            # Convection terms
-            conv_u = u[j, i] * dudx + v[j, i] * dudy
-            conv_v = u[j, i] * dvdx + v[j, i] * dvdy
-
-            # Diffusion terms (central differences)
-            diff_u = nu * (
-                (u[j, i + 1] - 2 * u[j, i] + u[j, i - 1]) / dx**2
-                + (u[j + 1, i] - 2 * u[j, i] + u[j - 1, i]) / dy**2
-            )
-            diff_v = nu * (
-                (v[j, i + 1] - 2 * v[j, i] + v[j, i - 1]) / dx**2
-                + (v[j + 1, i] - 2 * v[j, i] + v[j - 1, i]) / dy**2
-            )
-
-            # Pressure gradients (central differences)
-            dpdx = (p[j, i + 1] - p[j, i - 1]) / (2 * dx)
-            dpdy = (p[j + 1, i] - p[j - 1, i]) / (2 * dy)
-
-            # Divergence for pressure update
-            div = (u[j, i + 1] - u[j, i - 1]) / (2 * dx) + (
-                v[j + 1, i] - v[j - 1, i]
-            ) / (2 * dy)
-
-            # Update momentum (explicit Euler)
-            u_new[j, i] = u[j, i] + dt * (-conv_u - dpdx + diff_u)
-            v_new[j, i] = v[j, i] + dt * (-conv_v - dpdy + diff_v)
-
-            # Update pressure (artificial compressibility)
-            p_new[j, i] = p[j, i] - dt * beta * div
+    div = (
+        (u[1:-1, 2:] - u[1:-1, :-2]) / (2 * dx)
+        + (v[2:, 1:-1] - v[:-2, 1:-1]) / (2 * dy)
+    )
+    p_new[1:-1, 1:-1] -= dt * beta * div
 
     # Apply boundary conditions
     u_new, v_new = apply_boundary_conditions(u_new, v_new, u_lid)
     p_new = apply_pressure_bc(p_new)
 
     return u_new, v_new, p_new
+
+
+def momentum_rhs(
+    u: np.ndarray, v: np.ndarray, p: np.ndarray, dx: float, dy: float, nu: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return the explicit momentum-equation right-hand sides on the interior."""
+    ui = u[1:-1, 1:-1]
+    vi = v[1:-1, 1:-1]
+    up = u[1:-1, 2:]
+    um = u[1:-1, :-2]
+    un = u[2:, 1:-1]
+    us = u[:-2, 1:-1]
+    vp = v[1:-1, 2:]
+    vm = v[1:-1, :-2]
+    vn = v[2:, 1:-1]
+    vs = v[:-2, 1:-1]
+
+    dudx = np.where(ui >= 0, (ui - um) / dx, (up - ui) / dx)
+    dudy = np.where(vi >= 0, (ui - us) / dy, (un - ui) / dy)
+    dvdx = np.where(ui >= 0, (vi - vm) / dx, (vp - vi) / dx)
+    dvdy = np.where(vi >= 0, (vi - vs) / dy, (vn - vi) / dy)
+
+    diff_u = nu * ((up - 2 * ui + um) / dx**2 + (un - 2 * ui + us) / dy**2)
+    diff_v = nu * ((vp - 2 * vi + vm) / dx**2 + (vn - 2 * vi + vs) / dy**2)
+    dpdx = (p[1:-1, 2:] - p[1:-1, :-2]) / (2 * dx)
+    dpdy = (p[2:, 1:-1] - p[:-2, 1:-1]) / (2 * dy)
+    rhs_u = -ui * dudx - vi * dudy - dpdx + diff_u
+    rhs_v = -ui * dvdx - vi * dvdy - dpdy + diff_v
+    return rhs_u, rhs_v
+
+
+def compute_momentum_residual(
+    u: np.ndarray, v: np.ndarray, p: np.ndarray, dx: float, dy: float, nu: float
+) -> float:
+    """Return the maximum absolute steady momentum residual in the interior."""
+    rhs_u, rhs_v = momentum_rhs(u, v, p, dx, dy, nu)
+    return float(max(np.max(np.abs(rhs_u)), np.max(np.abs(rhs_v))))
 
 
 def compute_divergence(u: np.ndarray, v: np.ndarray, dx: float, dy: float) -> float:
@@ -301,7 +329,12 @@ def compute_divergence(u: np.ndarray, v: np.ndarray, dx: float, dy: float) -> fl
     Returns:
         max_div: Maximum absolute divergence in the domain.
     """
-    # Compute divergence using central differences
+    if u.shape != v.shape or u.ndim != 2 or min(u.shape) < 3:
+        raise ValueError("u and v must be matching two-dimensional fields of at least 3x3")
+    validate_positive(dx=dx, dy=dy)
+    if not np.isfinite(u).all() or not np.isfinite(v).all():
+        raise ValueError("velocity fields must contain only finite values")
+    # Compute divergence using the same centered operator used by pressure update.
     dudx = (u[1:-1, 2:] - u[1:-1, :-2]) / (2 * dx)
     dvdy = (v[2:, 1:-1] - v[:-2, 1:-1]) / (2 * dy)
     div = np.abs(dudx + dvdy)
@@ -309,38 +342,34 @@ def compute_divergence(u: np.ndarray, v: np.ndarray, dx: float, dy: float) -> fl
 
 
 def compute_stable_timestep(
-    dx: float, dy: float, nu: float, beta: float, u_lid: float = 1.0
+    dx: float,
+    dy: float,
+    nu: float,
+    beta: float,
+    u: np.ndarray,
+    v: np.ndarray,
+    safety: float = 0.25,
 ) -> float:
+    """Choose a conservative explicit step from current flow and grid scales.
+
+    The convective/acoustic bound uses actual maximum component speeds and the
+    diffusion bound uses both grid spacings. These estimates are safeguards,
+    not a claim of unconditional stability.
     """
-    Compute a stable time step for the ACM scheme.
+    validate_positive(dx=dx, dy=dy, nu=nu, beta=beta, safety=safety)
+    if safety >= 1:
+        raise ValueError("safety must be less than one")
+    if u.shape != v.shape or not np.isfinite(u).all() or not np.isfinite(v).all():
+        raise ValueError("u and v must be matching finite velocity fields")
 
-    The stability conditions are:
-    1. CFL condition: dt < dx / (|u| + sqrt(β))
-    2. Diffusive stability: dt < dx² / (4ν)
-
-    For the lid-driven cavity with lid velocity u_lid, we use u_lid as the
-    characteristic velocity.
-
-    Args:
-        dx: Grid spacing in x-direction (m).
-        dy: Grid spacing in y-direction (m).
-        nu: Kinematic viscosity (m²/s).
-        beta: Artificial compressibility parameter.
-        u_lid: Lid velocity for characteristic speed (m/s).
-
-    Returns:
-        dt: Stable time step (s).
-    """
-    h = min(dx, dy)
-
-    # CFL constraint (acoustic + convective)
-    c = np.sqrt(beta)  # Pseudo-speed of sound
-    dt_cfl = 0.2 * h / (u_lid + c)
-
-    # Diffusive constraint
-    dt_diff = 0.2 * h**2 / (4 * nu)
-
-    return min(dt_cfl, dt_diff)
+    umax = float(np.max(np.abs(u)))
+    vmax = float(np.max(np.abs(v)))
+    acoustic_rate = np.sqrt(beta) * np.hypot(1.0 / dx, 1.0 / dy)
+    convective_rate = umax / dx + vmax / dy
+    dt_wave = safety / max(acoustic_rate + convective_rate, np.finfo(float).tiny)
+    diffusion_rate = 2.0 * nu * (1.0 / dx**2 + 1.0 / dy**2)
+    dt_diffusion = safety / diffusion_rate
+    return float(min(dt_wave, dt_diffusion))
 
 
 def create_points(
@@ -358,17 +387,7 @@ def create_points(
         points: VTK points object.
         velocity_values: VTK float array with velocity magnitude.
     """
-    points = vtk.vtkPoints()
-    velocity_values = vtk.vtkFloatArray()
-    velocity_values.SetName("Velocity Magnitude")
-
-    nx, ny = len(x), len(y)
-    for j in range(ny):
-        for i in range(nx):
-            points.InsertNextPoint(x[i], y[j], 0)
-            velocity_values.InsertNextValue(velocity_mag[j, i])
-
-    return points, velocity_values
+    return field_points(x, y, velocity_mag, name="Velocity Magnitude")
 
 
 def create_poly_data(
@@ -386,23 +405,9 @@ def create_poly_data(
     Returns:
         polyData: VTK poly data object for rendering.
     """
-    polyData = vtk.vtkPolyData()
-    polyData.SetPoints(points)
-
-    cells = vtk.vtkCellArray()
-    for j in range(ny - 1):
-        for i in range(nx - 1):
-            quad = vtk.vtkQuad()
-            quad.GetPointIds().SetId(0, j * nx + i)
-            quad.GetPointIds().SetId(1, (j + 1) * nx + i)
-            quad.GetPointIds().SetId(2, (j + 1) * nx + (i + 1))
-            quad.GetPointIds().SetId(3, j * nx + (i + 1))
-            cells.InsertNextCell(quad)
-
-    polyData.SetPolys(cells)
-    polyData.GetPointData().SetScalars(velocity_values)
-
-    return polyData
+    if points.GetNumberOfPoints() != nx * ny or velocity_values.GetNumberOfTuples() != nx * ny:
+        raise ValueError("Point and scalar counts must match the grid dimensions")
+    return quad_field(nx, ny, points, velocity_values)
 
 
 def create_color_map(
@@ -457,6 +462,8 @@ def vtk_velocity_plot(
     mapper.SetLookupTable(color_map)
     mapper.SetScalarModeToUsePointData()
     mapper.SetScalarRange(np.min(velocity_mag), np.max(velocity_mag))
+    mapper.UseLookupTableScalarRangeOn()
+    mapper.InterpolateScalarsBeforeMappingOn()
 
     # Surface actor
     surface_actor = vtk.vtkActor()
@@ -466,6 +473,9 @@ def vtk_velocity_plot(
     scalar_bar = vtk.vtkScalarBarActor()
     scalar_bar.SetLookupTable(color_map)
     scalar_bar.SetTitle("Velocity (m/s)")
+    scalar_bar.UnconstrainedFontSizeOn()
+    scalar_bar.GetTitleTextProperty().SetFontSize(16)
+    scalar_bar.GetLabelTextProperty().SetFontSize(14)
     scalar_bar.SetNumberOfLabels(5)
 
     # Renderer setup
@@ -515,25 +525,30 @@ def run_simulation(
     ny: int = 41,
     reynolds: float = 100.0,
     u_lid: float = 1.0,
-    max_iter: int = 10000,
+    max_iter: int = 100000,
     print_interval: int = 500,
+    nu: float | None = None,
+    tolerance: float = 1e-6,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Run the lid-driven cavity flow simulation using Artificial Compressibility.
 
-    Simulates incompressible viscous flow in a square cavity driven by
-    a moving lid using the Artificial Compressibility Method. The simulation
-    continues until steady state (divergence-free) or maximum iterations.
+    Simulates incompressible viscous flow in a cavity driven by a moving lid
+    using the Artificial Compressibility Method. It returns only when both
+    divergence and steady momentum residual meet ``tolerance``; exhausted
+    iteration limits raise :class:`ConvergenceError`.
 
     Args:
         length: Cavity length in x-direction (m).
         height: Cavity height in y-direction (m).
         nx: Number of grid points in x-direction.
         ny: Number of grid points in y-direction.
-        reynolds: Reynolds number Re = U_lid * L / nu.
+        reynolds: Reynolds number Re = abs(U_lid) * L / nu, used if ``nu`` is omitted.
         u_lid: Lid velocity (m/s).
         max_iter: Maximum number of iterations.
         print_interval: Iteration interval for printing progress.
+        nu: Optional kinematic viscosity. Required when the lid is stationary.
+        tolerance: Absolute thresholds for divergence and momentum residual.
 
     Returns:
         x: 1D array of x-coordinates.
@@ -542,14 +557,21 @@ def run_simulation(
         v: Final y-velocity field.
         p: Final pressure field.
     """
-    # Compute kinematic viscosity from Reynolds number
-    # Re = U * L / nu => nu = U * L / Re
-    nu = u_lid * length / reynolds
+    validate_positive(length=length, height=height, reynolds=reynolds)
+    nx = validate_count("nx", nx, minimum=3)
+    ny = validate_count("ny", ny, minimum=3)
+    tolerance, max_iter = validate_iteration_controls(tolerance, max_iter)
+    validate_count("print_interval", print_interval)
+    validate_finite(u_lid=u_lid)
+    if nu is None:
+        if u_lid == 0:
+            raise ValueError("nu must be supplied when u_lid is zero")
+        nu = abs(u_lid) * length / reynolds
+    else:
+        validate_positive(nu=nu)
 
-    # Artificial compressibility parameter
-    # Should be large enough for fast convergence but small enough for stability
-    # Typical choice: beta ~ (u_lid)^2 to ~ 10*(u_lid)^2
-    beta = max(1.0, u_lid**2)
+    # Retain a nonzero pseudo-acoustic speed for the stationary-lid case.
+    beta = max(1.0, abs(u_lid) ** 2)
 
     print("=" * 60)
     print("Lid-Driven Cavity Flow Simulation")
@@ -572,49 +594,47 @@ def run_simulation(
     p = apply_pressure_bc(p)
 
     # Compute stable time step
-    dt = compute_stable_timestep(dx, dy, nu, beta, u_lid)
-    print(f"Time step: {dt:.6f} s")
-
-    # Convergence tolerance
-    convergence_tol = 1e-6
-    converged = False
+    dt = compute_stable_timestep(dx, dy, nu, beta, u, v)
+    print(f"Initial time step: {dt:.6g} s")
 
     for iteration in range(1, max_iter + 1):
-        # Store old values for convergence check
-        u_old = u.copy()
-        v_old = v.copy()
-
+        dt = compute_stable_timestep(dx, dy, nu, beta, u, v)
         # Perform one ACM time step
         u, v, p = step_acm(u, v, p, dx, dy, dt, nu, beta, u_lid)
 
-        # Check convergence
-        du_max = np.max(np.abs(u - u_old))
-        dv_max = np.max(np.abs(v - v_old))
-        max_change = max(du_max, dv_max)
+        divergence = compute_divergence(u, v, dx, dy)
+        momentum_residual = compute_momentum_residual(u, v, p, dx, dy, nu)
+        residual = max(divergence, momentum_residual)
 
         if iteration % print_interval == 0 or iteration == 1:
-            div_max = compute_divergence(u, v, dx, dy)
             u_max = np.max(np.abs(u[1:-1, 1:-1]))
             v_max = np.max(np.abs(v[1:-1, 1:-1]))
             print(
-                f"Iter {iteration:5d} | Δu: {max_change:.2e} | "
-                f"div: {div_max:.2e} | u_max: {u_max:.4f} | v_max: {v_max:.4f}"
+                f"Iter {iteration:5d} | div: {divergence:.2e} | "
+                f"momentum: {momentum_residual:.2e} | "
+                f"u_max: {u_max:.4f} | v_max: {v_max:.4f}"
             )
 
-        if max_change < convergence_tol and iteration > 100:
+        if divergence <= tolerance and momentum_residual <= tolerance:
             print(f"\nSteady state reached at iteration {iteration}")
-            converged = True
             break
-
-    if not converged:
-        print(f"\nMaximum iterations ({max_iter}) reached")
+    else:
+        raise ConvergenceError(
+            "Cavity solver did not satisfy divergence and momentum tolerances",
+            max_iter,
+            residual,
+        )
 
     # Final statistics
     div_max = compute_divergence(u, v, dx, dy)
     print("\n" + "=" * 60)
     print("Simulation Complete")
     print("=" * 60)
-    print(f"Final divergence (should be ~0): {div_max:.2e}")
+    print(f"Final maximum divergence: {div_max:.2e}")
+    print(
+        "Final maximum momentum residual: "
+        f"{compute_momentum_residual(u, v, p, dx, dy, nu):.2e}"
+    )
     print(f"Maximum u-velocity (interior): {np.max(u[1:-1, 1:-1]):.6f} m/s")
     print(f"Minimum u-velocity (interior): {np.min(u[1:-1, 1:-1]):.6f} m/s")
     print(f"Maximum v-velocity (interior): {np.max(v[1:-1, 1:-1]):.6f} m/s")
@@ -669,10 +689,10 @@ def plot_results(
     # Pressure
     ax3 = axes[1, 0]
     c3 = ax3.contourf(X, Y, p, levels=20, cmap="coolwarm")
-    plt.colorbar(c3, ax=ax3, label="Pressure (Pa)")
+    plt.colorbar(c3, ax=ax3, label="Kinematic pressure (m²/s²)")
     ax3.set_xlabel("x (m)")
     ax3.set_ylabel("y (m)")
-    ax3.set_title("Pressure Field")
+    ax3.set_title("Kinematic Pressure Field")
     ax3.set_aspect("equal")
 
     # Velocity profiles at center
@@ -680,7 +700,7 @@ def plot_results(
     mid_x = len(x) // 2
     mid_y = len(y) // 2
     ax4.plot(u[:, mid_x], y, "b-", label=f"u at x={x[mid_x]:.2f}")
-    ax4.plot(x, v[mid_y, :], "r--", label=f"v at y={y[mid_y]:.2f}")
+    ax4.plot(v[mid_y, :], x, "r--", label=f"v at y={y[mid_y]:.2f}")
     ax4.set_xlabel("Velocity (m/s)")
     ax4.set_ylabel("Position (m)")
     ax4.set_title("Velocity Profiles at Cavity Center")
@@ -711,7 +731,7 @@ def main():
         ny=41,  # Grid points in y
         reynolds=100.0,  # Reynolds number
         u_lid=1.0,  # Lid velocity (m/s)
-        max_iter=10000,  # Maximum iterations
+        max_iter=100000,  # Maximum iterations
         print_interval=500,  # Print every N iterations
     )
 

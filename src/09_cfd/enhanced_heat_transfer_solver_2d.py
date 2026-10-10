@@ -48,113 +48,33 @@ import matplotlib.pyplot as plt
 import numpy as np
 import vtk
 
+import sys
+from pathlib import Path
 
-def tdma_solve(
-    a: np.ndarray, ad: np.ndarray, au: np.ndarray, b: np.ndarray
-) -> np.ndarray:
-    """
-    Solves a tridiagonal matrix equation using the Thomas algorithm (TDMA).
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-    :param a: Main diagonal elements (numpy.ndarray)
-    :param ad: Sub-diagonal (lower) elements (numpy.ndarray)
-    :param au: Super-diagonal (upper) elements (numpy.ndarray)
-    :param b: Right-hand side vector (numpy.ndarray)
-    :return: Solution vector (numpy.ndarray)
-    """
-    n = len(b)
-    # Make copies to avoid modifying original arrays
-    a = a.copy()
-    b = b.copy()
-    T = np.zeros(n)
-
-    # Forward elimination
-    for i in range(1, n):
-        f = ad[i] / a[i - 1]
-        a[i] -= f * au[i - 1]
-        b[i] -= f * b[i - 1]
-
-    # Back substitution
-    T[-1] = b[-1] / a[-1]
-    for i in range(n - 2, -1, -1):
-        T[i] = (b[i] - au[i] * T[i + 1]) / a[i]
-
-    return T
+from src.common.field_visualization import field_points, quad_field
+from src.common.heat_transfer import solve_quarter_conduction, validate_field
 
 
 def two_dimensional_heat_transfer_solver(
-    n: int, L: float, k: float, S: float, T_boundary: float, Rtol: float
+    n: int,
+    L: float,
+    k: float,
+    S: float,
+    T_boundary: float,
+    Rtol: float,
+    max_iterations: int = 50000,
 ) -> tuple:
+    """Solve a quarter of a symmetric heated square, per unit depth.
+
+    Left/bottom faces are insulated; top/right nodes have T_boundary. Boundary
+    control volumes include source generation and conserve their normal fluxes.
+    The residual is measured in kelvin after each complete sweep. Failure to
+    reach Rtol raises ConvergenceError. Returns x, y, T[y,x], iterations.
     """
-    Solves the 2D steady-state heat conduction problem using Gauss-Seidel iteration.
-
-    Boundary Conditions:
-    - Top (y=L) and Right (x=L): Fixed temperature T_boundary
-    - Bottom (y=0) and Left (x=0): Zero flux (symmetry)
-
-    This represents a quarter of a symmetric domain with heat generation.
-
-    :param n: Number of divisions in each direction (int)
-    :param L: Length of the domain (float, meters)
-    :param k: Thermal conductivity (float, W/m·K)
-    :param S: Volumetric heat generation rate (float, W/m³)
-    :param T_boundary: Fixed temperature on Dirichlet boundaries (float, °C)
-    :param Rtol: Residual tolerance for convergence (float)
-    :return: Tuple of (x, y, T, iterations) - coordinate vectors, temperature field, iteration count
-    """
-    dx = dy = L / n
-    x = np.linspace(0, L, n + 1)
-    y = np.linspace(0, L, n + 1)
-
-    # Initial guess
-    T = T_boundary * np.ones((n + 1, n + 1))
-    Rmax = 1.0
-    iterations = 0
-    max_iterations = 50000
-
-    while Rmax > Rtol and iterations < max_iterations:
-        Rmax = 0.0
-        iterations += 1
-
-        # Point-by-Point Gauss-Seidel iteration for interior nodes
-        for i in range(1, n):
-            for j in range(1, n):
-                # Coefficients for the 5-point stencil
-                Aw = Ae = k * dy / dx  # West and East
-                An = As = k * dx / dy  # North and South
-
-                # Central coefficient
-                Ap = Aw + Ae + An + As
-
-                # Source term
-                b_ij = S * dx * dy
-
-                # Calculate new temperature at (i, j)
-                T_new = (
-                    Aw * T[i, j - 1]
-                    + Ae * T[i, j + 1]
-                    + An * T[i + 1, j]
-                    + As * T[i - 1, j]
-                    + b_ij
-                ) / Ap
-
-                # Update residual and temperature
-                R = abs(T_new - T[i, j])
-                Rmax = max(R, Rmax)
-                T[i, j] = T_new
-
-        # Apply Boundary Conditions
-        # Dirichlet BCs: Top and Right edges have fixed temperature
-        T[:, n] = T_boundary  # Right edge (x = L)
-        T[n, :] = T_boundary  # Top edge (y = L)
-
-        # Neumann BCs (zero flux): Left and Bottom edges (symmetry)
-        T[:, 0] = T[:, 1]  # Left edge (x = 0): dT/dx = 0
-        T[0, :] = T[1, :]  # Bottom edge (y = 0): dT/dy = 0
-
-        if iterations % 1000 == 0:
-            print(f"Iteration: {iterations}, Residual: {Rmax:.2e}")
-
-    return x, y, T, iterations
+    return solve_quarter_conduction(n, L, k, S, T_boundary, Rtol, max_iterations)
 
 
 def plot_temperature_profile(X: np.ndarray, Y: np.ndarray, T: np.ndarray, S: float):
@@ -192,57 +112,13 @@ def plot_temperature_profile(X: np.ndarray, Y: np.ndarray, T: np.ndarray, S: flo
 
 
 def create_points(x: np.ndarray, y: np.ndarray, T: np.ndarray) -> tuple:
-    """
-    Creates points and temperature values for VTK visualization.
-
-    :param x: X-coordinate vector (numpy.ndarray)
-    :param y: Y-coordinate vector (numpy.ndarray)
-    :param T: Temperature field (numpy.ndarray)
-    :return: Tuple of (points, temperature_values) for vtk
-    """
-    points = vtk.vtkPoints()
-    temperature_values = vtk.vtkFloatArray()
-    temperature_values.SetName("Temperature")
-
-    nx = len(x)
-    ny = len(y)
-    for j in range(ny):
-        for i in range(nx):
-            points.InsertNextPoint(x[i], y[j], 0)
-            temperature_values.InsertNextValue(T[j, i])
-
-    return points, temperature_values
+    """Attach T[y,x] to its physical coordinates without displacement."""
+    return field_points(x, y, T)
 
 
-def create_poly_data(
-    nx: int, ny: int, points: vtk.vtkPoints, temperature_values: vtk.vtkFloatArray
-) -> vtk.vtkPolyData:
-    """
-    Creates vtkPolyData for 2D visualization.
-
-    :param nx: Number of points in x direction (int)
-    :param ny: Number of points in y direction (int)
-    :param points: vtkPoints
-    :param temperature_values: vtkFloatArray
-    :return: vtkPolyData
-    """
-    polyData = vtk.vtkPolyData()
-    polyData.SetPoints(points)
-
-    cells = vtk.vtkCellArray()
-    for j in range(ny - 1):
-        for i in range(nx - 1):
-            quad = vtk.vtkQuad()
-            quad.GetPointIds().SetId(0, j * nx + i)
-            quad.GetPointIds().SetId(1, j * nx + (i + 1))
-            quad.GetPointIds().SetId(2, (j + 1) * nx + (i + 1))
-            quad.GetPointIds().SetId(3, (j + 1) * nx + i)
-            cells.InsertNextCell(quad)
-
-    polyData.SetPolys(cells)
-    polyData.GetPointData().SetScalars(temperature_values)
-
-    return polyData
+def create_poly_data(nx: int, ny: int, points, temperature_values):
+    """Connect the scalar grid with consistently oriented quads."""
+    return quad_field(nx, ny, points, temperature_values)
 
 
 def create_color_map(T: np.ndarray) -> vtk.vtkLookupTable:
@@ -316,22 +192,10 @@ def vtk_3d_surface_plot(
     :param T_boundary: Boundary temperature (float)
     :param title: Window title (str)
     """
-    # Create points with Z = (T - T_min) / scale for 3D effect
+    x, y, T = validate_field(x, y, T)
     T_min, T_max = np.min(T), np.max(T)
-    height_scale = L / (T_max - T_min) if T_max > T_min else 1.0
-
-    points = vtk.vtkPoints()
-    temperature_values = vtk.vtkFloatArray()
-    temperature_values.SetName("Temperature")
-
-    nx, ny = len(x), len(y)
-    for j in range(ny):
-        for i in range(nx):
-            z = (T[j, i] - T_min) * height_scale * 0.5
-            points.InsertNextPoint(x[i], y[j], z)
-            temperature_values.InsertNextValue(T[j, i])
-
-    polyData = create_poly_data(nx, ny, points, temperature_values)
+    points, temperature_values = field_points(x, y, T, height=L * 0.5)
+    polyData = create_poly_data(len(x), len(y), points, temperature_values)
     color_map = create_color_map(T)
 
     # Mapper and actor
@@ -339,10 +203,13 @@ def vtk_3d_surface_plot(
     mapper.SetInputData(polyData)
     mapper.SetLookupTable(color_map)
     mapper.SetScalarModeToUsePointData()
+    mapper.InterpolateScalarsBeforeMappingOn()
+    mapper.UseLookupTableScalarRangeOn()
     mapper.SetScalarRange(T_min, T_max)
 
     surface_actor = vtk.vtkActor()
     surface_actor.SetMapper(mapper)
+    surface_actor.GetProperty().LightingOff()
     surface_actor.GetProperty().SetInterpolationToPhong()
     surface_actor.GetProperty().SetSpecular(0.3)
     surface_actor.GetProperty().SetSpecularPower(20)
@@ -351,6 +218,9 @@ def vtk_3d_surface_plot(
     scalar_bar = vtk.vtkScalarBarActor()
     scalar_bar.SetLookupTable(color_map)
     scalar_bar.SetTitle("Temperature (°C)")
+    scalar_bar.UnconstrainedFontSizeOn()
+    scalar_bar.GetTitleTextProperty().SetFontSize(16)
+    scalar_bar.GetLabelTextProperty().SetFontSize(14)
     scalar_bar.SetNumberOfLabels(5)
     scalar_bar.SetWidth(0.08)
     scalar_bar.SetHeight(0.4)
@@ -365,7 +235,7 @@ def vtk_3d_surface_plot(
     title_actor.SetPosition(10, 10)
 
     # Info text
-    info_text = f"S = {S:.0e} W/m³\nT_boundary = {T_boundary}°C\nT_max = {T_max:.1f}°C"
+    info_text = f"S = {S:.0e} W/m³\nT_boundary = {T_boundary}°C\nT_max = {T_max:.1f}°C\nHeight: normalized temperature (display only)"
     info_actor = vtk.vtkTextActor()
     info_actor.SetInput(info_text)
     info_actor.GetTextProperty().SetFontSize(14)
@@ -381,6 +251,7 @@ def vtk_3d_surface_plot(
 
     # Add boundary labels
     for label in create_boundary_labels(L):
+        label.AddPosition(0, 0, L * 0.5)
         renderer.AddActor(label)
 
     # Background gradient
@@ -411,10 +282,11 @@ def vtk_3d_surface_plot(
 
     # Axes widget
     axes = vtk.vtkAxesActor()
+    axes.SetZAxisLabelText("scalar (scaled)")
     axes_widget = vtk.vtkOrientationMarkerWidget()
     axes_widget.SetOrientationMarker(axes)
     axes_widget.SetInteractor(renderWindowInteractor)
-    axes_widget.SetViewport(0, 0, 0.2, 0.2)
+    axes_widget.SetViewport(0, 0.82, 0.15, 1)
     axes_widget.SetEnabled(1)
     axes_widget.InteractiveOff()
 
@@ -446,7 +318,7 @@ def main():
     print("=" * 70)
     print("Part 4: 2D Steady-State Heat Transfer Solver")
     print("=" * 70)
-    print(f"Domain: {L}m × {L}m, Grid: {n+1} × {n+1}")
+    print(f"Domain: {L}m × {L}m, Grid: {n + 1} × {n + 1}")
     print(f"Thermal conductivity: k = {k} W/m·K")
     print(f"Heat generation: S = {S:.2e} W/m³")
     print(f"Boundary temperature: T = {T_boundary}°C (Dirichlet on top/right)")
@@ -467,7 +339,7 @@ def main():
     print(f"Converged in {iterations} iterations")
     print(f"Maximum temperature: {np.max(T):.2f}°C at corner (0,0)")
     print(f"Minimum temperature: {np.min(T):.2f}°C (at boundaries)")
-    print(f"Temperature at center: {T[n//2, n//2]:.2f}°C")
+    print(f"Temperature at center: {T[n // 2, n // 2]:.2f}°C")
     print("=" * 70)
 
     # Plot temperature profile

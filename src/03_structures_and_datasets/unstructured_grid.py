@@ -461,7 +461,7 @@ def compute_mesh_statistics(ugrid):
 
     # Compute bounds
     bounds = ugrid.GetBounds()
-    print(f"\nDomain bounds:")
+    print("\nDomain bounds:")
     print(f"  X: [{bounds[0]:.4f}, {bounds[1]:.4f}]")
     print(f"  Y: [{bounds[2]:.4f}, {bounds[3]:.4f}]")
     print(f"  Z: [{bounds[4]:.4f}, {bounds[5]:.4f}]")

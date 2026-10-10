@@ -1,0 +1,5 @@
+# Enough for the VTK, NumPy, Matplotlib, and CFD examples (Python 3.10+).
+# Install requirements.txt for Qt, pandas, and Spark integrations as well.
+vtk==9.4.2
+numpy==2.2.5
+matplotlib==3.10.1

@@ -1,582 +1,519 @@
+"""D2Q9 BGK lattice-Boltzmann flow past a rectangular obstacle.
+
+The domain is open in x and periodic in y. It represents a periodic channel,
+not a channel with solid top and bottom walls. Inlet velocity is imposed with
+the Zou/He non-equilibrium bounce-back rule, the outlet uses population
+extrapolation, and obstacle links use halfway bounce-back. The example is an
+educational transient calculation; vortex shedding depends on the grid,
+parameters, and simulated time and is not asserted by this solver.
 """
-Flow Around an Obstacle using the Lattice Boltzmann Method (LBM)
 
-This module implements a 2D incompressible flow simulation around a rectangular
-obstacle using the Lattice Boltzmann Method with the BGK collision operator.
-This is a classic CFD benchmark problem demonstrating vortex shedding (von Kármán
-vortex street) at moderate Reynolds numbers.
-
-Physical Problem:
------------------
-Flow past a bluff body (rectangular obstacle) in a channel:
-- Uniform inlet flow from the left boundary
-- Outflow condition at the right boundary
-- The obstacle creates flow separation and recirculation zones
-- At Re > 40, periodic vortex shedding occurs (von Kármán vortex street)
-
-The Reynolds number is defined as: Re = U * D / ν
-where:
-- U = characteristic velocity (inlet velocity)
-- D = characteristic length (obstacle height)
-- ν = kinematic viscosity
-
-The Lattice Boltzmann Method:
------------------------------
-LBM is a mesoscopic approach that models fluid dynamics by tracking the evolution
-of particle distribution functions f_i on a discrete lattice.
-
-The fundamental equation is the discrete Boltzmann equation with BGK collision:
-   f_i(x + c_i*Δt, t + Δt) = f_i(x, t) - (1/τ)[f_i(x, t) - f_i^eq(x, t)]
-
-where:
-- f_i = distribution function for velocity direction i
-- c_i = discrete velocity vector
-- τ = relaxation time (related to viscosity)
-- f_i^eq = equilibrium distribution (Maxwell-Boltzmann)
-
-D2Q9 Lattice:
--------------
-The D2Q9 lattice (2D with 9 velocities) is used:
-
-        6   2   5
-          \\ | /
-        3 - 0 - 1
-          / | \\
-        7   4   8
-
-Velocity vectors c_i:
-- c_0 = (0, 0)     : rest particles, weight w_0 = 4/9
-- c_1,2,3,4        : axis-aligned, weight w_i = 1/9
-- c_5,6,7,8        : diagonal, weight w_i = 1/36
-
-Equilibrium Distribution:
--------------------------
-f_i^eq = w_i * ρ * [1 + (c_i · u)/c_s² + (c_i · u)²/(2*c_s⁴) - u²/(2*c_s²)]
-
-where c_s = 1/√3 is the lattice speed of sound.
-
-Macroscopic Variables:
-----------------------
-The macroscopic density and velocity are recovered as moments:
-- ρ = Σ f_i              (density)
-- ρu = Σ f_i * c_i       (momentum)
-
-The kinematic viscosity is related to relaxation time:
-- ν = c_s² * (τ - 0.5) * Δt = (1/3) * (τ - 0.5)  [in lattice units]
-
-Boundary Conditions:
---------------------
-1. Inlet (left): Zou/He velocity boundary condition
-   - Prescribed velocity profile
-   - Non-equilibrium bounce-back for unknown distributions
-
-2. Outlet (right): Zero-gradient (extrapolation)
-   - f_i(-1) = f_i(-2) for outgoing populations
-
-3. Obstacle: Half-way bounce-back (no-slip)
-   - f_i = f_(-i) at obstacle nodes
-   - Creates second-order accurate no-slip walls
-
-Algorithm Steps:
-----------------
-1. Compute macroscopic variables (ρ, u) from distribution functions
-2. Apply boundary conditions
-3. Compute equilibrium distribution f^eq
-4. Collision: f_out = f_in - (1/τ)(f_in - f^eq)
-5. Apply bounce-back at obstacles
-6. Streaming: f_i(x + c_i, t+1) = f_out_i(x, t)
-
-References:
------------
-1. Chen, S., & Doolen, G.D. (1998). "Lattice Boltzmann Method for Fluid Flows"
-   Annual Review of Fluid Mechanics, 30, 329-364.
-2. Zou, Q., & He, X. (1997). "On pressure and velocity boundary conditions
-   for the lattice Boltzmann BGK model"
-   Physics of Fluids, 9(6), 1591-1598.
-3. Succi, S. (2001). "The Lattice Boltzmann Equation for Fluid Dynamics
-   and Beyond" Oxford University Press.
-"""
+from __future__ import annotations
 
 import numpy as np
 import vtk
 
+import sys
+from pathlib import Path
 
-# =============================================================================
-# Simulation Configuration
-# =============================================================================
-
-# Domain and time parameters
-MAX_ITER: int = 3000  # Total number of time iterations
-REYNOLDS_NUMBER: float = 220.0  # Reynolds number (>40 for vortex shedding)
-
-# Grid dimensions (in lattice units)
-NX: int = 520  # Length of domain
-NY: int = 180  # Height of domain
-LY: float = NY - 1.0  # Reference length for velocity profile
-
-# D2Q9 lattice parameters
-Q: int = 9  # Number of discrete velocities
-
-# Lattice velocity and derived quantities
-ULB: float = 0.04  # Characteristic velocity in lattice units (keep < 0.1 for stability)
-NU_LB: float = ULB * (NY / 9) / REYNOLDS_NUMBER  # Kinematic viscosity in lattice units
-OMEGA: float = 1.0 / (3.0 * NU_LB + 0.5)  # BGK relaxation parameter (1/τ)
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 
-# =============================================================================
-# D2Q9 Lattice Definition
-# =============================================================================
+# Domain and lattice-unit defaults.
+MAX_ITER = 3000
+# This lower-Re teaching case runs cleanly for the default duration. Larger
+# configured Reynolds numbers remain useful experiments but can destabilize BGK.
+REYNOLDS_NUMBER = 100.0
+NX = 520
+NY = 180
+OBSTACLE_LENGTH = 50
+OBSTACLE_HEIGHT = 30
+ULB = 0.06
+SNAPSHOT_INTERVAL = 100
 
 
-def setup_lattice() -> (
-    tuple[np.ndarray, np.ndarray, list[int], np.ndarray, np.ndarray, np.ndarray]
-):
-    """
-    Set up the D2Q9 lattice velocities and weights.
-
-    The D2Q9 lattice has 9 discrete velocities arranged as:
-        6   2   5
-          \\ | /
-        3 - 0 - 1
-          / | \\
-        7   4   8
-
-    Returns:
-        c: Lattice velocity vectors, shape (9, 2).
-        t: Lattice weights, shape (9,).
-        noslip: Indices for bounce-back (opposite direction).
-        i1: Indices for velocities pointing left (for right boundary).
-        i2: Indices for velocities pointing vertically (for boundary calc).
-        i3: Indices for velocities pointing right (for left boundary).
-    """
-    # Lattice velocities: c[i] = (cx, cy)
-    # Ordering: 0=rest, 1=E, 2=N, 3=W, 4=S, 5=NE, 6=NW, 7=SW, 8=SE
+def setup_lattice() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Return D2Q9 velocities, weights, and opposite-direction indices."""
     c = np.array(
         [
-            [0, 0],  # 0: rest
-            [1, 0],  # 1: East
-            [0, 1],  # 2: North
-            [-1, 0],  # 3: West
-            [0, -1],  # 4: South
-            [1, 1],  # 5: NE
-            [-1, 1],  # 6: NW
-            [-1, -1],  # 7: SW
-            [1, -1],  # 8: SE
-        ]
+            [0, 0],
+            [1, 0],
+            [0, 1],
+            [-1, 0],
+            [0, -1],
+            [1, 1],
+            [-1, 1],
+            [-1, -1],
+            [1, -1],
+        ],
+        dtype=np.int8,
+    )
+    weights = np.array(
+        [4 / 9, 1 / 9, 1 / 9, 1 / 9, 1 / 9, 1 / 36, 1 / 36, 1 / 36, 1 / 36],
+        dtype=float,
+    )
+    opposite = np.array([0, 3, 4, 1, 2, 7, 8, 5, 6], dtype=np.intp)
+    return c, weights, opposite
+
+
+C, T, NOSLIP = setup_lattice()
+Q = len(T)
+
+
+def equilibrium(
+    rho: np.ndarray | float,
+    u: np.ndarray,
+    c: np.ndarray | None = None,
+    weights: np.ndarray | None = None,
+) -> np.ndarray:
+    """Compute second-order equilibrium for a weighted velocity lattice.
+
+    ``u`` has shape ``(dimensions, *spatial_shape)`` and ``rho`` has the
+    matching spatial shape. The sound speed squared is obtained from the
+    weighted second moment of the supplied lattice, so D1Q3 and other
+    isotropic lattices can use this routine as well as D2Q9.
+    """
+    lattice = C if c is None else np.asarray(c, dtype=float)
+    lattice_weights = T if weights is None else np.asarray(weights, dtype=float)
+    velocity = np.asarray(u, dtype=float)
+    density = np.asarray(rho, dtype=float)
+
+    if lattice.ndim != 2 or lattice_weights.shape != (lattice.shape[0],):
+        raise ValueError("c must be (q, dimensions) and weights must have shape (q,)")
+    if velocity.ndim < 1 or velocity.shape[0] != lattice.shape[1]:
+        raise ValueError("u must have shape (dimensions, *spatial_shape)")
+    if density.shape != velocity.shape[1:]:
+        raise ValueError("rho shape must match the spatial dimensions of u")
+    if not np.isfinite(lattice).all() or not np.isfinite(lattice_weights).all():
+        raise ValueError("lattice velocities and weights must be finite")
+    if not np.isfinite(velocity).all() or not np.isfinite(density).all():
+        raise ValueError("rho and u must be finite")
+    if np.any(density <= 0) or np.any(lattice_weights <= 0):
+        raise ValueError("rho and lattice weights must be positive")
+
+    weight_sum = float(np.sum(lattice_weights))
+    first_moment = np.einsum("q,qd->d", lattice_weights, lattice)
+    second_moment = np.einsum("q,qi,qj->ij", lattice_weights, lattice, lattice)
+    cs2 = float(np.trace(second_moment) / lattice.shape[1])
+    if not np.isfinite(cs2) or cs2 <= 0:
+        raise ValueError("lattice must have a positive second moment")
+    if not np.isclose(weight_sum, 1.0) or not np.allclose(first_moment, 0.0):
+        raise ValueError("lattice weights must sum to one and have zero first moment")
+    if not np.allclose(second_moment, cs2 * np.eye(lattice.shape[1]), rtol=1e-10, atol=1e-12):
+        raise ValueError("lattice second moments must be isotropic")
+
+    cu = np.einsum("qd,d...->q...", lattice, velocity)
+    speed_squared = np.sum(velocity * velocity, axis=0)
+    scale = lattice_weights.reshape((len(lattice_weights),) + (1,) * density.ndim)
+    return scale * density * (
+        1.0 + cu / cs2 + cu**2 / (2.0 * cs2**2) - speed_squared / (2.0 * cs2)
     )
 
-    # Lattice weights for D2Q9
-    t = np.array(
-        [
-            4.0 / 9.0,  # rest: w_0 = 4/9
-            1.0 / 9.0,  # E
-            1.0 / 9.0,  # N
-            1.0 / 9.0,  # W
-            1.0 / 9.0,  # S
-            1.0 / 36.0,  # NE
-            1.0 / 36.0,  # NW
-            1.0 / 36.0,  # SW
-            1.0 / 36.0,  # SE
-        ]
+
+def compute_macroscopic(
+    fin: np.ndarray, c: np.ndarray | None = None
+) -> tuple[np.ndarray, np.ndarray]:
+    """Recover density and velocity; raise on invalid populations or density."""
+    lattice = C if c is None else np.asarray(c, dtype=float)
+    distributions = np.asarray(fin, dtype=float)
+    if lattice.ndim != 2 or distributions.ndim < 2:
+        raise ValueError("c must be (q, dimensions) and fin must have spatial axes")
+    if distributions.shape[0] != lattice.shape[0]:
+        raise ValueError("fin direction count must match c")
+    if not np.isfinite(distributions).all():
+        raise FloatingPointError("distribution populations are non-finite")
+    if np.any(distributions < 0):
+        raise FloatingPointError("distribution populations became negative")
+
+    rho = np.sum(distributions, axis=0)
+    if not np.isfinite(rho).all() or np.any(rho <= 0):
+        raise FloatingPointError("density must remain finite and positive")
+    momentum = np.tensordot(lattice.T, distributions, axes=(1, 0))
+    velocity = momentum / rho
+    if not np.isfinite(velocity).all():
+        raise FloatingPointError("velocity became non-finite")
+    return rho, velocity
+
+
+def _opposite_directions(c: np.ndarray) -> np.ndarray:
+    """Find each lattice direction's unique opposite velocity."""
+    opposite = []
+    for direction in c:
+        matches = np.flatnonzero(np.all(c == -direction, axis=1))
+        if len(matches) != 1:
+            raise ValueError("every lattice velocity must have one opposite direction")
+        opposite.append(matches[0])
+    return np.asarray(opposite, dtype=np.intp)
+
+
+def apply_zou_he_velocity_inlet(
+    fin: np.ndarray,
+    inlet_velocity: np.ndarray,
+    c: np.ndarray | None = None,
+    weights: np.ndarray | None = None,
+) -> np.ndarray:
+    """Reconstruct the three incoming D2Q9 populations at the left inlet.
+
+    The density follows from the mass constraint. Unknown populations use the
+    Zou/He non-equilibrium bounce-back relations (Zou & He, 1997,
+    https://arxiv.org/abs/comp-gas/9611001). ``fin`` is modified and returned.
+    """
+    lattice = C if c is None else np.asarray(c, dtype=float)
+    lattice_weights = T if weights is None else np.asarray(weights, dtype=float)
+    if lattice.shape != (9, 2) or lattice_weights.shape != (9,):
+        raise ValueError("the Zou/He inlet currently requires a D2Q9 lattice")
+    if not np.array_equal(lattice, C):
+        raise ValueError("the Zou/He inlet expects the D2Q9 direction ordering in C")
+    if not np.array_equal(lattice_weights, T):
+        raise ValueError("the Zou/He inlet expects the standard D2Q9 weights")
+    if fin.ndim != 3 or fin.shape[0] != 9:
+        raise ValueError("fin must have shape (9, nx, ny)")
+    velocity = np.asarray(inlet_velocity, dtype=float)
+    if velocity.shape == (2,):
+        velocity = np.repeat(velocity[:, None], fin.shape[2], axis=1)
+    if velocity.shape != (2, fin.shape[2]) or not np.isfinite(velocity).all():
+        raise ValueError("inlet_velocity must be finite with shape (2,) or (2, ny)")
+    ux, uy = velocity
+    if np.any(np.abs(ux) >= 1.0):
+        raise ValueError("inlet normal velocity must have magnitude below one")
+
+    normal_zero = lattice[:, 0] == 0
+    known_outgoing = lattice[:, 0] < 0
+    rho = (
+        np.sum(fin[normal_zero, 0, :], axis=0)
+        + 2.0 * np.sum(fin[known_outgoing, 0, :], axis=0)
+    ) / (1.0 - ux)
+    if not np.isfinite(rho).all() or np.any(rho <= 0):
+        raise FloatingPointError("Zou/He inlet reconstruction produced invalid density")
+
+    # C's direction order is E, N, W, S, NE, NW, SW, SE. The diagonal
+    # relations include the transverse non-equilibrium correction (fS-fN),
+    # which preserves prescribed uy when known N and S populations differ.
+    east, north, west, south, northeast, northwest, southwest, southeast = range(1, 9)
+    fin[east, 0, :] = fin[west, 0, :] + (2.0 / 3.0) * rho * ux
+    fin[northeast, 0, :] = (
+        fin[southwest, 0, :]
+        + rho * ux / 6.0
+        + rho * uy / 2.0
+        + (fin[south, 0, :] - fin[north, 0, :]) / 2.0
     )
-
-    # Bounce-back indices: noslip[i] gives the opposite direction
-    noslip = [0, 3, 4, 1, 2, 7, 8, 5, 6]
-
-    # Velocity direction groups for boundary conditions
-    i1 = np.array([3, 6, 7])  # Velocities pointing left (cx < 0)
-    i2 = np.array([0, 2, 4])  # Velocities with cx = 0
-    i3 = np.array([1, 5, 8])  # Velocities pointing right (cx > 0)
-
-    return c, t, noslip, i1, i2, i3
+    fin[southeast, 0, :] = (
+        fin[northwest, 0, :]
+        + rho * ux / 6.0
+        - rho * uy / 2.0
+        + (fin[north, 0, :] - fin[south, 0, :]) / 2.0
+    )
+    return fin
 
 
-# Initialize lattice constants
-C, T, NOSLIP, I1, I2, I3 = setup_lattice()
+def apply_open_boundaries(
+    fin: np.ndarray,
+    inlet_velocity: np.ndarray,
+    c: np.ndarray | None = None,
+    weights: np.ndarray | None = None,
+) -> np.ndarray:
+    """Apply a Zou/He left inlet and zero-gradient right outlet in place."""
+    lattice = C if c is None else np.asarray(c, dtype=float)
+    fin[lattice[:, 0] < 0, -1, :] = fin[lattice[:, 0] < 0, -2, :]
+    return apply_zou_he_velocity_inlet(fin, inlet_velocity, lattice, weights)
 
 
-# =============================================================================
-# LBM Core Functions
-# =============================================================================
+def stream_distributions(
+    fout: np.ndarray, c: np.ndarray | None = None
+) -> np.ndarray:
+    """Stream populations with periodic y and non-periodic x boundaries.
 
-
-def equilibrium(rho: np.ndarray, u: np.ndarray) -> np.ndarray:
+    The incoming populations at the two x edges are placeholders; apply the
+    inlet and outlet rules after streaming before taking macroscopic moments.
     """
-    Compute the equilibrium distribution function.
+    lattice = C if c is None else np.asarray(c, dtype=int)
+    if fout.ndim != 3 or fout.shape[0] != len(lattice):
+        raise ValueError("fout must have shape (q, nx, ny) matching c")
+    streamed = np.zeros_like(fout)
+    for i, (cx, cy) in enumerate(lattice):
+        shifted_y = np.roll(fout[i], shift=int(cy), axis=1)
+        if cx > 0:
+            streamed[i, 1:, :] = shifted_y[:-1, :]
+        elif cx < 0:
+            streamed[i, :-1, :] = shifted_y[1:, :]
+        else:
+            streamed[i] = shifted_y
+    return streamed
 
-    The equilibrium distribution for incompressible flow is:
-    f_i^eq = w_i * ρ * [1 + (c_i · u)/c_s² + (c_i · u)²/(2*c_s⁴) - u²/(2*c_s²)]
 
-    For D2Q9 with c_s² = 1/3:
-    f_i^eq = w_i * ρ * [1 + 3*(c_i · u) + 4.5*(c_i · u)² - 1.5*u²]
+def apply_link_bounce_back(
+    fout: np.ndarray,
+    streamed: np.ndarray,
+    obstacle: np.ndarray,
+    c: np.ndarray | None = None,
+) -> np.ndarray:
+    """Reflect post-collision populations halfway across fluid-solid links."""
+    lattice = C if c is None else np.asarray(c, dtype=int)
+    solid = np.asarray(obstacle, dtype=bool)
+    if solid.shape != fout.shape[1:] or streamed.shape != fout.shape:
+        raise ValueError("obstacle and distribution shapes do not match")
+    opposite = _opposite_directions(lattice)
+    for i, (cx, cy) in enumerate(lattice):
+        if i == opposite[i]:
+            continue
+        shifted_solid = np.roll(solid, shift=-int(cy), axis=1)
+        neighbor_solid = np.zeros_like(solid)
+        if cx > 0:
+            neighbor_solid[:-1, :] = shifted_solid[1:, :]
+        elif cx < 0:
+            neighbor_solid[1:, :] = shifted_solid[:-1, :]
+        else:
+            neighbor_solid = shifted_solid
+        fluid_link = neighbor_solid & ~solid
+        streamed[opposite[i], fluid_link] = fout[i, fluid_link]
+    return streamed
 
-    Args:
-        rho: Density field, shape (NX, NY).
-        u: Velocity field, shape (2, NX, NY) where u[0]=u_x, u[1]=u_y.
 
-    Returns:
-        feq: Equilibrium distribution, shape (Q, NX, NY).
+def lbm_step(
+    fin: np.ndarray,
+    obstacle: np.ndarray,
+    inlet_velocity: np.ndarray,
+    omega: float,
+    c: np.ndarray | None = None,
+    weights: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Advance one BGK step and return distributions, density, and velocity."""
+    lattice = C if c is None else np.asarray(c, dtype=float)
+    lattice_weights = T if weights is None else np.asarray(weights, dtype=float)
+    if not np.isfinite(omega) or not 0.0 < omega < 2.0:
+        raise ValueError("omega must be finite and between zero and two")
+    if fin.shape[1] < 3:
+        raise ValueError("the x domain must contain at least three nodes")
+
+    current = apply_open_boundaries(fin.copy(), inlet_velocity, lattice, lattice_weights)
+    rho, velocity = compute_macroscopic(current, lattice)
+    feq = equilibrium(rho, velocity, lattice, lattice_weights)
+    post_collision = current - omega * (current - feq)
+    streamed = stream_distributions(post_collision, lattice)
+    streamed = apply_link_bounce_back(post_collision, streamed, obstacle, lattice)
+    streamed = apply_open_boundaries(streamed, inlet_velocity, lattice, lattice_weights)
+    rho_next, velocity_next = compute_macroscopic(streamed, lattice)
+    velocity_next[:, np.asarray(obstacle, dtype=bool)] = 0.0
+    return streamed, rho_next, velocity_next
+
+
+def create_obstacle_mask(
+    nx: int,
+    ny: int,
+    obstacle_length: int,
+    obstacle_height: int,
+    x_center: int | None = None,
+    y_center: int | None = None,
+) -> np.ndarray:
+    """Create an interior rectangular solid mask with shape ``(nx, ny)``."""
+    if any(isinstance(value, (bool, np.bool_)) or not isinstance(value, (int, np.integer)) for value in (nx, ny, obstacle_length, obstacle_height)):
+        raise ValueError("domain and obstacle dimensions must be integers")
+    if nx < 5 or ny < 5:
+        raise ValueError("the domain must be at least 5 by 5 lattice nodes")
+    if obstacle_length < 1 or obstacle_height < 1:
+        raise ValueError("obstacle dimensions must be positive integers")
+    x_center = nx // 4 if x_center is None else x_center
+    y_center = ny // 2 if y_center is None else y_center
+    x0 = int(x_center) - int(obstacle_length) // 2
+    y0 = int(y_center) - int(obstacle_height) // 2
+    x1 = x0 + int(obstacle_length)
+    y1 = y0 + int(obstacle_height)
+    if x0 < 1 or x1 >= nx - 1 or y0 < 1 or y1 >= ny - 1:
+        raise ValueError("obstacle must lie inside the domain and away from boundaries")
+    mask = np.zeros((nx, ny), dtype=bool)
+    mask[x0:x1, y0:y1] = True
+    return mask
+
+
+def simulate_flow(
+    nx: int = NX,
+    ny: int = NY,
+    max_iter: int = MAX_ITER,
+    reynolds: float = REYNOLDS_NUMBER,
+    inlet_speed: float = ULB,
+    obstacle_length: int = OBSTACLE_LENGTH,
+    obstacle_height: int = OBSTACLE_HEIGHT,
+    snapshot_interval: int = SNAPSHOT_INTERVAL,
+    progress_callback=None,
+) -> tuple[list[np.ndarray], np.ndarray, np.ndarray, np.ndarray]:
+    """Run LBM without opening a window; return post-step velocity snapshots.
+
+    Snapshots and the final velocity have shape ``(2, ny, nx)`` and contain
+    lattice-unit velocity components. The obstacle mask has shape ``(ny, nx)``
+    for direct use with plotting routines.
     """
-    # Compute c_i · u for all velocities: shape (Q, NX, NY)
-    cu = 3.0 * np.dot(C, u.transpose(1, 0, 2))
+    if nx < 5 or ny < 5:
+        raise ValueError("nx and ny must be at least five")
+    if any(isinstance(value, (bool, np.bool_)) or not isinstance(value, (int, np.integer)) for value in (max_iter, snapshot_interval)):
+        raise ValueError("max_iter and snapshot_interval must be integers")
+    if max_iter < 1 or snapshot_interval < 1:
+        raise ValueError("max_iter and snapshot_interval must be positive")
+    if not np.isfinite(reynolds) or reynolds <= 0:
+        raise ValueError("reynolds must be finite and positive")
+    if not np.isfinite(inlet_speed) or not 0.0 < inlet_speed < 0.1:
+        raise ValueError("inlet_speed must be finite, positive, and below 0.1")
 
-    # Compute u² = u_x² + u_y²: shape (NX, NY)
-    usqr = 1.5 * (u[0] ** 2 + u[1] ** 2)
+    obstacle_xy = create_obstacle_mask(nx, ny, obstacle_length, obstacle_height)
+    obstacle = obstacle_xy.T.copy()
+    nu_lb = abs(inlet_speed) * obstacle_height / reynolds
+    if nu_lb <= 0:
+        raise ValueError("inlet_speed and obstacle height must give positive viscosity")
+    omega = 1.0 / (3.0 * nu_lb + 0.5)
+    if not 0.0 < omega < 2.0:
+        raise ValueError("chosen Reynolds number gives an unstable BGK relaxation rate")
 
-    # Compute equilibrium for each velocity direction
-    feq = np.zeros((Q, NX, NY))
-    for i in range(Q):
-        feq[i] = rho * T[i] * (1.0 + cu[i] + 0.5 * cu[i] ** 2 - usqr)
+    velocity = np.zeros((2, nx, ny), dtype=float)
+    velocity[0, :, :] = inlet_speed
+    velocity[:, obstacle_xy] = 0.0
+    fin = equilibrium(np.ones((nx, ny)), velocity)
+    inlet = np.zeros((2, ny), dtype=float)
+    inlet[0, :] = inlet_speed
+    snapshots: list[np.ndarray] = []
 
-    return feq
+    for iteration in range(1, max_iter + 1):
+        fin, _, velocity = lbm_step(fin, obstacle_xy, inlet, omega)
+        if iteration % snapshot_interval == 0 or iteration == max_iter:
+            snapshots.append(velocity.transpose(0, 2, 1).copy())
+            if progress_callback is not None:
+                progress_callback(iteration, max_iter)
 
-
-def compute_macroscopic(fin: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Compute macroscopic density and velocity from distribution functions.
-
-    The macroscopic variables are moments of the distribution:
-    - ρ = Σ_i f_i
-    - ρu = Σ_i f_i * c_i
-
-    Args:
-        fin: Distribution function, shape (Q, NX, NY).
-
-    Returns:
-        rho: Density field, shape (NX, NY).
-        u: Velocity field, shape (2, NX, NY).
-    """
-    rho = np.sum(fin, axis=0)
-    # Add small epsilon to prevent division by zero in rare cases
-    rho_safe = np.maximum(rho, 1e-10)
-    u = np.dot(C.T, fin.transpose(1, 0, 2)) / rho_safe
-    return rho, u
-
-
-# =============================================================================
-# Visualization Functions
-# =============================================================================
+    return snapshots, obstacle, fin, velocity.transpose(0, 2, 1).copy()
 
 
-def create_points(
-    nx: int, ny: int, u: np.ndarray
-) -> tuple[vtk.vtkPoints, vtk.vtkFloatArray]:
-    """
-    Create VTK points and velocity values for visualization.
+def create_structured_grid(
+    nx: int,
+    ny: int,
+    velocity: np.ndarray,
+    obstacle_mask: np.ndarray,
+) -> vtk.vtkStructuredGrid:
+    """Map ``(2, ny, nx)`` velocities to point scalars, vectors, and quads."""
+    if velocity.shape != (2, ny, nx) or obstacle_mask.shape != (ny, nx):
+        raise ValueError("velocity or obstacle mask has the wrong shape")
 
-    Args:
-        nx: Number of points in x-direction.
-        ny: Number of points in y-direction.
-        u: Velocity magnitude field, shape (ny, nx).
-
-    Returns:
-        points: VTK points object.
-        velocity_values: VTK float array with velocity magnitudes.
-    """
     points = vtk.vtkPoints()
-    velocity_values = vtk.vtkFloatArray()
-    velocity_values.SetName("Velocity Magnitude")
-
-    assert (
-        u.shape[0] == ny and u.shape[1] == nx
-    ), f"Dimension mismatch: expected ({ny}, {nx}), got {u.shape}"
-
     for j in range(ny):
         for i in range(nx):
-            points.InsertNextPoint(i, j, 0)
-            velocity_values.InsertNextValue(u[j, i])
+            points.InsertNextPoint(i, j, 0.0)
 
-    return points, velocity_values
+    speed = np.hypot(velocity[0], velocity[1]).copy()
+    speed[obstacle_mask] = np.nan
+    speed_array = vtk.vtkFloatArray()
+    speed_array.SetName("Velocity Magnitude (lattice units)")
+    vectors = vtk.vtkFloatArray()
+    vectors.SetName("Velocity (lattice units)")
+    vectors.SetNumberOfComponents(3)
+    vectors.SetNumberOfTuples(nx * ny)
+    for j in range(ny):
+        for i in range(nx):
+            speed_array.InsertNextValue(float(speed[j, i]))
+            vx = 0.0 if obstacle_mask[j, i] else float(velocity[0, j, i])
+            vy = 0.0 if obstacle_mask[j, i] else float(velocity[1, j, i])
+            vectors.SetTuple3(j * nx + i, vx, vy, 0.0)
 
-
-def create_poly_data(
-    nx: int, ny: int, points: vtk.vtkPoints, velocity_values: vtk.vtkFloatArray
-) -> vtk.vtkPolyData:
-    """
-    Create VTK poly data for surface visualization.
-
-    Args:
-        nx: Number of points in x-direction.
-        ny: Number of points in y-direction.
-        points: VTK points object.
-        velocity_values: VTK float array with scalar values.
-
-    Returns:
-        polyData: VTK poly data object for rendering.
-    """
-    polyData = vtk.vtkPolyData()
-    polyData.SetPoints(points)
-
-    cells = vtk.vtkCellArray()
-    for j in range(ny - 1):
-        for i in range(nx - 1):
-            quad = vtk.vtkQuad()
-            quad.GetPointIds().SetId(0, j * nx + i)
-            quad.GetPointIds().SetId(1, (j + 1) * nx + i)
-            quad.GetPointIds().SetId(2, (j + 1) * nx + (i + 1))
-            quad.GetPointIds().SetId(3, j * nx + (i + 1))
-            cells.InsertNextCell(quad)
-
-    polyData.SetPolys(cells)
-    polyData.GetPointData().SetScalars(velocity_values)
-
-    return polyData
+    grid = vtk.vtkStructuredGrid()
+    grid.SetDimensions(nx, ny, 1)
+    grid.SetPoints(points)
+    grid.GetPointData().SetScalars(speed_array)
+    grid.GetPointData().SetVectors(vectors)
+    return grid
 
 
-def create_color_map(
-    u: np.ndarray, hue_range: tuple[float, float] = (0.667, 0.0)
-) -> vtk.vtkLookupTable:
-    """
-    Create a color lookup table for VTK visualization.
-
-    Args:
-        u: Array of values to map colors to.
-        hue_range: Range of hue values (default blue to red).
-
-    Returns:
-        color_map: VTK lookup table.
-    """
-    color_map = vtk.vtkLookupTable()
-    min_val, max_val = np.min(u), np.max(u)
-    color_map.SetRange(min_val, max_val)
-    color_map.SetHueRange(*hue_range)
-    color_map.Build()
-    return color_map
-
-
-def vtk_velocity_plot(nx: int, ny: int, snapshots: list[np.ndarray]) -> None:
-    """
-    Animate the velocity field evolution using VTK.
-
-    Creates an interactive visualization with:
-    - Velocity magnitude as colored surface
-    - Scalar bar legend
-    - Timer-based animation through snapshots
-
-    Args:
-        nx: Number of points in x-direction.
-        ny: Number of points in y-direction.
-        snapshots: List of velocity magnitude arrays, each shape (ny, nx).
-    """
+def vtk_velocity_plot(
+    nx: int,
+    ny: int,
+    snapshots: list[np.ndarray],
+    obstacle_mask: np.ndarray,
+) -> None:
+    """Animate post-step lattice velocity magnitude; solids are gray."""
     if not snapshots:
-        print("No snapshots to visualize.")
-        return
+        raise ValueError("at least one velocity snapshot is required")
+    finite_speeds = [
+        np.hypot(snapshot[0], snapshot[1])[~obstacle_mask] for snapshot in snapshots
+    ]
+    global_max = max(float(np.max(speeds)) for speeds in finite_speeds)
+    color_map = vtk.vtkLookupTable()
+    color_map.SetRange(0.0, max(global_max, 1e-12))
+    color_map.SetHueRange(0.667, 0.0)
+    color_map.SetNanColor(0.25, 0.27, 0.3, 1.0)
+    color_map.Build()
 
-    # Calculate global min/max for consistent color scaling
-    global_min_u = min(np.min(s) for s in snapshots)
-    global_max_u = max(np.max(s) for s in snapshots)
-
-    # Setup renderer
     renderer = vtk.vtkRenderer()
     renderer.SetUseFXAA(True)
     renderer.SetBackground(0.1, 0.1, 0.1)
-
-    # Render window
     render_window = vtk.vtkRenderWindow()
     render_window.AddRenderer(renderer)
-    render_window.SetSize(1200, 400)
-    render_window.SetWindowName("Flow Around Obstacle - Lattice Boltzmann Method")
+    render_window.SetSize(1200, 500)
+    render_window.SetWindowName("Flow Around an Obstacle - Lattice Boltzmann")
+    interactor = vtk.vtkRenderWindowInteractor()
+    interactor.SetRenderWindow(render_window)
+    interactor.Initialize()
 
-    # Interactor
-    render_interactor = vtk.vtkRenderWindowInteractor()
-    render_interactor.SetRenderWindow(render_window)
-    render_interactor.Initialize()
+    scalar_bar = vtk.vtkScalarBarActor()
+    scalar_bar.SetLookupTable(color_map)
+    scalar_bar.SetTitle("Velocity magnitude\n(lattice units)")
+    scalar_bar.UnconstrainedFontSizeOn()
+    scalar_bar.GetTitleTextProperty().SetFontSize(16)
+    scalar_bar.GetLabelTextProperty().SetFontSize(14)
+    scalar_bar.SetNumberOfLabels(5)
+    renderer.AddActor2D(scalar_bar)
 
-    # State for animation
-    surface_actor = None
-    scalar_bar = None
-    snapshot_idx = [0]  # Use list for mutable closure
+    surface_actor = vtk.vtkActor()
+    mapper = vtk.vtkDataSetMapper()
+    mapper.SetLookupTable(color_map)
+    mapper.SetScalarModeToUsePointData()
+    mapper.SetScalarRange(0.0, max(global_max, 1e-12))
+    mapper.UseLookupTableScalarRangeOn()
+    mapper.InterpolateScalarsBeforeMappingOn()
+    surface_actor.SetMapper(mapper)
+    renderer.AddActor(surface_actor)
 
-    def update_visualization(obj, event):
-        nonlocal surface_actor, scalar_bar
+    status = vtk.vtkTextActor()
+    status.GetTextProperty().SetFontSize(16)
+    status.GetTextProperty().SetColor(1.0, 1.0, 1.0)
+    status.SetDisplayPosition(18, 18)
+    renderer.AddActor2D(status)
+    snapshot_index = 0
 
-        # Remove current actors
-        if surface_actor:
-            renderer.RemoveActor(surface_actor)
-        if scalar_bar:
-            renderer.RemoveActor(scalar_bar)
-
-        # Check if more snapshots available
-        if snapshot_idx[0] >= len(snapshots):
-            snapshot_idx[0] = 0  # Loop animation
-
-        # Get current snapshot
-        u_np = snapshots[snapshot_idx[0]]
-        snapshot_idx[0] += 1
-
-        # Create visualization
-        points, velocity_values = create_points(nx, ny, u_np)
-        polyData = create_poly_data(nx, ny, points, velocity_values)
-        color_map = create_color_map(u_np)
-
-        mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputData(polyData)
-        mapper.SetLookupTable(color_map)
-        mapper.SetScalarModeToUsePointData()
-        mapper.SetScalarRange(global_min_u, global_max_u)
-
-        surface_actor = vtk.vtkActor()
-        surface_actor.SetMapper(mapper)
-
-        scalar_bar = vtk.vtkScalarBarActor()
-        scalar_bar.SetLookupTable(color_map)
-        scalar_bar.SetTitle("Velocity (lattice units)")
-        scalar_bar.SetNumberOfLabels(5)
-
-        renderer.AddActor(surface_actor)
-        renderer.AddActor(scalar_bar)
-        renderer.ResetCamera()
+    def render_next_frame(_obj, _event):
+        nonlocal snapshot_index
+        snapshot = snapshots[snapshot_index]
+        current_index = snapshot_index
+        snapshot_index = (snapshot_index + 1) % len(snapshots)
+        grid = create_structured_grid(nx, ny, snapshot, obstacle_mask)
+        mapper.SetInputData(grid)
+        status.SetInput(
+            "Transient LBM; periodic y; open x; coordinates/velocity in lattice units\n"
+            f"Snapshot {current_index + 1}/{len(snapshots)}"
+        )
+        if snapshot_index == 1:
+            renderer.ResetCamera()
         render_window.Render()
 
-    # Add timer for animation
-    render_interactor.AddObserver("TimerEvent", update_visualization)
-    render_interactor.CreateRepeatingTimer(500)  # Update every 500ms
-
-    # Initial render
-    update_visualization(None, None)
-    render_window.Render()
-    render_interactor.Start()
-
-    # Cleanup
+    interactor.AddObserver("TimerEvent", render_next_frame)
+    interactor.CreateRepeatingTimer(500)
+    render_next_frame(None, None)
+    interactor.Start()
     render_window.Finalize()
-    render_interactor.TerminateApp()
-
-
-# =============================================================================
-# Main Simulation
-# =============================================================================
+    interactor.TerminateApp()
 
 
 def run_simulation() -> None:
-    """
-    Run the Lattice Boltzmann simulation for flow around an obstacle.
+    """Run the default transient and open its VTK animation."""
+    nu_lb = abs(ULB) * OBSTACLE_HEIGHT / REYNOLDS_NUMBER
+    omega = 1.0 / (3.0 * nu_lb + 0.5)
+    print("D2Q9 BGK flow past a rectangular obstacle")
+    print(f"Domain: {NX} x {NY} lattice nodes; y is periodic")
+    print(f"Obstacle: {OBSTACLE_LENGTH} x {OBSTACLE_HEIGHT} lattice nodes")
+    print(f"Reynolds number based on obstacle height: {REYNOLDS_NUMBER:g}")
+    print(f"Inlet speed: {ULB:g}; nu: {nu_lb:.6g}; omega: {omega:.6f}")
+    print(f"Steps: {MAX_ITER}; snapshots every {SNAPSHOT_INTERVAL} steps")
 
-    This function:
-    1. Initializes the rectangular obstacle and velocity field
-    2. Runs the LBM time-stepping loop
-    3. Collects snapshots of velocity magnitude
-    4. Launches VTK visualization
-
-    The simulation demonstrates:
-    - Vortex shedding behind the obstacle (von Kármán vortex street)
-    - Flow separation and recirculation zones
-    - Time-dependent flow at Re = 220
-    """
-    print("=" * 70)
-    print("Lattice Boltzmann Simulation: Flow Around an Obstacle")
-    print("=" * 70)
-    print(f"Domain size: {NX} x {NY} lattice units")
-    print(f"Reynolds number: {REYNOLDS_NUMBER}")
-    print(f"Relaxation parameter (omega): {OMEGA:.4f}")
-    print(f"Kinematic viscosity (lattice units): {NU_LB:.6f}")
-    print(f"Maximum iterations: {MAX_ITER}")
-    print("=" * 70)
-
-    # Define rectangular obstacle (bluff body)
-    obstacle_length = 50  # Length in x-direction
-    obstacle_height = 10  # Height in y-direction
-    obstacle_x_center = NX // 4  # Position at 1/4 of domain
-    obstacle_y_center = NY // 2  # Centered vertically
-
-    # Create obstacle mask
-    obstacle = np.fromfunction(
-        lambda x, y: (
-            (np.abs(x - obstacle_x_center) < obstacle_length / 2)
-            & (np.abs(y - obstacle_y_center) < obstacle_height / 2)
-        ),
-        (NX, NY),
+    snapshots, obstacle, _, _ = simulate_flow(
+        progress_callback=lambda step, total: print(f"Step {step}/{total}")
     )
-    print(
-        f"Obstacle: {obstacle_length}x{obstacle_height} at ({obstacle_x_center}, {obstacle_y_center})"
-    )
-
-    # Initialize velocity field with slight perturbation to trigger instability
-    vel = np.fromfunction(
-        lambda d, x, y: (1 - d) * ULB * (1.0 + 1e-4 * np.sin(y / LY * 2 * np.pi)),
-        (2, NX, NY),
-    )
-
-    # Initialize distribution function to equilibrium
-    fin = equilibrium(1.0, vel).copy()
-
-    # Storage for visualization snapshots
-    snapshots = []
-    snapshot_interval = 100  # Save every N time steps
-
-    print("\nRunning simulation...")
-
-    for time_step in range(MAX_ITER):
-        # -----------------------------------------------------------------
-        # Step 1: Apply outlet boundary condition (right wall)
-        # Zero-gradient extrapolation for outgoing populations
-        # -----------------------------------------------------------------
-        fin[I1, -1, :] = fin[I1, -2, :]
-
-        # -----------------------------------------------------------------
-        # Step 2: Compute macroscopic density and velocity
-        # -----------------------------------------------------------------
-        rho, u = compute_macroscopic(fin)
-
-        # -----------------------------------------------------------------
-        # Step 3: Apply inlet boundary condition (left wall)
-        # Zou/He velocity boundary condition
-        # -----------------------------------------------------------------
-        # Prescribe inlet velocity
-        u[:, 0, :] = vel[:, 0, :]
-
-        # Compute density from known populations (Zou/He)
-        # Note: u[0,0,:] should always be < 1 for stability (typically < 0.1)
-        # Add small safety margin to prevent division by zero
-        velocity_factor = np.maximum(1.0 - u[0, 0, :], 1e-10)
-        rho[0, :] = (
-            1.0
-            / velocity_factor
-            * (np.sum(fin[I2, 0, :], axis=0) + 2.0 * np.sum(fin[I1, 0, :], axis=0))
-        )
-
-        # Compute equilibrium and set unknown populations
-        feq = equilibrium(rho, u)
-        fin[I3, 0, :] = fin[I1, 0, :] + feq[I3, 0, :] - fin[I1, 0, :]
-
-        # -----------------------------------------------------------------
-        # Step 4: BGK Collision step
-        # f_out = f_in - omega * (f_in - f_eq)
-        # -----------------------------------------------------------------
-        fout = fin - OMEGA * (fin - feq)
-
-        # -----------------------------------------------------------------
-        # Step 5: Apply no-slip boundary at obstacle (bounce-back)
-        # -----------------------------------------------------------------
-        for i in range(Q):
-            fout[i, obstacle] = fin[NOSLIP[i], obstacle]
-
-        # -----------------------------------------------------------------
-        # Step 6: Streaming step
-        # Move distributions to neighboring nodes
-        # -----------------------------------------------------------------
-        for i in range(Q):
-            fin[i, :, :] = np.roll(
-                np.roll(fout[i, :, :], C[i, 0], axis=0), C[i, 1], axis=1
-            )
-
-        # -----------------------------------------------------------------
-        # Step 7: Data collection
-        # -----------------------------------------------------------------
-        if time_step % snapshot_interval == 0:
-            u_magnitude = np.sqrt(u[0] ** 2 + u[1] ** 2)
-            # Transpose for visualization (y, x) ordering
-            snapshots.append(u_magnitude.T.copy())
-            print(
-                f"  Time step {time_step:5d}/{MAX_ITER}: "
-                f"max|u| = {np.max(u_magnitude):.4f}"
-            )
-
-    print("\nSimulation complete!")
-    print(f"Collected {len(snapshots)} snapshots for visualization")
-    print("=" * 70)
-
-    # Launch visualization
-    vtk_velocity_plot(NX, NY, snapshots)
+    print(f"Completed {MAX_ITER} steps; collected {len(snapshots)} post-step snapshots")
+    vtk_velocity_plot(NX, NY, snapshots, obstacle)
 
 
 if __name__ == "__main__":

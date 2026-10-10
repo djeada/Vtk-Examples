@@ -1,0 +1,41 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: pip
+          cache-dependency-path: |
+            requirements-core.txt
+            requirements-reels.txt
+            requirements-dev.txt
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg xvfb
+      - run: python -m pip install -r requirements-dev.txt
+      - run: ruff check src tests
+      - run: python -m compileall -q src tests
+      - run: xvfb-run -a python -m unittest discover -s tests -v
+  browser:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vtk_js/basic
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: vtk_js/basic/package-lock.json
+      - run: npm ci
+      - run: npm run build

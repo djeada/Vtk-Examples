@@ -497,7 +497,7 @@ def print_multiblock_info(multiblock):
             # List point data arrays
             pd = block.GetPointData()
             if pd.GetNumberOfArrays() > 0:
-                print(f"    Point Data Arrays:")
+                print("    Point Data Arrays:")
                 for j in range(pd.GetNumberOfArrays()):
                     arr = pd.GetArray(j)
                     if arr:

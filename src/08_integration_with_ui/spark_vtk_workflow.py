@@ -1,9 +1,14 @@
+"""Demonstrate a pandas fallback for a Spark-to-VTK data workflow.
+
+The sample creates and filters point data with pandas, then converts it to VTK.
+It does not require a Spark or Java installation.
+"""
+
 import os
 import sys
 import numpy as np
 import pandas as pd
 import vtk
-from vtk.util import numpy_support
 import logging
 
 # Configure logging
@@ -11,28 +16,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-
-
-def check_environment():
-    """Check if the environment is properly configured."""
-    # Check for Java
-    java_home = os.environ.get("JAVA_HOME")
-    if not java_home:
-        raise EnvironmentError(
-            "JAVA_HOME is not set. Please install Java and set JAVA_HOME environment variable.\n"
-            "On Ubuntu/Debian: \n"
-            "1. sudo apt update\n"
-            "2. sudo apt install default-jdk\n"
-            "3. Add to ~/.bashrc:\n"
-            "   export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64\n"
-            "   (adjust path according to your Java installation)"
-        )
-
-    # Check if Java is accessible
-    if os.system("java -version > /dev/null 2>&1") != 0:
-        raise EnvironmentError("Java is not accessible from command line")
-
-    return True
 
 
 def create_sample_data_without_spark(num_points=1000):
@@ -122,10 +105,10 @@ def visualize_vtk(polydata):
 
 def main():
     try:
-        logger.info("Starting data processing and visualization workflow")
+        logger.info("Starting pandas fallback for the Spark-to-VTK workflow")
 
         # Create and process data using Pandas
-        logger.info("Generating sample data")
+        logger.info("Generating sample point data with pandas")
         df = create_sample_data_without_spark()
 
         logger.info("Processing data")
@@ -155,13 +138,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        # Check environment before running
-        check_environment()
-        main()
-    except EnvironmentError as e:
-        logger.error(f"Environment configuration error: {str(e)}")
-        sys.exit(1)
-    except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        sys.exit(1)
+    main()

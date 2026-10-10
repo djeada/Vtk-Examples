@@ -4,90 +4,55 @@ import os
 import vtk
 
 try:
-    from .converter_interface import Converter
+    from .converter_interface import VTKConverter
 except ImportError:
-    from converter_interface import Converter
+    from converter_interface import VTKConverter
 
 
-class VtkToVtmConverter(Converter):
-    """Converter for VTK to VTM (multiblock) file format conversion."""
+class VtkToVtmConverter(VTKConverter):
+    """Wrap a legacy VTK dataset in a single-block VTM file."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
+    input_extension = ".vtk"
+    output_extension = ".vtm"
+    reader_type = vtk.vtkGenericDataObjectReader
+    writer_type = vtk.vtkXMLMultiBlockDataWriter
+    output_type = "vtkMultiBlockDataSet"
 
-        if not (
-            input_filename.lower().endswith(".vtk")
-            and output_filename.lower().endswith(".vtm")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.vtk' and '.vtm'.")
+    def prepare_data(self, data):
+        if not data.IsA("vtkDataSet") or data.GetNumberOfPoints() == 0:
+            raise ValueError("VTM conversion requires a nonempty VTK dataset.")
+        multiblock = vtk.vtkMultiBlockDataSet()
+        multiblock.SetNumberOfBlocks(1)
+        multiblock.SetBlock(0, data)
+        return multiblock
 
-        try:
-            # Read VTK File
-            reader = vtk.vtkGenericDataObjectReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
 
-            # Create a multiblock dataset and add the output to it
-            mbds = vtk.vtkMultiBlockDataSet()
-            mbds.SetNumberOfBlocks(1)
-            mbds.SetBlock(0, reader.GetOutput())
+class VtmToVtkConverter(VTKConverter):
+    """Export the first block of a VTM file as a legacy VTK dataset.
 
-            # Write VTM File
-            writer = vtk.vtkXMLMultiBlockDataWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputData(mbds)
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
+    Legacy dataset writers cannot preserve multiple blocks. Warn when other
+    blocks are omitted and reject a missing or nested first block explicitly.
+    """
+
+    input_extension = ".vtm"
+    output_extension = ".vtk"
+    reader_type = vtk.vtkXMLMultiBlockDataReader
+    writer_type = vtk.vtkDataSetWriter
+    output_type = "vtkDataSet"
+
+    def prepare_data(self, data):
+        count = data.GetNumberOfBlocks()
+        if count == 0:
+            raise ValueError("No blocks found in the VTM file.")
+        if count > 1:
+            logging.warning(
+                "VTM file contains %s blocks. Only the first block will be converted.",
+                count,
             )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
-
-
-class VtmToVtkConverter(Converter):
-    """Converter for VTM (multiblock) to VTK file format conversion."""
-
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".vtm")
-            and output_filename.lower().endswith(".vtk")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.vtm' and '.vtk'.")
-
-        try:
-            # Read VTM File
-            reader = vtk.vtkXMLMultiBlockDataReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Get the first block from the multiblock dataset
-            mbds = reader.GetOutput()
-            num_blocks = mbds.GetNumberOfBlocks()
-            if num_blocks > 0:
-                if num_blocks > 1:
-                    logging.warning(
-                        f"VTM file contains {num_blocks} blocks. "
-                        "Only the first block will be converted."
-                    )
-                block = mbds.GetBlock(0)
-                # Write VTK File
-                writer = vtk.vtkDataSetWriter()
-                writer.SetFileName(output_filename)
-                writer.SetInputData(block)
-                writer.Write()
-                logging.info(
-                    f"Conversion successful: {input_filename} to {output_filename}"
-                )
-            else:
-                raise ValueError(f"No blocks found in the VTM file: {input_filename}")
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+        block = data.GetBlock(0)
+        if block is None:
+            raise ValueError("The first VTM block is empty.")
+        return block
 
 
 if __name__ == "__main__":

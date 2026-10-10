@@ -1,6 +1,5 @@
 # Node modules
 node_modules/
-package-lock.json
 
 # Build output
 dist/
@@ -169,4 +168,10 @@ src/**/*.obj
 data/**/*_transformed.*
 data/**/*_output.*
 data/exodus/tetrahedron_output.exo
+data/vtms/*_output/
+src/05_data_conversion/*_converted/
+.ruff_cache/
+
+# Generated science reels and sidecar assets
+/reels/
 
