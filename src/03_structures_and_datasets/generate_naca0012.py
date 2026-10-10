@@ -24,7 +24,7 @@ Usage:
 
 import vtk
 
-from naca_airfoil_generator import NACAGenerator, WingParameters
+from naca_airfoil_generator import NACAGenerator
 
 
 def main():

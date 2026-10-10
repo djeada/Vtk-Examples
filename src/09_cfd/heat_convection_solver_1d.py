@@ -20,9 +20,11 @@ The steady-state convection-diffusion equation in 1D is:
 
 where:
 - phi: transported scalar (temperature, concentration, etc.)
-- rho: fluid density (kg/m³)
+- rho: mass density (kg/m³), or volumetric heat capacity (J/m³·K) for
+  temperature transport
 - u: fluid velocity (m/s)
-- Gamma: diffusion coefficient (kg/m·s or W/m·K for heat)
+- Gamma: rho times scalar diffusivity (kg/m·s); for heat transport, use
+  thermal conductivity (W/m·K) when rho is volumetric heat capacity
 
 For constant properties, this simplifies to:
     rho * u * dphi/dx = Gamma * d²phi/dx²
@@ -47,9 +49,22 @@ For constant properties with boundary conditions phi(0) = phi_0, phi(L) = phi_L:
     phi(x) = phi_0 + (phi_L - phi_0) * (exp(Pe*x/L) - 1) / (exp(Pe) - 1)
 """
 
+import sys
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import vtk
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from src.common.numerics import (
+    tdma_solve,
+    validate_count,
+    validate_finite,
+    validate_positive,
+)
 
 # ========== Animation and Visualization Constants ==========
 ANIMATION_TIMER_MS = 50  # Animation update interval in milliseconds
@@ -58,39 +73,6 @@ CONVECTION_SCALE_FACTOR = 0.5  # Scale factor for particle convection animation
 DIFFUSION_SCALE_FACTOR = 0.3  # Scale factor for particle diffusion animation
 LATERAL_DIFFUSION_STD = 0.002  # Standard deviation for lateral particle motion
 
-
-def tdma_solve(
-    a: np.ndarray, ad: np.ndarray, au: np.ndarray, b: np.ndarray
-) -> np.ndarray:
-    """
-    Solves a tridiagonal matrix equation using the Thomas algorithm (TDMA).
-
-    The system has the form: ad[i]*x[i-1] + a[i]*x[i] + au[i]*x[i+1] = b[i]
-
-    :param a: Main diagonal elements (numpy.ndarray)
-    :param ad: Sub-diagonal (lower) elements (numpy.ndarray)
-    :param au: Super-diagonal (upper) elements (numpy.ndarray)
-    :param b: Right-hand side vector (numpy.ndarray)
-    :return: Solution vector (numpy.ndarray)
-    """
-    n = len(b)
-    # Make copies to avoid modifying original arrays
-    a = a.copy()
-    b = b.copy()
-    x = np.zeros(n)
-
-    # Forward elimination
-    for i in range(1, n):
-        f = ad[i] / a[i - 1]
-        a[i] -= f * au[i - 1]
-        b[i] -= f * b[i - 1]
-
-    # Back substitution
-    x[-1] = b[-1] / a[-1]
-    for i in range(n - 2, -1, -1):
-        x[i] = (b[i] - au[i] * x[i + 1]) / a[i]
-
-    return x
 
 
 def setup_matrix(n: int, dx: float, Gamma: float, F: float, use_uds: bool) -> tuple:
@@ -119,6 +101,11 @@ def setup_matrix(n: int, dx: float, Gamma: float, F: float, use_uds: bool) -> tu
     :param use_uds: True for Upwind scheme, False for Central scheme (bool)
     :return: Tuple of (A, Ad, Au) - main, lower, and upper diagonals
     """
+    n = validate_count("n", n)
+    validate_positive(dx=dx, Gamma=Gamma)
+    validate_finite(F=F)
+    if not isinstance(use_uds, bool):
+        raise ValueError("use_uds must be a boolean")
     num_nodes = n + 1
     D = Gamma / dx  # Diffusion conductance
 
@@ -171,12 +158,21 @@ def analytical_solution(
     :param phi_L: Value at x=L (float)
     :return: Solution array (numpy.ndarray)
     """
-    if abs(Pe) < 1e-10:
-        # Pure diffusion case: linear profile
-        return phi_0 + (phi_L - phi_0) * x / L
+    validate_positive(L=L)
+    validate_finite(Pe=Pe, phi_0=phi_0, phi_L=phi_L)
+    x = np.asarray(x, dtype=float)
+    if not np.all(np.isfinite(x)):
+        raise ValueError("x must contain only finite values")
+    relative_x = x / L
+    if Pe == 0:
+        fraction = relative_x
+    elif Pe > 0:
+        # Scale numerator and denominator by exp(-Pe) to avoid overflow.
+        numerator = np.exp(-Pe * (1.0 - relative_x)) * (-np.expm1(-Pe * relative_x))
+        fraction = numerator / (-np.expm1(-Pe))
     else:
-        # General case: exponential profile
-        return phi_0 + (phi_L - phi_0) * (np.exp(Pe * x / L) - 1) / (np.exp(Pe) - 1)
+        fraction = np.expm1(Pe * relative_x) / np.expm1(Pe)
+    return phi_0 + (phi_L - phi_0) * fraction
 
 
 def plot_solution(
@@ -243,6 +239,15 @@ def create_cylinder_rod(
     :param resolution: Number of segments around the cylinder circumference (int)
     :return: Tuple of (polydata, phi_values) for VTK
     """
+    x = np.asarray(x, dtype=float)
+    phi = np.asarray(phi, dtype=float)
+    if x.ndim != 1 or phi.ndim != 1 or x.size != phi.size:
+        raise ValueError("x and phi must be one-dimensional arrays of equal length")
+    validate_count("profile points", x.size, minimum=2)
+    validate_count("resolution", resolution, minimum=3)
+    validate_positive(radius=radius)
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(phi)):
+        raise ValueError("x and phi must contain only finite values")
     points = vtk.vtkPoints()
     phi_values = vtk.vtkFloatArray()
     phi_values.SetName("Phi")
@@ -374,7 +379,7 @@ def create_velocity_glyph_field(
     vectors.SetNumberOfComponents(3)
     vectors.SetName("Velocity")
 
-    flow_dir = 1 if u >= 0 else -1
+    flow_dir = np.sign(u)
     y_offset = radius * 2.0
 
     for i in range(n_glyphs):
@@ -572,7 +577,7 @@ def create_equation_annotation(L: float, radius: float) -> vtk.vtkTextActor:
     """
     text_actor = vtk.vtkTextActor()
     text_actor.SetInput("Governing Equation:\nrho*u*(dphi/dx) = Gamma*(d2phi/dx2)")
-    text_actor.GetTextProperty().SetFontSize(14)
+    text_actor.GetTextProperty().SetFontSize(16)
     text_actor.GetTextProperty().SetColor(0.8, 0.8, 0.8)
     text_actor.GetTextProperty().SetFontFamilyToCourier()
     text_actor.SetPosition(10, 100)
@@ -693,9 +698,13 @@ def vtk_3d_visualization(
     rod_mapper.SetLookupTable(color_map)
     rod_mapper.SetScalarModeToUsePointData()
     rod_mapper.SetScalarRange(np.min(phi_all), np.max(phi_all))
+    rod_mapper.UseLookupTableScalarRangeOn()
+    rod_mapper.InterpolateScalarsBeforeMappingOn()
 
     rod_actor = vtk.vtkActor()
     rod_actor.SetMapper(rod_mapper)
+    # Keep the surface colors consistent with the scalar bar.
+    rod_actor.GetProperty().LightingOff()
     rod_actor.GetProperty().SetInterpolationToPhong()
     rod_actor.GetProperty().SetSpecular(0.4)
     rod_actor.GetProperty().SetSpecularPower(30)
@@ -723,37 +732,51 @@ def vtk_3d_visualization(
 
     # ========== Boundary annotations ==========
     annotation_offset = radius * 3
-    left_text = f"Inlet\nphi = {phi_0}"
-    right_text = f"Outlet\nphi = {phi_L}"
+    if u > 0:
+        left_text = f"Inlet\nphi = {phi_0}"
+        right_text = f"Outlet\nphi = {phi_L}"
+    elif u < 0:
+        left_text = f"Outlet\nphi = {phi_0}"
+        right_text = f"Inlet\nphi = {phi_L}"
+    else:
+        left_text = f"Left boundary\nphi = {phi_0}"
+        right_text = f"Right boundary\nphi = {phi_L}"
 
     left_annotation = create_boundary_annotation(
-        left_text, (x[0] - 0.15 * L, 0, annotation_offset), color=(0.3, 0.7, 1.0)
+        left_text, (x[0] - 0.15 * L, 0, annotation_offset), color=(0.9, 0.96, 1.0)
     )
     right_annotation = create_boundary_annotation(
-        right_text, (x[-1] + 0.15 * L, 0, annotation_offset), color=(1.0, 0.5, 0.4)
+        right_text, (x[-1] + 0.15 * L, 0, annotation_offset), color=(1.0, 0.88, 0.84)
     )
 
     # ========== Flow and physics labels ==========
-    flow_direction = 1 if u >= 0 else -1
     arrow_y_offset = radius * 3.5
 
+    flow_label_text = (
+        f"Flow → u = {u} m/s"
+        if u > 0
+        else f"Flow ← u = {u} m/s"
+        if u < 0
+        else "No bulk flow (u = 0)"
+    )
     flow_label = create_boundary_annotation(
-        f"Flow --> u = {u} m/s" if u >= 0 else f"<-- Flow u = {u} m/s",
+        flow_label_text,
         (L / 2, arrow_y_offset, 0),
-        color=(0.3, 0.8, 1.0),
+        color=(0.9, 0.96, 1.0),
     )
 
     physics_label = create_boundary_annotation(
-        f"Pe = {Pe:.1f} | Gamma = {Gamma}\n{scheme_name} Scheme",
+        f"Pe = {Pe:.1f} | Gamma = {Gamma}\n{scheme_name} scheme\n"
+        "Illustrative particles (scaled random walk)",
         (L / 2, -radius * 5.5, 0),
-        color=(0.9, 0.9, 0.4),
+        color=(1.0, 1.0, 0.65),
     )
 
     # Profile legend label
     profile_legend = create_boundary_annotation(
         "-- Numerical (blue)\n-- Analytical (red)",
         (L / 2, -radius * 7, 0),
-        color=(0.8, 0.8, 0.8),
+        color=(0.9, 0.9, 0.9),
     )
 
     # ========== Scalar bar ==========
@@ -761,11 +784,12 @@ def vtk_3d_visualization(
     scalar_bar.SetLookupTable(color_map)
     scalar_bar.SetTitle("Phi")
     scalar_bar.SetNumberOfLabels(6)
-    scalar_bar.SetWidth(0.06)
-    scalar_bar.SetHeight(0.35)
-    scalar_bar.SetPosition(0.92, 0.32)
-    scalar_bar.GetTitleTextProperty().SetFontSize(12)
-    scalar_bar.GetLabelTextProperty().SetFontSize(10)
+    scalar_bar.SetWidth(0.12)
+    scalar_bar.SetHeight(0.4)
+    scalar_bar.SetPosition(0.85, 0.3)
+    scalar_bar.UnconstrainedFontSizeOn()
+    scalar_bar.GetTitleTextProperty().SetFontSize(16)
+    scalar_bar.GetLabelTextProperty().SetFontSize(14)
 
     # ========== Title and equation annotations ==========
     title_actor = vtk.vtkTextActor()
@@ -812,17 +836,10 @@ def vtk_3d_visualization(
     renderer.GradientBackgroundOn()
 
     # Enhanced lighting
-    light1 = vtk.vtkLight()
-    light1.SetPosition(L / 2, L, L)
-    light1.SetFocalPoint(L / 2, 0, 0)
-    light1.SetIntensity(0.8)
-    renderer.AddLight(light1)
-
-    light2 = vtk.vtkLight()
-    light2.SetPosition(L / 2, -L, L / 2)
-    light2.SetFocalPoint(L / 2, 0, 0)
-    light2.SetIntensity(0.4)
-    renderer.AddLight(light2)
+    headlight = vtk.vtkLight()
+    headlight.SetLightTypeToHeadlight()
+    headlight.SetIntensity(1.0)
+    renderer.AddLight(headlight)
 
     # ========== Render window ==========
     renderWindow = vtk.vtkRenderWindow()
@@ -843,7 +860,7 @@ def vtk_3d_visualization(
     axes_widget = vtk.vtkOrientationMarkerWidget()
     axes_widget.SetOrientationMarker(axes)
     axes_widget.SetInteractor(renderWindowInteractor)
-    axes_widget.SetViewport(0, 0, 0.18, 0.18)
+    axes_widget.SetViewport(0, 0.82, 0.16, 1)
     axes_widget.SetEnabled(1)
     axes_widget.InteractiveOff()
 
@@ -881,11 +898,20 @@ def vtk_3d_visualization(
                 pos[1] += np.random.normal(0, LATERAL_DIFFUSION_STD)
                 pos[2] += np.random.normal(0, LATERAL_DIFFUSION_STD)
 
-                # Periodic boundary
-                if pos[0] > self.L:
-                    pos[0] = 0
-                if pos[0] < 0:
-                    pos[0] = self.L
+                # Recycle at the outflow and keep particles at the inflow;
+                # the visualization uses Dirichlet ends, not periodic ends.
+                if self.u > 0:
+                    if pos[0] > self.L:
+                        pos[0] = 0.0
+                    elif pos[0] < 0:
+                        pos[0] = 0.0
+                elif self.u < 0:
+                    if pos[0] < 0:
+                        pos[0] = self.L
+                    elif pos[0] > self.L:
+                        pos[0] = self.L
+                else:
+                    pos[0] = float(np.clip(pos[0], 0.0, self.L))
 
                 self.points.SetPoint(i, pos[0], pos[1], pos[2])
 

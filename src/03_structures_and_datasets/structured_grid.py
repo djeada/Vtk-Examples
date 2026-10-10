@@ -388,7 +388,7 @@ def compute_grid_quality(grid):
     print(f"Total cells: {grid.GetNumberOfCells()}")
 
     bounds = grid.GetBounds()
-    print(f"\nDomain bounds:")
+    print("\nDomain bounds:")
     print(f"  X: [{bounds[0]:.4f}, {bounds[1]:.4f}]")
     print(f"  Y: [{bounds[2]:.4f}, {bounds[3]:.4f}]")
     print(f"  Z: [{bounds[4]:.4f}, {bounds[5]:.4f}]")
@@ -410,7 +410,7 @@ def compute_grid_quality(grid):
             else 1.0
         )
 
-        print(f"\nY-direction cell sizes:")
+        print("\nY-direction cell sizes:")
         print(f"  First cell height: {dy_values[0]:.6f}")
         print(f"  Min cell height: {min_dy:.6f}")
         print(f"  Max cell height: {max_dy:.6f}")

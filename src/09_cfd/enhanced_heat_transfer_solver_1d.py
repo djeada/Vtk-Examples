@@ -29,8 +29,9 @@ where:
 - β: temperature coefficient (1/°C)
 - T: local temperature (°C)
 
-This models real materials where conductivity changes with temperature,
-such as metals (β > 0) or some ceramics.
+This is an assumed linear constitutive law with user-selected parameters. The
+sign and magnitude of β are not intended to represent all materials; the law
+must remain positive over the computed temperature range.
 
 Governing Equation:
     d/dx[k(T) * dT/dx] = 0
@@ -52,41 +53,25 @@ Since the equation is non-linear, we iterate:
 5. Check residual, repeat if not converged
 """
 
+from pathlib import Path
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
 import vtk
 
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-def tdma_solve(
-    a: np.ndarray, ad: np.ndarray, au: np.ndarray, b: np.ndarray
-) -> np.ndarray:
-    """
-    Solves a tridiagonal matrix equation using the Thomas algorithm (TDMA).
+from src.common.numerics import (
+    ConvergenceError,
+    tdma_solve,
+    validate_finite,
+    validate_iteration_controls,
+    validate_count,
+    validate_positive,
+)
 
-    :param a: Main diagonal elements (numpy.ndarray)
-    :param ad: Sub-diagonal (lower) elements (numpy.ndarray)
-    :param au: Super-diagonal (upper) elements (numpy.ndarray)
-    :param b: Right-hand side vector (numpy.ndarray)
-    :return: Solution vector (numpy.ndarray)
-    """
-    n = len(b)
-    # Make copies to avoid modifying original arrays
-    a = a.copy()
-    b = b.copy()
-    T = np.zeros(n)
-
-    # Forward elimination
-    for i in range(1, n):
-        f = ad[i] / a[i - 1]
-        a[i] -= f * au[i - 1]
-        b[i] -= f * b[i - 1]
-
-    # Back substitution
-    T[-1] = b[-1] / a[-1]
-    for i in range(n - 2, -1, -1):
-        T[i] = (b[i] - au[i] * T[i + 1]) / a[i]
-
-    return T
 
 
 def conductivity(T: np.ndarray, k_c: float, beta: float) -> np.ndarray:
@@ -100,7 +85,15 @@ def conductivity(T: np.ndarray, k_c: float, beta: float) -> np.ndarray:
     :param beta: Temperature coefficient (float, 1/°C)
     :return: Conductivity array (numpy.ndarray)
     """
-    return k_c * (1 + beta * T)
+    validate_positive(k_c=k_c)
+    validate_finite(beta=beta)
+    T = np.asarray(T, dtype=float)
+    if not np.all(np.isfinite(T)):
+        raise ValueError("temperature values must be finite")
+    values = k_c * (1 + beta * T)
+    if not np.all(np.isfinite(values)) or np.any(values <= 0):
+        raise ValueError("thermal conductivity must be finite and greater than zero")
+    return values
 
 
 def solve_heat_transfer_equation(
@@ -113,6 +106,7 @@ def solve_heat_transfer_equation(
     T_l: float,
     T_r: float,
     Rtol: float,
+    max_iterations: int = 10000,
 ) -> tuple:
     """
     Solves the non-linear heat transfer problem with temperature-dependent conductivity.
@@ -131,69 +125,76 @@ def solve_heat_transfer_equation(
     :param Rtol: Residual tolerance for convergence (float)
     :return: Tuple of (x, T, iterations, k_profile) - positions, temperatures, iteration count, conductivity
     """
+    n = validate_count("n", n)
+    validate_positive(L=L, k_c=k_c, h_l=h_l, h_r=h_r)
+    validate_finite(beta=beta, T_l=T_l, T_r=T_r)
+    Rtol, max_iterations = validate_iteration_controls(Rtol, max_iterations)
     dx = L / n
     x = np.linspace(0, L, n + 1)
 
-    # Initial temperature guess (average of boundary temperatures)
-    T_avg = (T_l + T_r) / 2
-    T = T_avg * np.ones(n + 1)
+    # Start from the straight line between ambient temperatures.
+    T = np.linspace(T_l, T_r, n + 1)
 
-    A = np.zeros(n + 1)
-    Au = np.zeros(n + 1)
-    Ad = np.zeros(n + 1)
-    Rmax = 1.0
-    iterations = 0
-    max_iterations = 10000
+    def faces_for(temperatures):
+        nodal_k = conductivity(temperatures, k_c, beta)
+        lower_k = np.minimum(nodal_k[:-1], nodal_k[1:])
+        upper_k = np.maximum(nodal_k[:-1], nodal_k[1:])
+        return lower_k * (2.0 / (1.0 + lower_k / upper_k))
 
-    while Rmax > Rtol and iterations < max_iterations:
-        Rmax = 0.0
-        iterations += 1
+    def assemble(face_k):
+        main = np.zeros(n + 1)
+        lower = np.zeros(n + 1)
+        upper = np.zeros(n + 1)
+        rhs = np.zeros(n + 1)
+        conductance = face_k / dx
 
-        # Calculate temperature-dependent conductivity at each node
-        ks = conductivity(T, k_c, beta)
+        main[0] = conductance[0] + h_l
+        upper[0] = -conductance[0]
+        rhs[0] = h_l * T_l
 
-        # Set up interior node equations using harmonic mean for interface k
-        for i in range(1, n):
-            # Harmonic mean for interface conductivity
-            k_west = 2 * ks[i] * ks[i - 1] / (ks[i] + ks[i - 1])
-            k_east = 2 * ks[i] * ks[i + 1] / (ks[i] + ks[i + 1])
+        for index in range(1, n):
+            west, east = conductance[index - 1], conductance[index]
+            main[index] = west + east
+            lower[index] = -west
+            upper[index] = -east
 
-            A[i] = (k_west + k_east) / dx
-            Ad[i] = -k_west / dx
-            Au[i] = -k_east / dx
+        main[-1] = conductance[-1] + h_r
+        lower[-1] = -conductance[-1]
+        rhs[-1] = h_r * T_r
+        return main, lower, upper, rhs
 
-            # Calculate residual for interior nodes
-            R = abs(A[i] * T[i] + Ad[i] * T[i - 1] + Au[i] * T[i + 1])
-            Rmax = max(R, Rmax)
+    def residual_norm(temperatures, face_k, system):
+        main, lower, upper, rhs = system
+        residual = main * temperatures - rhs
+        residual[1:] += lower[1:] * temperatures[:-1]
+        residual[:-1] += upper[:-1] * temperatures[1:]
+        scale = max(
+            1.0,
+            float(np.max(np.abs(main * temperatures))),
+            float(np.max(np.abs(rhs))),
+            float(np.max(np.abs(face_k / dx * np.diff(temperatures)))),
+        )
+        return float(np.max(np.abs(residual)) / scale)
 
-        # Left boundary condition (convective)
-        A[0] = ks[0] / dx + h_l
-        Au[0] = -ks[0] / dx
-        Ad[0] = 0.0
+    residual = float("inf")
+    for iterations in range(1, max_iterations + 1):
+        system = assemble(faces_for(T))
+        updated_T = tdma_solve(*system[:3], system[3])
 
-        # Right boundary condition (convective)
-        A[n] = ks[n] / dx + h_r
-        Ad[n] = -ks[n] / dx
-        Au[n] = 0.0
+        # Evaluate the original nonlinear equations using k(T) at the new
+        # iterate, including the two convective boundary equations.
+        final_faces = faces_for(updated_T)
+        final_system = assemble(final_faces)
+        residual = residual_norm(updated_T, final_faces, final_system)
+        T = updated_T
+        if residual <= Rtol:
+            return x, T, iterations, conductivity(T, k_c, beta)
 
-        # Right-hand side vector
-        b = np.zeros(n + 1)
-        b[0] = h_l * T_l
-        b[n] = h_r * T_r
-
-        # Residual at boundaries
-        R = abs(A[0] * T[0] + Au[0] * T[1] - b[0])
-        Rmax = max(R, Rmax)
-        R = abs(A[n] * T[n] + Ad[n] * T[n - 1] - b[n])
-        Rmax = max(R, Rmax)
-
-        # Solve the linear system
-        T = tdma_solve(A, Ad, Au, b)
-
-    # Final conductivity profile
-    k_profile = conductivity(T, k_c, beta)
-
-    return x, T, iterations, k_profile
+    raise ConvergenceError(
+        "Temperature-dependent heat-transfer solve did not converge",
+        max_iterations,
+        residual,
+    )
 
 
 def plot_temperature_profile(
@@ -258,6 +259,15 @@ def create_cylinder_rod(
     :param resolution: Number of segments around the cylinder circumference (int)
     :return: Tuple of (polydata, temperature_values) for vtk
     """
+    x = np.asarray(x, dtype=float)
+    T = np.asarray(T, dtype=float)
+    if x.ndim != 1 or T.ndim != 1 or x.size != T.size:
+        raise ValueError("x and T must be one-dimensional arrays of equal length")
+    validate_count("profile points", x.size, minimum=2)
+    validate_count("resolution", resolution, minimum=3)
+    validate_positive(radius=radius)
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(T)):
+        raise ValueError("x and T must contain only finite values")
     points = vtk.vtkPoints()
     temperature_values = vtk.vtkFloatArray()
     temperature_values.SetName("Temperature")
@@ -334,7 +344,7 @@ def create_boundary_annotation(
     text_actor = vtk.vtkBillboardTextActor3D()
     text_actor.SetInput(text)
     text_actor.SetPosition(position)
-    text_actor.GetTextProperty().SetFontSize(14)
+    text_actor.GetTextProperty().SetFontSize(18)
     text_actor.GetTextProperty().SetColor(color)
     text_actor.GetTextProperty().SetJustificationToCentered()
     text_actor.GetTextProperty().SetBold(True)
@@ -394,9 +404,13 @@ def vtk_3d_rod_visualization(
     rod_mapper.SetLookupTable(color_map)
     rod_mapper.SetScalarModeToUsePointData()
     rod_mapper.SetScalarRange(np.min(T), np.max(T))
+    rod_mapper.UseLookupTableScalarRangeOn()
+    rod_mapper.InterpolateScalarsBeforeMappingOn()
 
     rod_actor = vtk.vtkActor()
     rod_actor.SetMapper(rod_mapper)
+    # Preserve the exact lookup-table colors shown by the scalar bar.
+    rod_actor.GetProperty().LightingOff()
     rod_actor.GetProperty().SetInterpolationToPhong()
     rod_actor.GetProperty().SetSpecular(0.3)
     rod_actor.GetProperty().SetSpecularPower(20)
@@ -408,23 +422,28 @@ def vtk_3d_rod_visualization(
     material_text = f"Variable k(T)\nk = {k_c}(1 + {beta}T)"
 
     left_annotation = create_boundary_annotation(
-        left_text, (x[0] - 0.12 * L, 0, annotation_offset), color=(0.3, 0.6, 1.0)
+        left_text, (x[0] - 0.12 * L, 0, annotation_offset), color=(0.9, 0.95, 1.0)
     )
     right_annotation = create_boundary_annotation(
-        right_text, (x[-1] + 0.12 * L, 0, annotation_offset), color=(1.0, 0.4, 0.4)
+        right_text,
+        (x[-1] + 0.12 * L, 0, -radius * 3.5),
+        color=(1.0, 0.9, 0.9),
     )
     material_annotation = create_boundary_annotation(
-        material_text, (L / 2, 0, radius * 2.5), color=(0.4, 0.9, 0.4)
+        material_text, (L / 2, 0, radius * 2.5), color=(0.8, 1.0, 0.8)
     )
 
     # Scalar bar
     scalar_bar = vtk.vtkScalarBarActor()
     scalar_bar.SetLookupTable(color_map)
-    scalar_bar.SetTitle("Temperature (°C)")
+    scalar_bar.SetTitle("Temperature\n(°C)")
     scalar_bar.SetNumberOfLabels(5)
-    scalar_bar.SetWidth(0.08)
+    scalar_bar.SetWidth(0.06)
     scalar_bar.SetHeight(0.4)
-    scalar_bar.SetPosition(0.9, 0.3)
+    scalar_bar.SetPosition(0.91, 0.3)
+    scalar_bar.UnconstrainedFontSizeOn()
+    scalar_bar.GetTitleTextProperty().SetFontSize(16)
+    scalar_bar.GetLabelTextProperty().SetFontSize(14)
 
     # Title
     title_actor = vtk.vtkTextActor()
@@ -450,8 +469,7 @@ def vtk_3d_rod_visualization(
 
     # Lighting
     light = vtk.vtkLight()
-    light.SetPosition(L / 2, L, L)
-    light.SetFocalPoint(L / 2, 0, 0)
+    light.SetLightTypeToHeadlight()
     light.SetIntensity(1.0)
     renderer.AddLight(light)
 
@@ -525,7 +543,7 @@ def main():
     print(f"Rod length: {L} m, Grid points: {n + 1}")
     print(f"Base conductivity: k₀ = {k_c} W/m·K")
     print(f"Temperature coefficient: β = {beta} 1/°C")
-    print(f"Conductivity law: k(T) = k₀(1 + βT)")
+    print("Conductivity law: k(T) = k₀(1 + βT)")
     print("-" * 70)
     print(f"Left BC:  h = {h_l} W/m²·K, T∞ = {T_l}°C")
     print(f"Right BC: h = {h_r} W/m²·K, T∞ = {T_r}°C")

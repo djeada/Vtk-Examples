@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import vtkmodules.all as vtk
-from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  # Registers the "3d" projection.
 
 # Create a grid of points for the Rosenbrock Function
 x = np.linspace(-5, 5, 100)
@@ -11,29 +11,37 @@ Z = (1 - X) ** 2 + 100 * (Y - X**2) ** 2  # Rosenbrock Function
 
 
 def create_surface_from_grid(x, y, z):
-    # Create a surface from the grid data
+    """Create quad cells from matching 2D coordinate arrays."""
+    x, y, z = (np.asarray(array) for array in (x, y, z))
+    if x.ndim != 2 or x.shape != y.shape or x.shape != z.shape:
+        raise ValueError("Coordinate arrays must have the same 2D shape.")
+    rows, columns = x.shape
     points = vtk.vtkPoints()
-    vertices = vtk.vtkCellArray()
+    polygons = vtk.vtkCellArray()
 
-    for i in range(len(x)):
-        for j in range(len(y)):
+    for i in range(rows):
+        for j in range(columns):
             points.InsertNextPoint(x[i][j], y[i][j], z[i][j])
-            if i < len(x) - 1 and j < len(y) - 1:
-                vertices.InsertNextCell(4)
-                vertices.InsertCellPoint(i * len(y) + j)
-                vertices.InsertCellPoint((i + 1) * len(y) + j)
-                vertices.InsertCellPoint((i + 1) * len(y) + (j + 1))
-                vertices.InsertCellPoint(i * len(y) + (j + 1))
+            if i < rows - 1 and j < columns - 1:
+                polygons.InsertNextCell(4)
+                polygons.InsertCellPoint(i * columns + j)
+                polygons.InsertCellPoint((i + 1) * columns + j)
+                polygons.InsertCellPoint((i + 1) * columns + (j + 1))
+                polygons.InsertCellPoint(i * columns + (j + 1))
 
     grid = vtk.vtkPolyData()
     grid.SetPoints(points)
-    grid.SetPolys(vertices)
+    grid.SetPolys(polygons)
     return grid
 
 
 def main():
     # Create a surface from the grid data
     surface = create_surface_from_grid(X, Y, Z)
+    print(
+        f"VTK surface: {surface.GetNumberOfPoints()} points, "
+        f"{surface.GetNumberOfCells()} quads"
+    )
 
     # Create a Matplotlib 3D plot
     fig = plt.figure()

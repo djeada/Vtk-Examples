@@ -4,73 +4,29 @@ import os
 import vtk
 
 try:
-    from .converter_interface import Converter
+    from .converter_interface import VTKConverter
 except ImportError:
-    from converter_interface import Converter
+    from converter_interface import VTKConverter
 
 
-class StlToVtpConverter(Converter):
+class StlToVtpConverter(VTKConverter):
     """Converter for STL to VTP (XML PolyData) file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".stl")
-            and output_filename.lower().endswith(".vtp")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.stl' and '.vtp'.")
-
-        try:
-            # Read STL File
-            reader = vtk.vtkSTLReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write VTP File
-            writer = vtk.vtkXMLPolyDataWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".stl"
+    output_extension = ".vtp"
+    reader_type = vtk.vtkSTLReader
+    writer_type = vtk.vtkXMLPolyDataWriter
+    output_type = "vtkPolyData"
 
 
-class VtpToStlConverter(Converter):
+class VtpToStlConverter(VTKConverter):
     """Converter for VTP (XML PolyData) to STL file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".vtp")
-            and output_filename.lower().endswith(".stl")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.vtp' and '.stl'.")
-
-        try:
-            # Read VTP File
-            reader = vtk.vtkXMLPolyDataReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write STL File
-            writer = vtk.vtkSTLWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".vtp"
+    output_extension = ".stl"
+    reader_type = vtk.vtkXMLPolyDataReader
+    writer_type = vtk.vtkSTLWriter
+    output_type = "vtkPolyData"
 
 
 if __name__ == "__main__":

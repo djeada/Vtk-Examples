@@ -424,7 +424,7 @@ def compute_grid_statistics(rgrid):
     print(f"Total cells: {rgrid.GetNumberOfCells()}")
 
     bounds = rgrid.GetBounds()
-    print(f"\nDomain bounds:")
+    print("\nDomain bounds:")
     print(f"  X: [{bounds[0]:.4f}, {bounds[1]:.4f}]")
     print(f"  Y: [{bounds[2]:.4f}, {bounds[3]:.4f}]")
     print(f"  Z: [{bounds[4]:.4f}, {bounds[5]:.4f}]")

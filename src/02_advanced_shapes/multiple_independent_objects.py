@@ -1,7 +1,6 @@
 import random
 
 import vtk
-from vtkmodules.util.numpy_support import vtk_to_numpy
 
 
 def create_cone(height: float, radius: float, resolution: int) -> vtk.vtkConeSource:

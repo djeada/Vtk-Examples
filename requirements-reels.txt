@@ -1,0 +1,3 @@
+# Dependencies for curated science-reel rendering.
+-r requirements-core.txt
+Pillow==12.3.0

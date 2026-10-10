@@ -172,8 +172,6 @@ def add_velocity_field(image_data, flow_type="channel"):
             for i in range(dims[0]):
                 x = origin[0] + i * spacing[0]
                 y = origin[1] + j * spacing[1]
-                z = origin[2] + k * spacing[2]
-
                 if flow_type == "channel":
                     # Poiseuille flow profile
                     y_norm = y / height
@@ -232,8 +230,6 @@ def add_scalar_field(image_data, field_name="Temperature", mode="gradient"):
             for i in range(dims[0]):
                 x = origin[0] + i * spacing[0]
                 y = origin[1] + j * spacing[1]
-                z = origin[2] + k * spacing[2]
-
                 x_norm = x / max(length, 1e-10)
                 y_norm = y / max(height, 1e-10)
 
@@ -289,8 +285,6 @@ def add_vorticity_magnitude(image_data):
     for k in range(dims[2]):
         for j in range(dims[1]):
             for i in range(dims[0]):
-                idx = i + j * dims[0] + k * dims[0] * dims[1]
-
                 # Compute gradients using central differences
                 if 0 < i < dims[0] - 1 and 0 < j < dims[1] - 1:
                     idx_ip = (i + 1) + j * dims[0] + k * dims[0] * dims[1]
@@ -341,7 +335,7 @@ def compute_grid_info(image_data):
     print(f"\nOrigin: ({origin[0]:.4f}, {origin[1]:.4f}, {origin[2]:.4f})")
     print(f"Spacing: ({spacing[0]:.4f}, {spacing[1]:.4f}, {spacing[2]:.4f})")
 
-    print(f"\nBounds:")
+    print("\nBounds:")
     print(f"  X: [{bounds[0]:.4f}, {bounds[1]:.4f}]")
     print(f"  Y: [{bounds[2]:.4f}, {bounds[3]:.4f}]")
     print(f"  Z: [{bounds[4]:.4f}, {bounds[5]:.4f}]")
@@ -395,8 +389,6 @@ def visualize_image_data(image_data, color_by_field=None, show_outline=True):
         renderer.AddActor(outline_actor)
 
     # Create slice through the middle
-    dims = image_data.GetDimensions()
-
     # XY slice
     plane = vtk.vtkPlane()
     center = image_data.GetCenter()

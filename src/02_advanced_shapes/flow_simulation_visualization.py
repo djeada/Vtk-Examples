@@ -730,7 +730,7 @@ def run_flow_simulation() -> None:
     lift_per_span = RHO * U_INF * CIRCULATION
     print("Derived Quantities:")
     print(f"  Lift per unit span:      {lift_per_span:.2f} N/m")
-    print(f"  (From Kutta-Joukowski: L' = ρ × U_∞ × Γ)")
+    print("  (From Kutta-Joukowski: L' = ρ × U_∞ × Γ)")
     print()
 
     print(f"Grid: {GRID_RESOLUTION} × {GRID_RESOLUTION} points")

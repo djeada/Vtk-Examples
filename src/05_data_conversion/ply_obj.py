@@ -4,73 +4,29 @@ import os
 import vtk
 
 try:
-    from .converter_interface import Converter
+    from .converter_interface import VTKConverter
 except ImportError:
-    from converter_interface import Converter
+    from converter_interface import VTKConverter
 
 
-class PlyToObjConverter(Converter):
+class PlyToObjConverter(VTKConverter):
     """Converter for PLY to OBJ file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".ply")
-            and output_filename.lower().endswith(".obj")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.ply' and '.obj'.")
-
-        try:
-            # Read PLY File
-            reader = vtk.vtkPLYReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write OBJ File
-            writer = vtk.vtkOBJWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".ply"
+    output_extension = ".obj"
+    reader_type = vtk.vtkPLYReader
+    writer_type = vtk.vtkOBJWriter
+    output_type = "vtkPolyData"
 
 
-class ObjToPlyConverter(Converter):
+class ObjToPlyConverter(VTKConverter):
     """Converter for OBJ to PLY file format conversion."""
 
-    def convert(self, input_filename: str, output_filename: str) -> None:
-        if not input_filename or not output_filename:
-            raise ValueError("Input and output filenames must be provided.")
-
-        if not (
-            input_filename.lower().endswith(".obj")
-            and output_filename.lower().endswith(".ply")
-        ):
-            raise ValueError("Invalid file extensions. Expected '.obj' and '.ply'.")
-
-        try:
-            # Read OBJ File
-            reader = vtk.vtkOBJReader()
-            reader.SetFileName(input_filename)
-            reader.Update()
-
-            # Write PLY File
-            writer = vtk.vtkPLYWriter()
-            writer.SetFileName(output_filename)
-            writer.SetInputConnection(reader.GetOutputPort())
-            writer.Write()
-            logging.info(
-                f"Conversion successful: {input_filename} to {output_filename}"
-            )
-        except Exception as e:
-            logging.error(f"Error during conversion: {e}")
-            raise
+    input_extension = ".obj"
+    output_extension = ".ply"
+    reader_type = vtk.vtkOBJReader
+    writer_type = vtk.vtkPLYWriter
+    output_type = "vtkPolyData"
 
 
 if __name__ == "__main__":

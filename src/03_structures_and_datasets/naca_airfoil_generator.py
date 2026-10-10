@@ -1420,7 +1420,7 @@ Examples:
     # Comparison visualization
     if args.compare:
         all_codes = [args.naca_code] + args.compare
-        fig = create_comparison_visualization(all_codes, args.chord, args.points)
+        create_comparison_visualization(all_codes, args.chord, args.points)
         if args.screenshot:
             plt.savefig(args.screenshot, dpi=150, bbox_inches="tight")
             print(f"Saved comparison to: {args.screenshot}")
@@ -1429,7 +1429,7 @@ Examples:
 
     # 2D visualization
     elif args.visualize:
-        fig = generator.visualize_2d_matplotlib()
+        generator.visualize_2d_matplotlib()
         if args.screenshot:
             plt.savefig(args.screenshot, dpi=150, bbox_inches="tight")
             print(f"Saved 2D plot to: {args.screenshot}")

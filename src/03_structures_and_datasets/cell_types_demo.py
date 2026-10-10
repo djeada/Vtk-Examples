@@ -51,11 +51,6 @@ import sys
 
 import vtk
 from PyQt6.QtCore import Qt
-
-# Visual constants for cell rendering
-VERTEX_SPHERE_RADIUS = 0.08  # Radius of spheres showing cell vertices
-CAMERA_AZIMUTH = 30  # Initial camera azimuth angle in degrees
-CAMERA_ELEVATION = 20  # Initial camera elevation angle in degrees
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -66,6 +61,11 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+
+# Visual constants for cell rendering
+VERTEX_SPHERE_RADIUS = 0.08  # Radius of spheres showing cell vertices
+CAMERA_AZIMUTH = 30  # Initial camera azimuth angle in degrees
+CAMERA_ELEVATION = 20  # Initial camera elevation angle in degrees
 
 
 def create_vertex():

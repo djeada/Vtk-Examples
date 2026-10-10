@@ -492,7 +492,7 @@ class VolumeRenderer:
         interactor.SetInteractorStyle(style)
 
         # Add axes widget
-        axes_widget = self._create_axes_widget(interactor)
+        axes_widget = self._create_axes_widget(interactor)  # noqa: F841  # Keep the widget alive during interaction.
 
         # Position camera for good initial view
         camera = renderer.GetActiveCamera()

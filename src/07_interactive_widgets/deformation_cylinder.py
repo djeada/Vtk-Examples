@@ -1,4 +1,4 @@
-import vtk
+import vtk  # noqa: F401  # Registers the VTK classes imported below.
 import numpy as np
 from vtkmodules.vtkInteractionWidgets import vtkSliderWidget, vtkSliderRepresentation2D
 from vtkmodules.vtkFiltersSources import vtkCylinderSource
@@ -9,7 +9,6 @@ from vtkmodules.vtkRenderingCore import (
     vtkRenderWindowInteractor,
     vtkPolyDataMapper,
 )
-from vtkmodules.vtkCommonColor import vtkNamedColors
 
 # Create the cylinder
 cylinder = vtkCylinderSource()

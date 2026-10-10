@@ -137,9 +137,11 @@ if __name__ == "__main__":
         [0.1, 0.2, 0.4, 0.2],
     )
 
-    slider_callback_closure = lambda obj, event: slider_callback(
-        obj, event, petal_slider, points_slider, actor, render_window, text_actor
-    )
+    def slider_callback_closure(obj, event):
+        slider_callback(
+            obj, event, petal_slider, points_slider, actor, render_window, text_actor
+        )
+
     petal_slider.AddObserver("EndInteractionEvent", slider_callback_closure)
     points_slider.AddObserver("EndInteractionEvent", slider_callback_closure)
 
