@@ -162,7 +162,7 @@ def _solve(key, quality, progress):
             "scalar",
             "DYE CONCENTRATION",
             {**params, "dt": float(dt), "cfl": 0.8},
-            "Upwind solution · height: concentration · arrows: rotation",
+            "Upwind solution · height: concentration · dots: tracers carried by the flow",
             [("Final peak", f"{frames[-1].max():.2f} (exact 1)"), ("CFL", "0.8")],
             vectors=np.stack((u, v))[None],
             steps=steps,

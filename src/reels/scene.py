@@ -290,7 +290,11 @@ class SceneRenderer:
                         height + 0.025 * span,
                     )
                     vectors.InsertNextTuple3(u / speed, v / speed, 0)
-            if model.kind in ("surface", "channel"):
+            if self.animated_surface:
+                # A transient field over steady flow: show the fluid moving with
+                # tracers riding the surface, not frozen arrows beside a moving field.
+                self._prepare_particles()
+            elif model.kind in ("surface", "channel"):
                 self._glyphs(points, vectors, 0.045 * span)
             if model.kind == "flow":
                 self._prepare_particles()
@@ -302,6 +306,7 @@ class SceneRenderer:
         vtk_to_numpy(self.scalars)[:] = values.ravel()
         points = vtk_to_numpy(self.mesh.GetPoints().GetData())
         points[:, 2] = (values.ravel() - low) / span * self.surface_height
+        self.surface_values = values
         self.mesh.GetPoints().Modified()
         self.scalars.Modified()
         self.mesh.Modified()
@@ -379,8 +384,25 @@ class SceneRenderer:
             self.renderer.AddActor(actor)
         self._resources.extend((image, data, trace))
 
-    def _particle_z(self):
-        return 0.012 * np.ptp(self.model.x)
+    def _particle_z(self, positions=None):
+        lift = 0.012 * np.ptp(self.model.x)
+        if positions is None or not getattr(self, "animated_surface", False):
+            return lift
+        # Bilinear sample of the displayed surface height under each tracer.
+        model = self.model
+        values = self.surface_values
+        px = np.clip((positions[:, 0] - model.x[0]) / (model.x[1] - model.x[0]), 0, len(model.x) - 1.001)
+        py = np.clip((positions[:, 1] - model.y[0]) / (model.y[1] - model.y[0]), 0, len(model.y) - 1.001)
+        ix, iy = px.astype(int), py.astype(int)
+        fx, fy = px - ix, py - iy
+        sample = (
+            values[iy, ix] * (1 - fx) * (1 - fy)
+            + values[iy, ix + 1] * fx * (1 - fy)
+            + values[iy + 1, ix] * (1 - fx) * fy
+            + values[iy + 1, ix + 1] * fx * fy
+        )
+        low, high = float(np.nanmin(model.fields)), float(np.nanmax(model.fields))
+        return (sample - low) / (high - low or 1.0) * self.surface_height + lift
 
     def _prepare_particles(self):
         model = self.model
@@ -414,6 +436,13 @@ class SceneRenderer:
                 )
             else:
                 raise ValueError("Could not seed tracers outside the solid mask")
+        if getattr(self, "animated_surface", False):
+            # Seed a disc so tracers on closed orbits stay inside the square.
+            center = np.array([(model.x[0] + model.x[-1]) / 2, (model.y[0] + model.y[-1]) / 2])
+            radius = 0.46 * min(np.ptp(model.x), np.ptp(model.y))
+            angle = rng.uniform(0, 2 * np.pi, count)
+            distance = radius * np.sqrt(rng.uniform(0.02, 1, count))
+            self.particles = center + np.c_[np.cos(angle), np.sin(angle)] * distance[:, None]
         self.initial_particles = self.particles.copy()
         self.particle_points = vtk.vtkPoints()
         self.particle_points.SetDataTypeToDouble()
@@ -421,7 +450,7 @@ class SceneRenderer:
         data = vtk.vtkPolyData()
         data.SetPoints(self.particle_points)
         sphere = vtk.vtkSphereSource()
-        sphere.SetRadius(0.0042 * np.ptp(model.x))
+        sphere.SetRadius((0.006 if getattr(self, "animated_surface", False) else 0.0042) * np.ptp(model.x))
         sphere.SetThetaResolution(12)
         sphere.SetPhiResolution(12)
         glyph = vtk.vtkGlyph3DMapper()
@@ -485,14 +514,14 @@ class SceneRenderer:
         self._sync_particles()
 
     def _sync_particles(self):
-        z = self._particle_z()
         heads = vtk_to_numpy(self.particle_points.GetData())
         heads[:, :2] = self.particles
-        heads[:, 2] = z
+        heads[:, 2] = self._particle_z(self.particles)
         self.particle_points.Modified()
         trail = vtk_to_numpy(self.trail_points.GetData())
-        trail[:, :2] = self.history.transpose(1, 0, 2).reshape(-1, 2)
-        trail[:, 2] = z * 0.98
+        positions = self.history.transpose(1, 0, 2).reshape(-1, 2)
+        trail[:, :2] = positions
+        trail[:, 2] = self._particle_z(positions) * 0.98
         self.trail_points.Modified()
 
     def _velocity_at(self, positions, velocity):
@@ -532,7 +561,11 @@ class SceneRenderer:
         start = self.particles.copy()
         respawned = np.zeros(len(self.particles), dtype=bool)
         for _ in range(substeps):
-            trial = self.particles + self._velocity_at(self.particles, velocity) * step
+            # Midpoint (RK2) advection keeps closed orbits from spiralling outward.
+            middle = self.particles + self._velocity_at(self.particles, velocity) * step / 2
+            if self.periodic_y:
+                middle[:, 1] = (middle[:, 1] - model.y[0]) % self.y_period + model.y[0]
+            trial = self.particles + self._velocity_at(middle, velocity) * step
             if self.periodic_y:
                 trial[:, 1] = (trial[:, 1] - model.y[0]) % self.y_period + model.y[0]
             invalid = (trial[:, 0] < model.x[0]) | (trial[:, 0] > model.x[-1])
@@ -727,6 +760,13 @@ class SceneRenderer:
             self._set_surface(
                 model.fields[lower] * (1 - fraction) + model.fields[upper] * fraction
             )
+            if self.particles is not None:
+                if self.phase is not None and phase >= self.phase:
+                    # Velocity is in physical units; advance by simulated seconds.
+                    seconds = (phase - self.phase) * model.steps[-1] * model.params["dt"]
+                    self._update_particles(model.vectors[0], float(seconds))
+                self._sync_particles()
+                self.phase = phase
         if model.vectors is not None and model.kind == "flow":
             position = phase * (len(model.fields) - 1)
             lower = int(position)
