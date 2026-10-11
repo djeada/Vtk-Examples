@@ -659,7 +659,6 @@ class SceneRenderer:
                 break
 
     def _frame_camera(self):
-        model = self.model
         camera = self.renderer.GetActiveCamera()
         self.motion = 1.0
         if self.generic:
