@@ -13,9 +13,10 @@ These notes explain VTK's data model, pipelines, visualization techniques, and i
 7. [Performance and parallelism](07_performance_optimization_and_parallelism.md) — level of detail, culling, and parallel processing.
 8. [Integration with other tools](08_integration_with_other_tools.md) — ParaView, VisIt, ITK, Python, and HPC.
 9. [Custom filters and algorithms](09_custom_filters_and_algorithms.md) — extending VTK's pipeline.
+10. [End-to-end case study](10_end_to_end_case_study.md) — build, annotate, export, reload and validate a mesh.
 
 ## Using these notes
 
 The guides combine concepts with illustrative code snippets. Some snippets assume an existing VTK pipeline, dataset, or optional integration; they are not all standalone programs. For runnable Python examples and installation instructions, see the [project README](../README.md) and [example catalog](../src/).
 
-**Suggested paths:** For a first visualization, read chapters 1–4; for interactive applications, continue with 5–6; for large datasets or new pipeline components, use 7–9.
+**Suggested paths:** For a first visualization, read chapters 1–4 and try the end-to-end case study; for interactive applications, continue with 5–6; for large datasets or new pipeline components, use 7–9.
