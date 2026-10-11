@@ -115,7 +115,7 @@ The big idea to hold onto: **seeding is everything.** The same vector field can 
 
 ### Streamlines
 
-Streamlines represent the flow within steady vector fields. They trace the paths that particles would follow if they were placed in the flow, providing a snapshot of the flow's structure at a particular instant. These lines are tangent to the velocity field at every point, giving a clear depiction of the direction and speed of the flow.
+Streamlines are tangent to the velocity field at a selected instant. In steady flow, they coincide with particle trajectories; in unsteady flow, they generally differ from pathlines, which track particles through time. These lines are tangent to the velocity field at every point, giving a clear depiction of the direction and speed of the flow.
 
 ### Pathlines
 
@@ -123,7 +123,7 @@ Pathlines, on the other hand, are used for time-varying vector fields. They show
 
 ### Components
 
-1. The `vtkStreamTracer` class generates streamlines or pathlines from a given vector field.
+1. `vtkStreamTracer` computes streamlines in a vector field at a selected time; it does not integrate particle histories through a time-varying field. For temporal particle trajectories, use a time-aware data source with classes such as `vtkParticleTracer` or `vtkParticlePathFilter`.
 2. To convert lines (such as streamlines) into ribbons, the `vtkRibbonFilter` class is used. This enhances the visualization by giving the lines thickness and orientation, which can indicate additional information such as vorticity or the direction of rotation.
 
 A helpful “do/don’t” distinction:
@@ -292,7 +292,7 @@ render_window_interactor.Start()
 
 Contouring is the “make the invisible boundary visible” technique. When you have a scalar field (temperature, density, pressure, intensity), an isosurface answers the question: *where is this value exactly reached?* That turns an abstract field into a concrete surface you can measure, simplify, export, or compare across time steps.
 
-When analysts care about *where* a particular threshold is reached, say, the Mach 1 shock surface in a CFD run or the 50 % porosity boundary in a rock core, contouring extracts that implicit boundary as an explicit mesh. Marching algorithms turn scattered voxel samples into watertight polygonal “skins,” ready for further measurement, mesh reduction, or export to CAD/3-D printing pipelines.
+When analysts care about *where* a particular threshold is reached, say, the Mach 1 shock surface in a CFD run or the 50 % porosity boundary in a rock core, contouring extracts that implicit boundary as an explicit mesh. Contouring reconstructs approximate surfaces from sampled scalar fields. The output can be open or disconnected near domain boundaries, so watertightness must be checked before volume measurement or 3-D printing.
 
 Contouring is a technique for extracting surface representations from a scalar field. This method is used to identify and visualize surfaces within a 3D volume where the scalar field is equal to a specific value, known as the iso-value. The surfaces created through this process are called isosurfaces, which provide a clear visualization of areas within the scalar field that have the same value.
 
