@@ -704,3 +704,39 @@ MPI.Finalize()
 * Rank 0 has the option to save a screenshot of the rendered scene after the parallel rendering process.
 * Synchronization between processes is achieved using `controller.Barrier()` to ensure all ranks proceed together at critical points.
 * Closing of MPI is scheduled after rendering to gracefully terminate the parallel environment.
+
+## Performance diagnosis: separate pipeline cost from drawing cost
+
+Rendering and filtering are different bottlenecks. A pipeline may spend time computing normals, contouring, copying arrays, transferring data, or drawing the final scene. Reducing triangles only addresses some of these costs.
+
+This benchmark measures **processing time only**. Source resolution changes on each pass to force recomputation instead of timing an already cached pipeline.
+
+~~~python
+from time import perf_counter
+import vtk
+
+source = vtk.vtkSphereSource()
+source.SetPhiResolution(128)
+triangles = vtk.vtkTriangleFilter()
+triangles.SetInputConnection(source.GetOutputPort())
+
+for resolution in (128, 160, 192, 224):
+    source.SetThetaResolution(resolution)
+    start = perf_counter()
+    triangles.Update()
+    elapsed_ms = (perf_counter() - start) * 1000
+    mesh = triangles.GetOutput()
+    print(resolution, mesh.GetNumberOfPolys(), round(elapsed_ms, 2))
+~~~
+
+Do not compare a cold execution with an unchanged second `Update()` and claim a computational speedup: the second call may only traverse caches. Repeat measurements, record dataset size, and separate CPU processing from GPU draw time.
+
+| Symptom | Measure first | Possible action |
+| --- | --- | --- |
+| Slow `Update()` | Input/output cells and processing time | More suitable filter, simplification, selective extraction |
+| Choppy camera rotation | Render time and actors in view | Level of detail, culling, reducing actor count |
+| High memory usage | Array sizes, duplicates, dataset types | Implicit grids, fewer copies, smaller array precision if valid |
+| Slow initial load | Reader and initial filter time | Cache intermediates or change file format |
+| Poor parallel scaling | Partition balance and scheduling overhead | Repartition and profile before adding more workers |
+
+Do not assume Python threads accelerate arbitrary VTK filters. Parallel execution depends on the algorithm, VTK build, and data partitioning. Any optimization should preserve the quantities the visualization is meant to explain.

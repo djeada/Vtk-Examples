@@ -829,3 +829,38 @@ results = dask_df.map_partitions(
 ```
 
 Achieves near-linear speedup with number of CPU cores. A conversion that takes 1 hour serially might complete in 15 minutes on a 4-core system.
+
+## Worked integration: NumPy ↔ VTK without losing array meaning
+
+NumPy is convenient for numerical work, while VTK supplies spatial structure and a rendering pipeline. Conversion succeeds only when tuple counts, component counts, and attribute associations agree.
+
+~~~python
+import numpy as np
+import vtk
+from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
+
+image = vtk.vtkImageData()
+image.SetDimensions(3, 2, 1)
+pressure = np.linspace(1.0, 6.0, 6, dtype=np.float64)
+
+vtk_values = numpy_to_vtk(pressure, deep=True)
+vtk_values.SetName("pressure")
+image.GetPointData().SetScalars(vtk_values)
+
+converted = vtk_to_numpy(image.GetPointData().GetScalars()).copy()
+assert converted.shape == (image.GetNumberOfPoints(),)
+assert np.allclose(converted, pressure)
+~~~
+
+Setting `deep=True` makes an independent VTK allocation. In the opposite direction, `vtk_to_numpy` may return a view into VTK-owned memory. Keep the owning object alive or make a copy if the NumPy result must outlive it or should not mutate the source.
+
+### Check these integration boundaries
+
+1. **Physical coordinates:** are values in meters, millimeters, image voxel indices, projected map units, or geographic coordinates?
+2. **Association:** does one row map to a point, a cell, or an entire time step?
+3. **Components:** is each tuple a scalar, 3-vector, or higher-order tensor?
+4. **Missing data:** what should a filter do with NaNs or absent values?
+5. **Memory:** can intermediate copies double the memory footprint of a large simulation?
+6. **File format:** will metadata, multi-block structure, and array associations survive export?
+
+For NumPy-to-VTK conversion of points, use an `N × 3` coordinate array and attach it to `vtkPoints`; attaching an `N`-element scalar array only adds attributes, not geometry.

@@ -360,3 +360,41 @@ In these examples:
 
 * The render window's contents are captured and saved as a PNG image.
 * A series of frames are captured while animating the scene, and these frames are compiled into an MP4 video file using `vtkFFMPEGWriter`.
+
+## Practical time series: deterministic geometry snapshots
+
+Scientific **simulation time**, VTK **animation/cue time**, and **video frame number** are different quantities. A moving camera does not prove the underlying data advanced in time. Define their relationship explicitly before exporting anything.
+
+This self-contained, headless script produces 11 separate datasets. It verifies that each state is written; the resulting `.vtp` files are **not** an MP4 or a set of images.
+
+~~~python
+from pathlib import Path
+import vtk
+
+directory = Path("animation_frames")
+directory.mkdir(exist_ok=True)
+sphere = vtk.vtkSphereSource()
+writer = vtk.vtkXMLPolyDataWriter()
+writer.SetInputConnection(sphere.GetOutputPort())
+
+for frame in range(11):
+    simulation_time = 0.1 * frame
+    sphere.SetRadius(0.5 + simulation_time)
+    writer.SetFileName(str(directory / f"frame_{frame:03d}.vtp"))
+    if writer.Write() != 1:
+        raise RuntimeError(f"Failed to export frame {frame}")
+~~~
+
+To make a video from these states, add a renderer and capture a rendered image for each state; encode the resulting image sequence separately. Keep the camera and scalar color range fixed if frames are intended for quantitative comparison.
+
+### Reproducibility checklist
+
+| Setting | Why it matters |
+| --- | --- |
+| Simulation timestamp | Real timesteps may not be equally spaced |
+| Rendered frame number | Exported frame rate does not set physical time |
+| Camera position and clipping range | Changes can make identical data appear different |
+| Scalar range and transfer function | Re-scaling each frame makes colors incomparable |
+| Output naming and manifest | Allows frames to be matched with original simulation states |
+
+**Exercise:** use nonlinear timestamps (`0, 0.01, 0.04, 0.1, ...`), then export at a uniform video frame rate. Decide whether you will interpolate in time or show the nearest available simulation sample; document the choice.

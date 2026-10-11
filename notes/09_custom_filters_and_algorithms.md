@@ -296,3 +296,63 @@ The output will look similar to the following:
 * Adjust the target point location to highlight different distance patterns
 * Modify the lookup table's hue range for different color schemes
 * Use the orientation widget to better understand spatial relationships
+
+## Complete custom filter: distance from a reference point
+
+A useful custom filter must integrate with VTK's demand-driven pipeline, not just execute a Python function once. The helper `VTKPythonAlgorithmBase` provides the port and execution framework. This example accepts polygonal data and adds a named point-data array.
+
+~~~python
+import vtk
+from vtkmodules.util.vtkAlgorithm import VTKPythonAlgorithmBase
+
+class DistanceFromOrigin(VTKPythonAlgorithmBase):
+    def __init__(self):
+        super().__init__(
+            nInputPorts=1, inputType="vtkPolyData",
+            nOutputPorts=1, outputType="vtkPolyData"
+        )
+        self._origin = (0.0, 0.0, 0.0)
+
+    def SetOrigin(self, x, y, z):
+        self._origin = (float(x), float(y), float(z))
+        self.Modified()
+
+    def RequestData(self, request, inInfo, outInfo):
+        input_data = vtk.vtkPolyData.GetData(inInfo[0], 0)
+        output_data = vtk.vtkPolyData.GetData(outInfo, 0)
+        output_data.ShallowCopy(input_data)
+
+        distance = vtk.vtkDoubleArray()
+        distance.SetName("distance")
+        distance.SetNumberOfTuples(input_data.GetNumberOfPoints())
+        ox, oy, oz = self._origin
+        for i in range(input_data.GetNumberOfPoints()):
+            x, y, z = input_data.GetPoint(i)
+            distance.SetValue(
+                i, ((x - ox)**2 + (y - oy)**2 + (z - oz)**2)**0.5
+            )
+        output_data.GetPointData().AddArray(distance)
+        return 1
+
+source = vtk.vtkSphereSource()
+source.SetRadius(2.0)
+filter_ = DistanceFromOrigin()
+filter_.SetInputConnection(source.GetOutputPort())
+filter_.Update()
+
+result = filter_.GetOutputDataObject(0)
+values = result.GetPointData().GetArray("distance")
+assert values is not None
+assert values.GetNumberOfTuples() == result.GetNumberOfPoints()
+print("Distance range:", values.GetRange())
+~~~
+
+### Why the implementation behaves like a VTK filter
+
+- The constructor declares the input/output type and port counts.
+- `RequestData` receives the current pipeline input and populates the output data object.
+- `ShallowCopy` retains the existing geometry and arrays without copying every buffer. This example adds a **new** array rather than modifying shared input arrays.
+- Calling `Modified()` in a setter invalidates cached output after parameter changes.
+- The resulting distance array remains available to other filters, writers, and mappers.
+
+**Test the contract:** empty point sets, repeated `Update()` calls, changed origin, wrong input type, unexpected array-name collisions, and input immutability. Use `DeepCopy` when you need to mutate upstream-owned geometry or arrays. Profile before replacing a simple implementation with complex parallelism.

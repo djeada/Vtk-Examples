@@ -175,3 +175,53 @@ style.AddObserver("KeyPressEvent", onKeyPress)
 ```
 
 Because you can add multiple observers to the same event, you can maintain a clear separation of concerns: one callback for camera reset, another for data export, and yet another for UI state changes, all coexisting without interference.
+
+## Worked example: cell picking with interaction preserved
+
+Screen clicks arrive in **display coordinates**, while cells and points are referenced using mesh IDs and world coordinates. Picking bridges these coordinate systems. Picking an actor, a specific cell, or the nearest data point are different tasks.
+
+This example needs a graphical display. Clicking the sphere prints the cell ID and pick position; the callback also forwards the event to the camera interaction style.
+
+~~~python
+import vtk
+
+source = vtk.vtkSphereSource()
+mapper = vtk.vtkPolyDataMapper()
+mapper.SetInputConnection(source.GetOutputPort())
+actor = vtk.vtkActor()
+actor.SetMapper(mapper)
+
+renderer = vtk.vtkRenderer()
+renderer.AddActor(actor)
+renderer.ResetCamera()
+window = vtk.vtkRenderWindow()
+window.AddRenderer(renderer)
+
+interactor = vtk.vtkRenderWindowInteractor()
+interactor.SetRenderWindow(window)
+interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
+picker = vtk.vtkCellPicker()
+picker.SetTolerance(0.0005)
+
+def on_click(obj, event):
+    x, y = obj.GetEventPosition()
+    if picker.Pick(x, y, 0, renderer) and picker.GetCellId() >= 0:
+        print("Cell:", picker.GetCellId())
+        print("Position:", picker.GetPickPosition())
+    obj.GetInteractorStyle().OnLeftButtonDown()
+
+interactor.AddObserver("LeftButtonPressEvent", on_click)
+window.Render()
+interactor.Initialize()
+interactor.Start()
+~~~
+
+### Picking failure checklist
+
+- **No hit:** inspect `GetCellId()` for `-1`, renderer choice, actor visibility, picker tolerance, and current camera.
+- **Wrong location:** distinguish screen coordinates returned by `GetEventPosition()` from world coordinates returned by `GetPickPosition()`.
+- **Picking succeeds but extraction fails:** build a proper `vtkSelection` from point/cell IDs and apply `vtkExtractSelection` to the original dataset; a world coordinate is not itself a cell ID.
+- **Controls stop working:** avoid swallowing the interactor-style event. Preserve camera navigation while layering picking behavior on top.
+- **No visual response:** mark the selected item, provide a label or highlight, and expose a clear reset-selection action.
+
+For a lasso or multi-selection feature, collect selected IDs over multiple events, deduplicate them, and keep the selection independent from transient screen coordinates.
