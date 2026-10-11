@@ -370,3 +370,43 @@ render_window_interactor.Start()
 * Finally, a `vtkRenderer`, `vtkRenderWindow`, and `vtkRenderWindowInteractor` are set up to display the contour.
 
 ![isosurface](https://github.com/djeada/Vtk-Examples/assets/37275728/85cc591c-3abc-4759-b375-9f9a7f690b9a)
+
+## Worked isosurface: an analytically checkable scalar field
+
+An isosurface is a set of points where a scalar equals a chosen value. For `f(x,y,z) = x² + y² + z²`, the isosurface at `f = 0.5` approximates a sphere of radius `sqrt(0.5)`. That known answer provides a useful check of the contouring setup.
+
+~~~python
+import vtk
+
+volume = vtk.vtkImageData()
+volume.SetDimensions(21, 21, 21)
+volume.SetOrigin(-1, -1, -1)
+volume.SetSpacing(0.1, 0.1, 0.1)
+
+values = vtk.vtkFloatArray()
+values.SetName("radius_squared")
+values.SetNumberOfTuples(volume.GetNumberOfPoints())
+for i in range(volume.GetNumberOfPoints()):
+    x, y, z = volume.GetPoint(i)
+    values.SetValue(i, x * x + y * y + z * z)
+volume.GetPointData().SetScalars(values)
+
+contour = vtk.vtkFlyingEdges3D()
+contour.SetInputData(volume)
+contour.SetValue(0, 0.5)
+contour.Update()
+surface = contour.GetOutput()
+assert surface.GetNumberOfPolys() > 0
+print("Triangles:", surface.GetNumberOfPolys())
+~~~
+
+`vtkFlyingEdges3D` is specialized for 3D image data; `vtkContourFilter` supports a wider range of dataset types. If there is no output, check the active scalar array, its value range, the isovalue, and whether the input contains valid 3D cells.
+
+| Scientific question | Suitable technique | Main pitfall |
+| --- | --- | --- |
+| Where does a scalar reach a threshold? | Isosurface/contour | Incorrect isovalue or coarse sampling |
+| What happens inside the volume? | Volume rendering | Misleading opacity transfer function |
+| What is the local vector direction? | Oriented glyphs | Overplotting hides structure |
+| Where would seeded particles move? | Streamlines/pathlines | Poor seeds or time interpretation |
+
+An extracted contour is **sampled geometry**, not the exact analytical boundary. Grid spacing, interpolation, smoothing, and decimation can all affect measured area and curvature.

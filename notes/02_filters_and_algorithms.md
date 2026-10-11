@@ -418,3 +418,39 @@ This is a quick reference, but the more important takeaway is what each category
 |                             | vtkTemporalShiftScale   | Shifts and scales time values.                                    |
 |                             | vtkTemporalStatistics   | Computes statistics over time (adds attributes).                  |
 | Other                       | vtkAlgorithm            | Base pipeline interface for algorithms (ports + execution model). |
+
+## Worked pipeline: source, topology and normals
+
+Connecting algorithms does **not** eagerly execute all stages. `Update()` requests downstream output and triggers upstream work as needed. Use `SetInputConnection` to preserve a live dependency on an upstream output port; `SetInputData` passes an existing data object.
+
+~~~python
+import vtk
+
+sphere = vtk.vtkSphereSource()
+sphere.SetThetaResolution(24)
+sphere.SetPhiResolution(16)
+
+triangles = vtk.vtkTriangleFilter()
+triangles.SetInputConnection(sphere.GetOutputPort())
+
+normals = vtk.vtkPolyDataNormals()
+normals.SetInputConnection(triangles.GetOutputPort())
+normals.Update()
+
+result = normals.GetOutput()
+assert result.GetNumberOfPolys() > 0
+assert result.GetPointData().GetNormals() is not None
+print(result.GetNumberOfPoints(), result.GetNumberOfPolys())
+~~~
+
+The sphere source generates geometry, the triangle filter normalizes polygon topology, and the normals filter creates an attribute needed for many lighting effects. These operations change different parts of the data model.
+
+### Debugging a multi-stage pipeline
+
+1. Start at the last data-producing filter and call `Update()`. Check the output class and point/cell counts.
+2. If empty, inspect each upstream stage in order. Some filters require explicit scalar selection or a specific dataset type.
+3. Look for arrays in `GetPointData()`, `GetCellData()` and `GetFieldData()`; the right name in the wrong association is still a mismatch.
+4. When a custom filter parameter changes, call `Modified()` so VTK knows cached output is stale.
+5. After clipping, decimation, shrink, or cleaning, recheck cell connectivity, IDs, and attribute tuple counts.
+
+A transform generally moves coordinates without rewiring cells. In contrast, `vtkShrinkFilter` can duplicate shared vertices so adjacent cells separate. These operations are not interchangeable when connectivity matters.

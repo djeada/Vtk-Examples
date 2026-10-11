@@ -200,3 +200,52 @@ Tables like this are useful because they prevent a super common beginner mistake
 | Exodus II    | `vtkExodusIIReader`            | `vtkMultiBlockDataSet` | `vtkExodusIIWriter`            | `vtkMultiBlockDataSet` |
 | OpenFOAM     | `vtkOpenFOAMReader`            | `vtkMultiBlockDataSet` | N/A                            | N/A                    |
 | EnSight      | `vtkEnSightGoldReader`         | `vtkMultiBlockDataSet` | N/A                            | N/A                    |
+
+## Round-trip validation: VTP with a point attribute
+
+A successful write does not prove that reading the file will reconstruct the intended dataset. A useful check is to compare invariants: dataset type, point/cell counts, array names, component counts, and relevant bounds.
+
+~~~python
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import vtk
+
+source = vtk.vtkSphereSource()
+source.Update()
+mesh = source.GetOutput()
+
+intensity = vtk.vtkFloatArray()
+intensity.SetName("intensity")
+intensity.SetNumberOfTuples(mesh.GetNumberOfPoints())
+for i in range(mesh.GetNumberOfPoints()):
+    intensity.SetValue(i, float(i))
+mesh.GetPointData().AddArray(intensity)
+
+with TemporaryDirectory() as directory:
+    filename = str(Path(directory) / "surface.vtp")
+    writer = vtk.vtkXMLPolyDataWriter()
+    writer.SetFileName(filename)
+    writer.SetInputData(mesh)
+    assert writer.Write() == 1
+
+    reader = vtk.vtkXMLPolyDataReader()
+    reader.SetFileName(filename)
+    reader.Update()
+    loaded = reader.GetOutput()
+    assert loaded.GetNumberOfPoints() == mesh.GetNumberOfPoints()
+    values = loaded.GetPointData().GetArray("intensity")
+    assert values is not None
+    assert values.GetNumberOfTuples() == loaded.GetNumberOfPoints()
+~~~
+
+### Choose a format based on what must survive
+
+| Requirement | Typical choice | Limitation or check |
+| --- | --- | --- |
+| Polygonal surface and numeric attributes | `.vtp` | Verify point/cell arrays after reload |
+| Mixed volumetric elements | `.vtu` | Check cell types and connectivity |
+| Regularly sampled voxel grid | `.vti` | Record origin and spacing |
+| Surface interchange with 3D-printing tools | `.stl` | General VTK arrays are not preserved |
+| Multiple datasets in one collection | `.vtm` | Each block retains its own type |
+
+File extensions are not a substitute for checking the actual data type. In particular, STL is primarily a triangle-surface exchange format, not an attribute-rich CFD format. Document coordinate systems and physical units separately when the chosen format cannot store them reliably.

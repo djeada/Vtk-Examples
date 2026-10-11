@@ -410,3 +410,47 @@ This is where everything clicks: your data structure choice is not “just a con
 | Unstructured Grids            | Used for complex, irregular shapes like biological structures or geological formations.   | High: Requires detailed definition of point connectivity, accommodating intricate geometries.   | High: Extremely versatile, capable of representing any shape, be it regular or irregular.    | Low to Moderate: Efficiency varies with the shape's complexity; generally less efficient than structured grids. |
 | Structured Points (ImageData) | Perfect for regularly spaced data such as medical imaging (CT, MRI scans) or 3D textures. | Low: Simple and regular, with implicit connectivity for easy navigation.                        | Low: Restricted to regular grid shapes, ideal for uniformly spaced data.                     | Very High: Optimal for regular data thanks to implicit connectivity and uniform structure.                      |
 | Rectilinear Grids             | Appropriate for data with variable resolution, like atmospheric or oceanic datasets.      | Moderate: Allows variable spacing while maintaining a regular grid structure.                   | Moderate: More adaptable than regular grids but less so than unstructured grids.             | High: More efficient than unstructured grids for data that aligns with its variable but regular structure.      |
+
+## Practical dataset selection and attribute associations
+
+The most important design choice is often the dataset type. It determines how connectivity is stored, which filters can run, and how much memory the same geometry requires.
+
+| Input | Recommended VTK dataset | Reason |
+| --- | --- | --- |
+| Uniform voxels or pixels | `vtkImageData` | Coordinates derive from extent, origin, and spacing |
+| Nonuniform, axis-aligned samples | `vtkRectilinearGrid` | Store one coordinate vector per axis |
+| Curved but logically indexed grid | `vtkStructuredGrid` | Explicit coordinates with structured topology |
+| Surfaces made of points, lines, triangles or polygons | `vtkPolyData` | Efficient surface-oriented representation |
+| Arbitrary or mixed volumetric cells | `vtkUnstructuredGrid` | Explicit, general connectivity |
+| Multiple related datasets | `vtkMultiBlockDataSet` | Group independently typed blocks |
+
+### Point data versus cell data
+
+A point-data array has one tuple for every point; a cell-data array has one tuple for every cell. An image with dimensions `4 × 3 × 2` has 24 points but only 6 hexahedral cells. This is a frequent source of missing colors and filter errors.
+
+~~~python
+import vtk
+
+image = vtk.vtkImageData()
+image.SetDimensions(4, 3, 2)
+image.SetOrigin(0, 0, 0)
+image.SetSpacing(1, 1, 1)
+assert image.GetNumberOfPoints() == 24
+assert image.GetNumberOfCells() == 6
+
+temperature = vtk.vtkDoubleArray()
+temperature.SetName("temperature")
+temperature.SetNumberOfTuples(image.GetNumberOfPoints())
+for i in range(image.GetNumberOfPoints()):
+    temperature.SetValue(i, float(i))
+image.GetPointData().SetScalars(temperature)
+
+material = vtk.vtkIntArray()
+material.SetName("material_id")
+material.SetNumberOfTuples(image.GetNumberOfCells())
+for i in range(image.GetNumberOfCells()):
+    material.SetValue(i, 1)
+image.GetCellData().AddArray(material)
+~~~
+
+**What to verify:** query `GetClassName()`, `GetNumberOfPoints()`, `GetNumberOfCells()` and `GetBounds()` before processing. Check each array's tuple count against its association. Converting cell data to point data usually involves averaging/interpolation and changes the interpretation of the measurements. Units, physical coordinates, and point IDs should never be silently inferred from array shape.
