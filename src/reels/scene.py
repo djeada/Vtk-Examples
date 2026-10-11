@@ -38,7 +38,7 @@ def lookup_table(values, colors):
     return table
 
 
-def _actor(data, lookup=None, color=(1, 1, 1), opacity=1):
+def _actor(data, lookup=None, color=(1, 1, 1), opacity=1, lit=False):
     mapper = vtk.vtkPolyDataMapper()
     if isinstance(data, vtk.vtkAlgorithmOutput):
         mapper.SetInputConnection(data)
@@ -52,17 +52,62 @@ def _actor(data, lookup=None, color=(1, 1, 1), opacity=1):
         mapper.InterpolateScalarsBeforeMappingOn()
     actor = vtk.vtkActor()
     actor.SetMapper(mapper)
-    actor.GetProperty().SetColor(*color)
-    actor.GetProperty().SetOpacity(opacity)
-    actor.GetProperty().LightingOff()
+    prop = actor.GetProperty()
+    prop.SetColor(*color)
+    prop.SetOpacity(opacity)
+    if lit:
+        # Soft studio shading for geometry whose 3D form carries meaning.
+        prop.SetInterpolationToPhong()
+        prop.SetAmbient(0.38)
+        prop.SetDiffuse(0.72)
+        prop.SetSpecular(0.32)
+        prop.SetSpecularPower(28)
+    else:
+        prop.LightingOff()
     return actor
 
 
-class SceneRenderer:
-    """One reusable offscreen scene; captions are composed separately."""
+def _smootherstep(value):
+    value = min(1.0, max(0.0, value))
+    return value * value * value * (value * (value * 6 - 15) + 10)
 
-    def __init__(self, model, width, height, generic_renderer=None):
+
+# Camera keyframes (azimuth°, elevation°, dolly) at each chapter's midpoint;
+# the first and last entries are the opening and closing poses.
+CAMERA_KEYS = (
+    (-12, 8, 0.92),
+    (-7, 4, 1.0),
+    (6, -2, 1.03),
+    (-5, 5, 1.06),
+    (8, 0, 1.02),
+    (-6, -3, 1.05),
+    (2, 3, 1.0),
+    (0, 5, 0.96),
+)
+# Initial view direction (from focal point toward camera), roll, and motion scale.
+VIEWS = {
+    "rod": ((0.0, -1.0, 0.62), 14, 0.8),
+    "channel": ((0.0, -1.0, 0.95), 9, 0.6),
+    "flow": ((0.0, -0.62, 1.0), 0, 0.6),
+    "cavity": ((0.0, -0.32, 1.0), 0, 0.6),
+    "surface": ((1.5, -3.0, 2.45), 0, 1.0),
+}
+
+
+class SceneRenderer:
+    """One reusable offscreen scene; captions are composed separately.
+
+    Frames are rendered at ``supersample`` times the requested size on a
+    transparent background, then box-filtered down. :meth:`render` returns a
+    premultiplied RGBA image, so the layout can float the scene over its own
+    backdrop and derive a glow from it.
+    """
+
+    def __init__(self, model, width, height, generic_renderer=None, supersample=2, chapters=6):
         self.model = model
+        self.width, self.height = int(width), int(height)
+        self.ss = max(1, int(supersample))
+        self.chapters = max(1, int(chapters))
         # Recorded LBM snapshots are periodic over all NY rows, including the
         # interval from the last row back to the first.
         self.periodic_y = model.kind == "flow" and model.steps is not None
@@ -71,14 +116,16 @@ class SceneRenderer:
         )
         renderers = generic_renderer or [vtk.vtkRenderer()]
         self.renderer = renderers[0]
-        self.renderer.SetBackground(*(value / 255 for value in BACKGROUND))
-        self.renderer.SetBackground2(0.025, 0.045, 0.065)
-        self.renderer.GradientBackgroundOn()
-        self.renderer.SetUseFXAA(True)
+        self.generic = generic_renderer is not None
+        if not self.generic or len(renderers) == 1:
+            self.renderer.GradientBackgroundOff()
+            self.renderer.SetBackground(0, 0, 0)
+            self.renderer.SetBackgroundAlpha(0.0)
         self.window = vtk.vtkRenderWindow()
         self.window.SetOffScreenRendering(1)
+        self.window.SetAlphaBitPlanes(1)
         self.window.SetMultiSamples(0)
-        self.window.SetSize(width, height)
+        self.window.SetSize(self.width * self.ss, self.height * self.ss)
         self.window.AddRenderer(self.renderer)
         for renderer in renderers[1:]:
             self.window.AddRenderer(renderer)
@@ -86,7 +133,7 @@ class SceneRenderer:
             renderer.ResetCamera()
         self.capture = vtk.vtkWindowToImageFilter()
         self.capture.SetInput(self.window)
-        self.capture.SetInputBufferTypeToRGB()
+        self.capture.SetInputBufferTypeToRGBA()
         self.capture.ReadFrontBufferOff()
         self.capture.ShouldRerenderOff()
         self.colors = color_samples("viridis" if model.kind == "flow" else "inferno")
@@ -96,8 +143,9 @@ class SceneRenderer:
         self.phase = None
         self.legend = (self.table.GetRange(), model.unit)
         self.particles = None
+        self.fit_points = []
         self._resources = []
-        if generic_renderer is not None:
+        if self.generic:
             # Existing example captions are replaced by the reel's own layout.
             # Keep scientific legends and every original viewport.
             for renderer in renderers:
@@ -107,26 +155,37 @@ class SceneRenderer:
                     if not item.IsA("vtkScalarBarActor"):
                         renderer.RemoveActor2D(item)
             self.legend = None
-        elif model.kind == "rod":
-            self._rod()
         else:
-            self._field()
+            kit = vtk.vtkLightKit()
+            kit.SetKeyLightIntensity(0.9)
+            kit.AddLightsToRenderer(self.renderer)
+            if model.kind == "rod":
+                self._rod()
+            else:
+                self._field()
         self._frame_camera()
+
+    @property
+    def view(self):
+        if self.model.kind == "flow" and self.model.steps is None:
+            return "cavity"
+        return self.model.kind
 
     def _rod(self):
         model = self.model
         module = example_module(model.key)
+        # Rod radius is illustrative; a slightly thicker rod reads on a phone.
+        radius = 0.072
         self.mesh, _ = module.create_cylinder_rod(
-            model.x, model.fields[0, 0], radius=0.065
+            model.x, model.fields[0, 0], radius=radius, resolution=48
         )
-        rod = _actor(self.mesh, self.table)
-        self.renderer.AddActor(rod)
+        self.renderer.AddActor(_actor(self.mesh, self.table, lit=True))
         self._outline(self.mesh)
         for end in (0, -1):
             cap = module.create_end_cap(
-                model.x[end], model.fields[0, 0, end], radius=0.065
+                model.x[end], model.fields[0, 0, end], radius=radius, resolution=48
             )
-            self.renderer.AddActor(_actor(cap, self.table))
+            self.renderer.AddActor(_actor(cap, self.table, lit=True))
         # Arrow signs derive from the actual conductive gradient or prescribed u.
         if model.key == "heat_convection_solver_1d":
             arrows = np.ones_like(model.x)
@@ -141,9 +200,13 @@ class SceneRenderer:
         vectors = vtk.vtkFloatArray()
         vectors.SetNumberOfComponents(3)
         for index in np.linspace(5, len(model.x) - 6, 9).astype(int):
-            points.InsertNextPoint(model.x[index], -0.16, 0.06)
+            points.InsertNextPoint(model.x[index], -0.17, 0.0)
             vectors.InsertNextTuple3(float(np.sign(arrows[index])), 0, 0)
-        self._glyphs(points, vectors, 0.065)
+        self._glyphs(points, vectors, 0.07)
+        # Arrow tips reach past the rod ends; keep them inside the frame.
+        self.fit_points.append(
+            np.array([[model.x[0] - 0.08, -0.2, 0], [model.x[-1] + 0.08, -0.2, 0]])
+        )
 
     def _field(self):
         model = self.model
@@ -157,37 +220,57 @@ class SceneRenderer:
         points, scalars = field_points(
             model.x, display_y, np.nan_to_num(values), height=height
         )
+        self.surface_height = height
+        # Animated surfaces share one height scale across every snapshot.
+        self.animated_surface = model.kind == "surface" and len(model.fields) > 1
         scalars = numpy_to_vtk(values.ravel(), deep=True)
         scalars.SetName(model.field_name)
         self.scalars = scalars
         self.mesh = quad_field(len(model.x), len(display_y), points, scalars)
-        self.renderer.AddActor(_actor(self.mesh, self.table))
+        if self.animated_surface:
+            self._set_surface(values)
+            corners = [
+                [px, py, height]
+                for px in (model.x[0], model.x[-1])
+                for py in (model.y[0], model.y[-1])
+            ]
+            self.fit_points.append(np.array(corners))
+        if model.kind == "surface":
+            normals = vtk.vtkPolyDataNormals()
+            normals.SetInputData(self.mesh)
+            normals.SplittingOff()
+            self.renderer.AddActor(_actor(normals.GetOutputPort(), self.table, lit=True))
+            self._resources.append(normals)
+        else:
+            self.renderer.AddActor(_actor(self.mesh, self.table))
         self._outline(self.mesh)
+        span = float(np.ptp(model.x))
         if model.kind == "surface":
             contour = vtk.vtkContourFilter()
             contour.SetInputData(self.mesh)
             low, high = self.table.GetRange()
             for index, value in enumerate(np.linspace(low, high, 13)[1:-1]):
                 contour.SetValue(index, float(value))
-            self.renderer.AddActor(
-                _actor(contour.GetOutputPort(), color=(1, 0.78, 0.49), opacity=0.5)
-            )
+            lines = _actor(contour.GetOutputPort(), color=(1, 0.86, 0.62), opacity=0.55)
+            lines.GetProperty().SetLineWidth(1.3 * self.ss)
+            self.renderer.AddActor(lines)
             self._resources.append(contour)
         if model.solid is not None:
             rows, cols = np.where(model.solid)
             cube = vtk.vtkCubeSource()
+            top = 0.05 * span
             cube.SetBounds(
                 cols.min() - 0.5,
                 cols.max() + 0.5,
                 rows.min() - 0.5,
                 rows.max() + 0.5,
-                0.05,
-                2,
+                0.0,
+                top,
             )
-            self.renderer.AddActor(
-                _actor(cube.GetOutputPort(), color=(0.16, 0.22, 0.31))
-            )
+            block = _actor(cube.GetOutputPort(), color=(0.2, 0.27, 0.38), lit=True)
+            self.renderer.AddActor(block)
             self._resources.append(cube)
+            self.solid_box = (cols.min() - 0.5, cols.max() + 0.5, rows.min() - 0.5, rows.max() + 0.5, top)
         if model.vectors is not None:
             points = vtk.vtkPoints()
             vectors = vtk.vtkFloatArray()
@@ -204,14 +287,24 @@ class SceneRenderer:
                     points.InsertNextPoint(
                         model.x[i],
                         display_y[j],
-                        height + 0.025 * (model.x[-1] - model.x[0]),
+                        height + 0.025 * span,
                     )
                     vectors.InsertNextTuple3(u / speed, v / speed, 0)
             if model.kind in ("surface", "channel"):
-                self._glyphs(points, vectors, 0.045 * (model.x[-1] - model.x[0]))
+                self._glyphs(points, vectors, 0.045 * span)
             if model.kind == "flow":
                 self._prepare_particles()
                 self._streamlines(model.vectors[-1])
+
+    def _set_surface(self, values):
+        low, high = float(np.nanmin(self.model.fields)), float(np.nanmax(self.model.fields))
+        span = high - low if high > low else 1.0
+        vtk_to_numpy(self.scalars)[:] = values.ravel()
+        points = vtk_to_numpy(self.mesh.GetPoints().GetData())
+        points[:, 2] = (values.ravel() - low) / span * self.surface_height
+        self.mesh.GetPoints().Modified()
+        self.scalars.Modified()
+        self.mesh.Modified()
 
     def _outline(self, mesh):
         edges = vtk.vtkFeatureEdges()
@@ -220,8 +313,8 @@ class SceneRenderer:
         edges.FeatureEdgesOff()
         edges.NonManifoldEdgesOff()
         edges.ManifoldEdgesOff()
-        actor = _actor(edges.GetOutputPort(), color=(0.53, 0.66, 0.82), opacity=0.7)
-        actor.GetProperty().SetLineWidth(1.4)
+        actor = _actor(edges.GetOutputPort(), color=(0.62, 0.76, 0.92), opacity=0.55)
+        actor.GetProperty().SetLineWidth(1.2 * self.ss)
         self.renderer.AddActor(actor)
         self._resources.append(edges)
 
@@ -230,8 +323,10 @@ class SceneRenderer:
         data.SetPoints(points)
         data.GetPointData().SetVectors(vectors)
         arrow = vtk.vtkArrowSource()
-        arrow.SetTipResolution(12)
-        arrow.SetShaftResolution(10)
+        arrow.SetTipResolution(24)
+        arrow.SetShaftResolution(16)
+        arrow.SetTipRadius(0.12)
+        arrow.SetShaftRadius(0.035)
         glyph = vtk.vtkGlyph3D()
         glyph.SetInputData(data)
         glyph.SetSourceConnection(arrow.GetOutputPort())
@@ -240,7 +335,7 @@ class SceneRenderer:
         glyph.SetScaleFactor(scale)
         glyph.OrientOn()
         self.renderer.AddActor(
-            _actor(glyph.GetOutputPort(), color=(0.78, 0.92, 1), opacity=0.65)
+            _actor(glyph.GetOutputPort(), color=(0.86, 0.95, 1), opacity=0.85)
         )
         self._resources.extend((arrow, glyph, data))
 
@@ -276,18 +371,21 @@ class SceneRenderer:
         trace.SetMaximumPropagation(float(np.ptp(model.x)) * 8)
         trace.SetMaximumNumberOfSteps(3000)
         trace.SetComputeVorticity(False)
-        actor = _actor(trace.GetOutputPort(), color=(0.65, 0.96, 0.91), opacity=0.3)
-        actor.GetProperty().SetLineWidth(1.3)
+        actor = _actor(trace.GetOutputPort(), color=(0.72, 0.98, 0.93), opacity=0.38)
+        actor.GetProperty().SetLineWidth(1.2 * self.ss)
         # A steady cavity may use paths from its solved field. Transient flow
         # uses current-velocity particles instead of future-frame streamlines.
         if model.steps is None:
             self.renderer.AddActor(actor)
         self._resources.extend((image, data, trace))
 
+    def _particle_z(self):
+        return 0.012 * np.ptp(self.model.x)
+
     def _prepare_particles(self):
         model = self.model
         rng = np.random.default_rng(8)
-        count = 100 if model.steps is not None else 80
+        count = 140 if model.steps is not None else 110
         self.particles = np.c_[
             rng.uniform(model.x[0], model.x[-1], count),
             rng.uniform(
@@ -319,14 +417,13 @@ class SceneRenderer:
         self.initial_particles = self.particles.copy()
         self.particle_points = vtk.vtkPoints()
         self.particle_points.SetDataTypeToDouble()
-        for px, py in self.particles:
-            self.particle_points.InsertNextPoint(px, py, 0.018 * np.ptp(model.x))
+        self.particle_points.SetNumberOfPoints(count)
         data = vtk.vtkPolyData()
         data.SetPoints(self.particle_points)
         sphere = vtk.vtkSphereSource()
-        sphere.SetRadius(0.004 * np.ptp(model.x))
-        sphere.SetThetaResolution(8)
-        sphere.SetPhiResolution(8)
+        sphere.SetRadius(0.0042 * np.ptp(model.x))
+        sphere.SetThetaResolution(12)
+        sphere.SetPhiResolution(12)
         glyph = vtk.vtkGlyph3DMapper()
         glyph.SetInputData(data)
         glyph.SetSourceConnection(sphere.GetOutputPort())
@@ -334,10 +431,69 @@ class SceneRenderer:
         glyph.ScalarVisibilityOff()
         actor = vtk.vtkActor()
         actor.SetMapper(glyph)
-        actor.GetProperty().SetColor(0.9, 1, 0.96)
+        actor.GetProperty().SetColor(1, 0.98, 0.9)
         actor.GetProperty().LightingOff()
         self.renderer.AddActor(actor)
-        self._resources.extend((data, sphere, glyph))
+
+        # Fading trails: one polyline per tracer through its recent positions.
+        # Tracers move slowly in lattice units, so sample the trail sparsely.
+        self.trail_length = 28
+        self.trail_stride = 5
+        self.trail_tick = 0
+        self.inlet_rng = np.random.default_rng(9)
+        self.trail_points = vtk.vtkPoints()
+        self.trail_points.SetDataTypeToDouble()
+        self.trail_points.SetNumberOfPoints(count * self.trail_length)
+        lines = vtk.vtkCellArray()
+        for index in range(count):
+            lines.InsertNextCell(self.trail_length)
+            for offset in range(self.trail_length):
+                lines.InsertCellPoint(index * self.trail_length + offset)
+        colors = vtk.vtkUnsignedCharArray()
+        colors.SetNumberOfComponents(4)
+        fade = np.linspace(0, 1, self.trail_length) ** 1.6
+        rgba = np.tile(
+            np.c_[np.full((self.trail_length, 3), (235, 250, 255)), 200 * fade],
+            (count, 1),
+        ).astype(np.uint8)
+        colors.DeepCopy(numpy_to_vtk(rgba, deep=True, array_type=vtk.VTK_UNSIGNED_CHAR))
+        colors.SetName("trail")
+        trails = vtk.vtkPolyData()
+        trails.SetPoints(self.trail_points)
+        trails.SetLines(lines)
+        trails.GetPointData().SetScalars(colors)
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputData(trails)
+        mapper.SetColorModeToDirectScalars()
+        mapper.SetScalarModeToUsePointData()
+        trail_actor = vtk.vtkActor()
+        trail_actor.SetMapper(mapper)
+        trail_actor.GetProperty().LightingOff()
+        trail_actor.GetProperty().SetLineWidth(1.6 * self.ss)
+        trail_actor.GetProperty().SetOpacity(0.999)  # route through the blended pass
+        self.renderer.AddActor(trail_actor)
+        self._resources.extend((data, sphere, glyph, trails, colors))
+        self._reset_trails()
+
+    def _reset_trails(self, mask=None):
+        if self.particles is None:
+            return
+        if mask is None:
+            self.history = np.repeat(self.particles[None], self.trail_length, axis=0)
+        else:
+            self.history[:, mask] = self.particles[mask]
+        self._sync_particles()
+
+    def _sync_particles(self):
+        z = self._particle_z()
+        heads = vtk_to_numpy(self.particle_points.GetData())
+        heads[:, :2] = self.particles
+        heads[:, 2] = z
+        self.particle_points.Modified()
+        trail = vtk_to_numpy(self.trail_points.GetData())
+        trail[:, :2] = self.history.transpose(1, 0, 2).reshape(-1, 2)
+        trail[:, 2] = z * 0.98
+        self.trail_points.Modified()
 
     def _velocity_at(self, positions, velocity):
         model = self.model
@@ -373,6 +529,8 @@ class SceneRenderer:
             1, int(math.ceil(delta * maximum / (0.45 * (model.x[1] - model.x[0]))))
         )
         step = delta / substeps
+        start = self.particles.copy()
+        respawned = np.zeros(len(self.particles), dtype=bool)
         for _ in range(substeps):
             trial = self.particles + self._velocity_at(self.particles, velocity) * step
             if self.periodic_y:
@@ -392,72 +550,183 @@ class SceneRenderer:
                 )
                 invalid |= model.solid[iy, ix]
             trial[invalid] = self.initial_particles[invalid]
+            if model.steps is not None and invalid.any():
+                # Transient channel flow: replacement tracers enter at the inlet.
+                trial[invalid, 0] = model.x[0] + self.inlet_rng.uniform(0, 1.5, invalid.sum())
+                trial[invalid, 1] = model.y[0] + self.inlet_rng.uniform(0, self.y_period, invalid.sum())
+            respawned |= invalid
             self.particles = trial
-        for index, (px, py) in enumerate(self.particles):
-            self.particle_points.SetPoint(index, px, py, 0.018 * np.ptp(model.x))
-        self.particle_points.Modified()
+        # Respawns and periodic wraps start a fresh trail instead of a streak.
+        jump = np.abs(self.particles - start).max(axis=1) > 0.2 * np.ptp(model.x)
+        self.trail_tick += 1
+        if self.trail_tick % self.trail_stride == 0:
+            self.history = np.roll(self.history, -1, axis=0)
+        self.history[-1] = self.particles
+        self._reset_trails(respawned | jump)
+
+    def _fit_points(self):
+        clouds = list(self.fit_points)
+        if self.mesh is not None:
+            points = vtk_to_numpy(self.mesh.GetPoints().GetData())
+            clouds.append(points[:: max(1, len(points) // 6000)])
+        if getattr(self, "solid_box", None) is not None:
+            x0, x1, y0, y1, top = self.solid_box
+            clouds.append(np.array([[x, y, top] for x in (x0, x1) for y in (y0, y1)]))
+        if not clouds:
+            bounds = self.renderer.ComputeVisiblePropBounds()
+            clouds.append(
+                np.array(
+                    [
+                        [x, y, z]
+                        for x in bounds[0:2]
+                        for y in bounds[2:4]
+                        for z in bounds[4:6]
+                    ]
+                )
+            )
+        return np.vstack(clouds)
+
+    def _projected(self, points):
+        camera = self.renderer.GetActiveCamera()
+        matrix = camera.GetCompositeProjectionTransformMatrix(
+            self.width / self.height, -1, 1
+        )
+        m = np.array([[matrix.GetElement(r, c) for c in range(4)] for r in range(4)])
+        clip = np.c_[points, np.ones(len(points))] @ m.T
+        return clip[:, :2] / clip[:, 3:4]
+
+    def _fit(self, fill=0.9):
+        """Frame the content tightly in this scene's aspect ratio."""
+        camera = self.renderer.GetActiveCamera()
+        points = self._fit_points()
+        aspect = self.width / self.height
+        for _ in range(8):
+            self.renderer.ResetCameraClippingRange()
+            ndc = self._projected(points)
+            low, high = ndc.min(axis=0), ndc.max(axis=0)
+            center, half = (low + high) / 2, (high - low) / 2
+            scale = max(half[0], half[1]) / fill
+            if camera.GetParallelProjection():
+                height = camera.GetParallelScale()
+            else:
+                height = camera.GetDistance() * math.tan(
+                    math.radians(camera.GetViewAngle() / 2)
+                )
+            up = np.array(camera.GetViewUp())
+            forward = np.array(camera.GetDirectionOfProjection())
+            right = np.cross(forward, up)
+            shift = right * center[0] * height * aspect + up * center[1] * height
+            camera.SetFocalPoint(*(np.array(camera.GetFocalPoint()) + shift))
+            camera.SetPosition(*(np.array(camera.GetPosition()) + shift))
+            if camera.GetParallelProjection():
+                camera.SetParallelScale(height * scale)
+            else:
+                camera.Dolly(1 / scale)
+            if abs(scale - 1) < 1e-3 and np.abs(center).max() < 1e-3:
+                break
 
     def _frame_camera(self):
         model = self.model
         camera = self.renderer.GetActiveCamera()
-        camera.ParallelProjectionOn()
-        if model.kind == "rod":
-            camera.SetPosition(0.5, -1.9, 1.1)
-            camera.SetFocalPoint(0.5, 0, 0)
-            camera.SetViewUp(0, 0, 1)
-        elif model.kind in ("flow", "channel"):
-            center = ((model.x[0] + model.x[-1]) / 2, (model.y[0] + model.y[-1]) / 2, 0)
-            if model.kind == "channel":
-                center = (center[0], 2.5 * model.y[-1], 0)
-            camera.SetPosition(center[0], center[1], max(np.ptp(model.x), 1) * 3)
+        self.motion = 1.0
+        if self.generic:
+            self.renderer.ResetCamera()
+        else:
+            direction, roll, self.motion = VIEWS[self.view]
+            bounds = np.array(self.mesh.GetBounds()).reshape(3, 2)
+            center = bounds.mean(axis=1)
+            size = float(np.ptp(bounds, axis=1).max())
+            direction = np.array(direction) / np.linalg.norm(direction)
+            camera.ParallelProjectionOff()
+            camera.SetViewAngle(26)
             camera.SetFocalPoint(*center)
-            camera.SetViewUp(0, 1, 0)
-        elif model.kind == "surface":
-            camera.SetPosition(2, -2.5, 2.6)
-            camera.SetFocalPoint(0.5, 0.5, 0.15)
+            camera.SetPosition(*(center + direction * size * 3))
             camera.SetViewUp(0, 0, 1)
-        self.renderer.ResetCamera()
-        camera.Zoom(
-            1.20
-            if model.kind == "flow" and model.steps is None
-            else 1.40
-            if model.kind in ("flow", "channel")
-            else 1.16
-            if model.kind == "surface"
-            else 1.10
+            camera.OrthogonalizeViewUp()
+            camera.Roll(roll)
+        self._unfitted = (
+            camera.GetPosition(),
+            camera.GetFocalPoint(),
+            camera.GetViewUp(),
+            camera.GetParallelScale(),
         )
+        self._fit_base()
+
+    def _fit_base(self):
+        camera = self.renderer.GetActiveCamera()
+        position, focal, up, scale = self._unfitted
+        camera.SetPosition(*position)
+        camera.SetFocalPoint(*focal)
+        camera.SetViewUp(*up)
+        camera.SetParallelScale(scale)
+        if not self.generic or self.window.GetRenderers().GetNumberOfItems() == 1:
+            self._fit(self.FILL)
         self.camera_position = np.array(camera.GetPosition())
         self.camera_focal = np.array(camera.GetFocalPoint())
+        self.camera_up = np.array(camera.GetViewUp())
         self.camera_scale = camera.GetParallelScale()
+
+    FILL = 0.86
+
+    def preferred_height(self, minimum, maximum):
+        """Box height that lets the framed content fill the full scene width."""
+        if self.generic:
+            return self.height
+        ndc = self._projected(self._fit_points())
+        span = ndc.max(axis=0) - ndc.min(axis=0)
+        aspect = (span[0] * self.width) / max(1e-9, span[1] * self.height)
+        return int(np.clip(round(self.width / aspect * 1.04), minimum, maximum))
+
+    def set_size(self, width, height):
+        self.width, self.height = int(width), int(height)
+        self.window.SetSize(self.width * self.ss, self.height * self.ss)
+        self._fit_base()
+
+    def _pose(self, phase):
+        keys = CAMERA_KEYS
+        times = [0.0] + [(index + 0.5) / self.chapters for index in range(self.chapters)] + [1.0]
+        values = [keys[0]] + [keys[1 + index % (len(keys) - 2)] for index in range(self.chapters)] + [keys[-1]]
+        for index in range(len(times) - 1):
+            if phase <= times[index + 1] or index == len(times) - 2:
+                span = max(1e-9, times[index + 1] - times[index])
+                blend = _smootherstep((phase - times[index]) / span)
+                return [
+                    a + (b - a) * blend
+                    for a, b in zip(values[index], values[index + 1])
+                ]
+
+    def _move_camera(self, phase):
+        azimuth, elevation, dolly = self._pose(phase)
+        camera = self.renderer.GetActiveCamera()
+        camera.SetPosition(*self.camera_position)
+        camera.SetFocalPoint(*self.camera_focal)
+        camera.SetViewUp(*self.camera_up)
+        camera.Azimuth(azimuth * self.motion)
+        camera.Elevation(elevation * self.motion)
+        camera.OrthogonalizeViewUp()
+        dolly = 1 + (dolly - 1) * self.motion
+        if camera.GetParallelProjection():
+            camera.SetParallelScale(self.camera_scale / dolly)
+        else:
+            camera.Dolly(dolly)
 
     def render(self, phase):
         """phase is playback position, not fictitious simulation time."""
         phase = float(np.clip(phase, 0, 1))
         if self.phase is not None and phase < self.phase and self.particles is not None:
             self.particles = self.initial_particles.copy()
-            for index, (px, py) in enumerate(self.particles):
-                self.particle_points.SetPoint(
-                    index, px, py, 0.018 * np.ptp(self.model.x)
-                )
-            self.particle_points.Modified()
+            self._reset_trails()
             self.phase = None
         model = self.model
-        camera = self.renderer.GetActiveCamera()
-        angle = math.radians(7 * math.sin(phase * math.pi * 2))
-        offset = self.camera_position - self.camera_focal
-        if model.kind in ("surface", "rod", "generic"):
-            c, s = math.cos(angle), math.sin(angle)
-            offset = np.array(
-                [
-                    c * offset[0] - s * offset[1],
-                    s * offset[0] + c * offset[1],
-                    offset[2],
-                ]
+        self._move_camera(phase)
+        if getattr(self, "animated_surface", False):
+            position = phase * (len(model.fields) - 1)
+            lower = int(position)
+            upper = min(lower + 1, len(model.fields) - 1)
+            fraction = position - lower
+            self._set_surface(
+                model.fields[lower] * (1 - fraction) + model.fields[upper] * fraction
             )
-        camera.SetPosition(*(self.camera_focal + offset))
-        camera.SetParallelScale(
-            self.camera_scale * (1 - 0.035 * math.sin(math.pi * phase))
-        )
         if model.vectors is not None and model.kind == "flow":
             position = phase * (len(model.fields) - 1)
             lower = int(position)
@@ -489,9 +758,38 @@ class SceneRenderer:
         image = self.capture.GetOutput()
         width, height, _ = image.GetDimensions()
         pixels = vtk_to_numpy(image.GetPointData().GetScalars()).reshape(
-            height, width, 3
+            height, width, 4
         )
-        return Image.fromarray(np.flipud(pixels).copy())
+        frame = Image.fromarray(np.flipud(pixels).copy(), "RGBA")
+        return frame.reduce(self.ss) if self.ss > 1 else frame
+
+    def detail(self, scene):
+        """A real crop around the obstacle, located with VTK's world/display map."""
+        if self.model.solid is None:
+            return None
+        rows, cols = np.where(self.model.solid)
+        halfx = (cols.max() - cols.min() + 1) * 3.2
+        halfy = (rows.max() - rows.min() + 1) * 1.65
+        cx, cy = (cols.max() + cols.min()) / 2, (rows.max() + rows.min()) / 2
+        x0, x1 = self.model.x[0] + 1, self.model.x[-1] - 1
+        halfx = min(halfx, (x1 - x0) / 2)
+        cx = min(max(cx, x0 + halfx), x1 - halfx)
+        pixels = []
+        for x in (cx - halfx, cx + halfx):
+            for y in (cy - halfy, cy + halfy):
+                self.renderer.SetWorldPoint(float(x), float(y), 0, 1)
+                self.renderer.WorldToDisplay()
+                px, py, _ = self.renderer.GetDisplayPoint()
+                pixels.append((px / self.ss, scene.height - py / self.ss))
+        left = max(0, min(p[0] for p in pixels))
+        right = min(scene.width, max(p[0] for p in pixels))
+        top = max(0, min(p[1] for p in pixels))
+        bottom = min(scene.height, max(p[1] for p in pixels))
+        return (
+            scene.crop((round(left), round(top), round(right), round(bottom)))
+            if right > left and bottom > top
+            else None
+        )
 
     def close(self):
         self.window.Finalize()

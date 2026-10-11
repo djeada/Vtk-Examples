@@ -144,6 +144,11 @@ Use `python -m src --list` for the runnable catalog, or filter it with a fragmen
 
 See the [CFD model and visualization guide](src/09_cfd/README.md) for the equations, boundary conditions, checks, and limitations of these teaching examples.
 
+New to CFD? Start with the two beginner time-marching examples:
+
+- [transient heat diffusion, 2D](src/09_cfd/transient_heat_diffusion_2d.py): explicit time steps and the stability limit
+- [rotating blob advection, 2D](src/09_cfd/rotating_blob_advection_2d.py): upwind transport, the CFL condition, and numerical diffusion
+
 - [convective end heat transfer, 1D](src/09_cfd/convective_end_heat_transfer_1d.py)
 - [enhanced heat transfer, 1D](src/09_cfd/enhanced_heat_transfer_solver_1d.py)
 - [enhanced heat transfer, 2D](src/09_cfd/enhanced_heat_transfer_solver_2d.py)
@@ -156,7 +161,7 @@ See the [CFD model and visualization guide](src/09_cfd/README.md) for the equati
 
 ### Educational science reels
 
-Create one vertical video per selected example. The nine curated CFD stories
+Create one vertical video per selected example. The curated CFD stories
 use numerical adapters for the example solvers; other examples use their
 original VTK scene with a generic story or a supplied JSON story. By default,
 reels render at 1080 × 1920 and 30 fps; `fast` uses 720 × 1280 at 24 fps.

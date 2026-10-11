@@ -129,7 +129,7 @@ def subtitle_text(story, duration):
 def render_reel(path, output, args):
     import numpy as np
     from src.reels.encoding import VideoEncoder, probe_video, synth_soundtrack
-    from src.reels.layout import ReelLayout, contact_sheet
+    from src.reels.layout import ReelLayout, contact_sheet, scene_size
     from src.reels.models import prepare_model, source_fingerprint
     from src.reels.scene import SceneRenderer, capture_example
 
@@ -159,7 +159,7 @@ def render_reel(path, output, args):
             print(f"  solver {percent}%", flush=True)
             last_progress[0] = percent
 
-    scene_width, scene_height = round(624 * width / 720), round(435 * width / 720)
+    scene_width, scene_height = scene_size(width)
     generic_renderer = None
     if path.stem in STORIES:
         model = prepare_model(
@@ -173,8 +173,18 @@ def render_reel(path, output, args):
         model, generic_renderer = capture_example(path, scene_width, scene_height)
         fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
     solving_seconds = time.monotonic() - started
-    scene = SceneRenderer(model, scene_width, scene_height, generic_renderer)
+    scene = SceneRenderer(
+        model,
+        scene_width,
+        scene_height,
+        generic_renderer,
+        supersample=3 if args.quality == "studio" else 2,
+        chapters=len(story.beats),
+    )
     try:
+        fitted = scene.preferred_height(round(scene_height * 0.62), scene_height)
+        if fitted != scene_height:
+            scene.set_size(scene_width, fitted)
         layout = ReelLayout(
             story,
             model,
@@ -183,6 +193,7 @@ def render_reel(path, output, args):
             duration,
             scene.colors,
             None if generic_renderer is not None else scene.legend,
+            scene_height=fitted,
         )
         with tempfile.TemporaryDirectory(prefix=".reel-", dir=output.parent) as folder:
             temporary = Path(folder)
@@ -195,7 +206,7 @@ def render_reel(path, output, args):
                         image,
                         phase * duration,
                         phase,
-                        layout.detail(image, scene.renderer),
+                        scene.detail(image),
                     )
                 )
             contact_sheet(previews).save(temporary / "preview.jpg", quality=95)
@@ -204,7 +215,12 @@ def render_reel(path, output, args):
             audio = args.audio
             if not args.silent and audio is None:
                 audio = temporary / "soundtrack.wav"
-                synth_soundtrack(audio, duration, seed=int(fingerprint[:8], 16))
+                synth_soundtrack(
+                    audio,
+                    duration,
+                    seed=int(fingerprint[:8], 16),
+                    sections=len(story.beats),
+                )
             if not args.preview_only:
                 print(
                     f"  encoding {frame_count:,} frames; {duration:g}s video",
@@ -226,7 +242,7 @@ def render_reel(path, output, args):
                             image,
                             index / fps,
                             phase,
-                            layout.detail(image, scene.renderer),
+                            scene.detail(image),
                         )
                         encoder.write(np.asarray(frame))
                         if (index + 1) % max(1, frame_count // 10) == 0:
@@ -262,7 +278,7 @@ def render_reel(path, output, args):
                 if args.silent
                 else str(args.audio)
                 if args.audio
-                else "original synthesized ambient soundtrack",
+                else "original generative soundtrack, tempo-locked to the story chapters",
                 "generation_seconds": round(time.monotonic() - started, 3),
                 "solving_seconds": round(solving_seconds, 3),
                 "encoding": None if args.preview_only else probe_video(output),
@@ -292,7 +308,7 @@ def main(argv=None):
         "example", nargs="?", help="example name; defaults to obstacle_flow_simulation"
     )
     parser.add_argument("--list", action="store_true")
-    parser.add_argument("--all", choices=["cfd"], help="create nine separate CFD reels")
+    parser.add_argument("--all", choices=["cfd"], help="create one reel per curated CFD example")
     parser.add_argument("--duration", type=float, default=60)
     parser.add_argument("--quality", choices=QUALITIES, default="studio")
     parser.add_argument("--output", type=Path)

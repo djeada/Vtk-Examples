@@ -156,11 +156,11 @@ class ReelCommandTests(unittest.TestCase):
                 calls = render.call_args_list
 
         self.assertEqual((single_result, batch_result), (0, 0))
-        self.assertEqual(len(calls), 9)
+        self.assertEqual(len(calls), len(cli.STORIES))
         paths = [call.args[0] for call in calls]
         outputs = [call.args[1] for call in calls]
         self.assertEqual({path.stem for path in paths}, set(cli.STORIES))
-        self.assertEqual(len(set(outputs)), 9)
+        self.assertEqual(len(set(outputs)), len(cli.STORIES))
         self.assertTrue(all(path.parent == batch_dir for path in outputs))
         self.assertEqual({path.suffix for path in outputs}, {".mp4"})
 

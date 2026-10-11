@@ -396,4 +396,86 @@ STORIES: dict[str, Story] = {
         takeaway="The lattice method updates discrete populations; its apparent wake depends on grid and boundaries.",
         model_note="Transient D2Q9 BGK with open x boundaries, periodic y boundaries, and a rectangular solid mask.",
     ),
+    "transient_heat_diffusion_2d": Story(
+        key="transient_heat_diffusion_2d",
+        title="Watch Heat Spread",
+        hook="Two hot spots on a steel plate. One simple update rule, repeated a thousand times over.",
+        units="°C · s",
+        accent=(255, 120, 80),
+        beats=(
+            Beat(
+                "Start hot",
+                "Two hot spots",
+                "A 10 cm steel plate starts near 200°C at two spots; its edges stay at 20°C.",
+            ),
+            Beat(
+                "One small step",
+                "Forward in time",
+                "Each node's new temperature uses only its four neighbours from the last step.",
+            ),
+            Beat(
+                "Respect the limit",
+                "The stability rule",
+                "Explicit steps must keep the Fourier number at or below 1/4, or errors explode.",
+            ),
+            Beat(
+                "Spread and merge",
+                "Peaks flatten out",
+                "Diffusion moves heat from hot to cold, so the two spots widen and join.",
+            ),
+            Beat(
+                "Drain the edges",
+                "Cold boundaries win",
+                "Heat leaves through the 20°C edges, and the whole plate cools toward them.",
+            ),
+            Beat(
+                "Check the math",
+                "Exact decay test",
+                "A pure sine mode decays exactly as theory predicts, which verifies the code.",
+            ),
+        ),
+        takeaway="Explicit time stepping is simple and exact enough to verify, but the time step is capped by the grid.",
+        model_note="Explicit FTCS solution of the 2D heat equation for carbon steel with fixed-temperature edges.",
+    ),
+    "rotating_blob_advection_2d": Story(
+        key="rotating_blob_advection_2d",
+        title="The Blob That Should Not Fade",
+        hook="Spin a blob of dye once around. The math says it returns unchanged. The code disagrees.",
+        units="scalar · s",
+        accent=(186, 140, 255),
+        beats=(
+            Beat(
+                "Set it spinning",
+                "Solid-body rotation",
+                "The fluid turns like a turntable; one full revolution takes one second.",
+            ),
+            Beat(
+                "Pure transport",
+                "No diffusion in the physics",
+                "The equation only carries the dye; exactly solved, the peak stays at 1.",
+            ),
+            Beat(
+                "Pick a scheme",
+                "First-order upwind",
+                "Each face takes its value from the upstream side, which keeps the solution stable.",
+            ),
+            Beat(
+                "Mind the CFL",
+                "One cell per step, at most",
+                "The time step keeps dye from crossing more than one cell per update.",
+            ),
+            Beat(
+                "Watch it smear",
+                "Numerical diffusion",
+                "Upwind behaves like added diffusion, so the blob widens and its peak drops.",
+            ),
+            Beat(
+                "Refine the grid",
+                "Error shrinks with cells",
+                "Halving the cell size roughly halves the smearing of this first-order scheme.",
+            ),
+        ),
+        takeaway="Dye is conserved, but its peak is not: the smearing comes from the scheme, not the physics.",
+        model_note="First-order upwind solution of 2D linear advection in solid-body rotation, compared with the exact rotation.",
+    ),
 }

@@ -14,6 +14,8 @@ python -m src heat_conduction_solver_2d
 
 | Example | Problem actually computed | How to interpret the visualization |
 | --- | --- | --- |
+| [Transient heat diffusion, 2D](transient_heat_diffusion_2d.py) *(beginner)* | Explicit FTCS time marching of the 2D heat equation in a 10 cm carbon-steel plate with two Gaussian hot spots and fixed 20°C edges. The step respects `Fo_x + Fo_y <= 1/2`. | Height and color are temperature at recorded times; snapshots are denser early, where the field changes fastest. Exceed the step limit to see the instability. |
+| [Rotating blob advection, 2D](rotating_blob_advection_2d.py) *(beginner)* | Explicit first-order upwind solution of linear advection in solid-body rotation (one revolution per second) at CFL 0.8, with zero inflow at the edges. | The exact solution rotates the blob unchanged; the lower, wider numerical blob is numerical diffusion. Height and color are concentration. |
 | [Fixed ends, 1D](fixed_end_heat_transfer_1d.py) | Steady conduction with constant conductivity, uniform volumetric generation, and two fixed end temperatures. | Rod colors are the computed temperature at each axial position; displayed rod radius is illustrative. |
 | [Convective ends, 1D](convective_end_heat_transfer_1d.py) | Steady conduction with two Robin conditions describing exchange with surrounding fluids. | Fluid temperatures differ from rod end temperatures. Heat-flow arrows follow the sign of the boundary heat exchange. |
 | [Variable conductivity, 1D](enhanced_heat_transfer_solver_1d.py) | Steady conduction with `k(T)=k_c*(1+beta*T)` and convective ends, without internal generation. | Rod color shows temperature; the conductivity profile is a derived field. Nonpositive conductivity is rejected. |
@@ -48,6 +50,8 @@ steady incompressible solution.
 
 Regression checks include:
 
+- FTCS exact discrete decay of a sine mode, the continuous decay rate on a fine grid, blow-up past the Fourier limit, and the maximum principle.
+- Upwind CFL step size, monotonicity, flux-form dye conservation, first-order refinement toward the exact rotated blob, and peak loss from numerical diffusion.
 - Fixed-end and convective-end analytical temperature solutions and boundary heat balances.
 - Nonlinear conductive flux balance, constant-conductivity reduction, and refinement toward an integrated-conductivity solution.
 - Stable analytical 1D transport at large positive and negative Peclet numbers.
