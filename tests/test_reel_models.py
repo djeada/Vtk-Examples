@@ -28,7 +28,7 @@ class ReelModelAdapterTests(unittest.TestCase):
             )
         }
 
-    def test_catalog_matches_nine_cfd_examples(self):
+    def test_catalog_matches_every_cfd_example(self):
         expected = {
             path.stem
             for path in Path("src/09_cfd").glob("*.py")

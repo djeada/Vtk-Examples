@@ -1,7 +1,7 @@
 # Educational science reels
 
 The reel command turns one selected example into one vertical video. For the
-nine CFD examples, numerical adapters run the corresponding model and render
+eleven CFD examples, numerical adapters run the corresponding model and render
 its computed field with six concise science-story captions curated in
 [`src/reels/stories.py`](../src/reels/stories.py). Other examples use their
 original VTK scene with a generic story, or a custom JSON story when supplied.
@@ -27,14 +27,14 @@ python -m src.reels obstacle_flow_simulation --quality fast \
   --output reels/obstacle.mp4
 ```
 
-Render nine separate videos, one per curated CFD example:
+Render one separate video per curated CFD example:
 
 ```bash
 python -m src.reels --all cfd
 ```
 
-Single-scene reels default to `reels/<example-stem>.mp4`. A batch writes nine
-separate MP4s under `reels/` or the selected output directory. Each reel also
+Single-scene reels default to `reels/<example-stem>.mp4`. A batch writes one
+MP4 per curated example under `reels/` or the selected output directory. Each reel also
 gets `<stem>.jpg` (thumbnail), `<stem>.preview.jpg` (contact sheet),
 `<stem>.json` (manifest), and `<stem>.srt` (captions) alongside the video.
 Use `--output PATH` to choose the MP4 path for one scene or the destination
@@ -57,7 +57,7 @@ scene capture; `--preview-only` creates a contact sheet without encoding video.
 | `--quality fast` | Render at 720 × 1280 and 24 frames per second. |
 | `--output PATH` | Choose the output MP4 path, or the output location for a batch. |
 | `--silent` | Render without an audio track. |
-| `--audio PATH` | Use an audio file in place of the default soundtrack. |
+| `--audio PATH` | Use an audio file in place of the generated soundtrack. |
 | `--overwrite` | Replace an existing output. |
 | `--story PATH.json` | Supply a custom story for the selected example. |
 | `--no-cache` | Capture a fresh scene instead of reusing cached output. |
@@ -112,6 +112,20 @@ examples, the fallback captures the selected example's original VTK scene; it
 needs that example's optional dependencies and does not apply to converters or
 projects without a scene. It retains all original viewports and scalar legends;
 camera motion supplies the presentation animation.
+
+## Look and sound
+
+Scenes render at 3× (studio) or 2× (fast) supersampling on a transparent
+background, then float over a designed backdrop with a soft glow. A perspective
+camera is fitted tightly to each model and eases to a new pose in every
+chapter. Headlines animate in word by word, and the profile chart draws itself.
+
+The default soundtrack is generated per example (deterministic from the source
+hash): a pad, pluck arpeggio, bass, lead, and drums at 48 kHz. Its tempo is
+chosen so each chapter spans whole bars, and the arrangement builds chapter by
+chapter, with risers and impacts on caption changes. Every soundtrack, including
+`--audio` files, is loudness-normalized to −14 LUFS and faded out at the end.
+Video is H.264 High profile with BT.709 color tags.
 
 ## Headless Linux
 

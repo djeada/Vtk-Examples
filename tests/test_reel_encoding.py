@@ -48,8 +48,11 @@ class VideoEncoderInputTests(unittest.TestCase):
             with patch("src.reels.encoding.shutil.which", return_value="/usr/bin/ffmpeg"):
                 command = encoder._command(Path(directory) / ".movie.tmp.mp4")
             crf_index = command.index("-crf")
-            self.assertEqual(command[crf_index + 1], "18")
+            self.assertEqual(command[crf_index + 1], "14")
             self.assertIn("+faststart", command)
+            # BT.709 conversion and tags keep phone playback colors faithful.
+            self.assertEqual(command[command.index("-colorspace") + 1], "bt709")
+            self.assertIn("out_color_matrix=bt709", command[command.index("-vf") + 1])
 
     def test_rejects_invalid_video_configuration(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -154,7 +157,7 @@ class FFmpegIntegrationTests(unittest.TestCase):
             self.assertEqual(video["pix_fmt"], "yuv420p")
             self.assertEqual(int(video.get("nb_frames", video.get("nb_read_frames", 0))), 2)
 
-    def test_soundtrack_is_deterministic_soft_and_can_be_looped_into_video(self):
+    def test_soundtrack_is_deterministic_mastered_and_can_be_looped_into_video(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             first = synth_soundtrack(root / "first.wav", 0.3, seed=17)
@@ -162,11 +165,12 @@ class FFmpegIntegrationTests(unittest.TestCase):
             self.assertEqual(first.read_bytes(), second.read_bytes())
             with wave.open(str(first), "rb") as wav_file:
                 self.assertEqual(wav_file.getnchannels(), 2)
-                self.assertEqual(wav_file.getframerate(), 22_050)
-                self.assertEqual(wav_file.getnframes(), round(0.3 * 22_050))
+                self.assertEqual(wav_file.getframerate(), 48_000)
+                self.assertEqual(wav_file.getnframes(), round(0.3 * 48_000))
                 samples = np.frombuffer(wav_file.readframes(wav_file.getnframes()), dtype="<i2")
             self.assertGreater(np.max(np.abs(samples)), 0)
-            self.assertLess(np.max(np.abs(samples)), 10_000)
+            # Mastered with 1 dB of headroom for the AAC encoder.
+            self.assertLessEqual(np.max(np.abs(samples)), round(32767 * 10 ** (-1 / 20)) + 1)
 
             output = root / "with-audio.mp4"
             with VideoEncoder(output, 6, 4, 2, 2, audio=first) as writer:

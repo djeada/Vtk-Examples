@@ -27,7 +27,7 @@ _VALID_PRESETS = {
     "veryslow",
 }
 _STDERR_LIMIT = 64 * 1024
-_AUDIO_SAMPLE_RATE = 22_050
+_AUDIO_SAMPLE_RATE = 48_000
 
 
 def _positive_integer(name: str, value: int) -> int:
@@ -68,7 +68,7 @@ class VideoEncoder:
         fps: int,
         frame_count: int,
         audio: Path | None = None,
-        preset: str = "fast",
+        preset: str = "slow",
         overwrite: bool = False,
     ) -> None:
         self.output = Path(output)
@@ -142,26 +142,61 @@ class VideoEncoder:
         ]
         if self.audio is not None:
             command.extend(["-stream_loop", "-1", "-i", str(self.audio)])
+        # Convert with the BT.709 matrix and tag it, so phones and platforms
+        # decode the same colors that were rendered.
         command.extend(
             [
                 "-frames:v",
                 str(self.frame_count),
                 "-t",
                 f"{self.duration:.12f}",
+                "-vf",
+                "scale=out_color_matrix=bt709:out_range=tv:flags=lanczos+accurate_rnd+full_chroma_int",
                 "-c:v",
                 "libx264",
                 "-preset",
                 self.preset,
                 "-crf",
-                "18",
+                "14",
+                "-profile:v",
+                "high",
+                "-tune",
+                "animation",
+                "-g",
+                str(self.fps * 2),
+                "-maxrate",
+                "40M",
+                "-bufsize",
+                "60M",
                 "-pix_fmt",
                 "yuv420p",
+                "-colorspace",
+                "bt709",
+                "-color_primaries",
+                "bt709",
+                "-color_trc",
+                "bt709",
+                "-color_range",
+                "tv",
                 "-movflags",
                 "+faststart",
             ]
         )
         if self.audio is not None:
-            command.extend(["-c:a", "aac", "-b:a", "128k"])
+            # Streaming-platform loudness, and a fade so looped music ends cleanly.
+            fade = min(2.0, self.duration / 4)
+            command.extend(
+                [
+                    "-af",
+                    f"loudnorm=I=-14:TP=-1.5:LRA=11,afade=t=out:st={self.duration - fade:.3f}:d={fade:.3f}",
+                    "-ar",
+                    "48000",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "256k",
+                ]
+            )
         else:
             command.append("-an")
         command.append(str(temp_path))
@@ -372,13 +407,14 @@ def probe_video(path: Path) -> dict:
     return metadata
 
 
-def synth_soundtrack(path: Path, duration: float, seed: int = 0) -> Path:
-    """Write a deterministic, soft ambient pulse bed as a stereo PCM WAV.
+def synth_soundtrack(path: Path, duration: float, seed: int = 0, sections: int = 6) -> Path:
+    """Write a deterministic, tempo-locked music track as a 48 kHz stereo WAV.
 
-    The sound is built from quiet pitched oscillators with slow amplitude swells,
-    gentle stereo variation, and fade-in/fade-out envelopes. No sampled material
-    or noise source is used.
+    See :mod:`src.reels.music`: the arrangement builds over ``sections``
+    chapters so musical changes land on the reel's caption changes.
     """
+    from src.reels.music import SAMPLE_RATE, render_track
+
     output = Path(path)
     try:
         duration_value = float(duration)
@@ -395,46 +431,7 @@ def synth_soundtrack(path: Path, duration: float, seed: int = 0) -> Path:
     if not output.parent.is_dir():
         raise NotADirectoryError(f"Output parent is not a directory: {output.parent}")
 
-    frames = max(1, round(duration_value * _AUDIO_SAMPLE_RATE))
-    times = np.arange(frames, dtype=np.float64) / _AUDIO_SAMPLE_RATE
-    rng = np.random.default_rng(int(seed))
-    phase = rng.uniform(0, 2 * np.pi, size=4)
-    pulse_phase = rng.uniform(0, 2 * np.pi)
-    slow_phase = rng.uniform(0, 2 * np.pi)
-    pulse = (
-        0.82 + 0.18 * (0.5 + 0.5 * np.cos(2 * np.pi * times / 4.8 + pulse_phase)) ** 2
-    )
-    slow = 0.91 + 0.09 * np.sin(2 * np.pi * times / 17.0 + slow_phase)
-    fade_seconds = min(2.0, duration_value / 4.0)
-    envelope = np.ones(frames, dtype=np.float64)
-    if fade_seconds:
-        fade_frames = max(1, int(fade_seconds * _AUDIO_SAMPLE_RATE))
-        fade_in = np.linspace(0.0, 1.0, fade_frames, endpoint=True)
-        fade = 0.5 - 0.5 * np.cos(np.pi * fade_in)
-        envelope[:fade_frames] *= fade[: min(fade_frames, frames)]
-        envelope[-fade_frames:] *= fade[-min(fade_frames, frames) :]
-
-    left = (
-        (
-            0.30 * np.sin(2 * np.pi * 55.0 * times + phase[0])
-            + 0.19 * np.sin(2 * np.pi * 82.41 * times + phase[1])
-            + 0.12 * np.sin(2 * np.pi * 110.0 * times + phase[2])
-            + 0.045 * np.sin(2 * np.pi * 220.0 * times + phase[3])
-        )
-        * pulse
-        * slow
-    )
-    right = (
-        (
-            0.30 * np.sin(2 * np.pi * 55.0 * times + phase[0] + 0.08)
-            + 0.19 * np.sin(2 * np.pi * 82.41 * times + phase[1] - 0.06)
-            + 0.12 * np.sin(2 * np.pi * 110.0 * times + phase[2] + 0.05)
-            + 0.045 * np.sin(2 * np.pi * 220.0 * times + phase[3] - 0.04)
-        )
-        * pulse
-        * slow
-    )
-    stereo = np.column_stack((left, right)) * envelope[:, None] * 0.28
+    stereo = render_track(duration_value, seed=int(seed), sections=sections)
     pcm = np.rint(np.clip(stereo, -1.0, 1.0) * 32767).astype("<i2")
 
     fd, temp_name = tempfile.mkstemp(
@@ -446,7 +443,7 @@ def synth_soundtrack(path: Path, duration: float, seed: int = 0) -> Path:
         with wave.open(str(temp_path), "wb") as wav_file:
             wav_file.setnchannels(2)
             wav_file.setsampwidth(2)
-            wav_file.setframerate(_AUDIO_SAMPLE_RATE)
+            wav_file.setframerate(SAMPLE_RATE)
             wav_file.writeframes(pcm.tobytes())
         os.replace(temp_path, output)
     finally:

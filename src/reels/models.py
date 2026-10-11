@@ -118,6 +118,62 @@ def _solve(key, quality, progress):
                 "ylabel": "u (m/s)",
             },
         )
+    if key == "transient_heat_diffusion_2d":
+        module = example_module(key)
+        # Steel sheds most of its heat within ~25 s; later frames would be uniformly cold.
+        params = dict(n=96 if fine else 64, duration=24.0, snapshots=181 if fine else 121)
+        x, y, times, steps, frames, dt = module.simulate(
+            **params, progress_callback=lambda current, total: progress(current / total)
+        )
+        fo = module.STEEL_DIFFUSIVITY * dt / (x[1] - x[0]) ** 2
+        return Model(
+            key,
+            "surface",
+            x * 100,
+            y * 100,
+            frames,
+            "°C",
+            "TEMPERATURE",
+            {**params, "dt": float(dt), "fourier": float(fo), "length_unit": "cm"},
+            "Explicit time steps · x/y in cm · height: temperature",
+            [("Fourier no.", f"{fo:.3f}"), ("Time steps", f"{int(steps[-1]):,}")],
+            steps=steps,
+            chart={
+                "x": times,
+                "series": [frames.max(axis=(1, 2)), frames.mean(axis=(1, 2))],
+                "labels": ["Peak", "Plate mean"],
+                "xlabel": "t (s)",
+                "ylabel": "T (°C)",
+            },
+        )
+    if key == "rotating_blob_advection_2d":
+        module = example_module(key)
+        params = dict(n=160 if fine else 110, revolutions=1.0, snapshots=181 if fine else 121)
+        x, y, times, steps, frames, dt, (u, v) = module.simulate(
+            **params, progress_callback=lambda current, total: progress(current / total)
+        )
+        exact = np.array([module.exact_blob(x, y, t).max() for t in times])
+        return Model(
+            key,
+            "surface",
+            x,
+            y,
+            frames,
+            "scalar",
+            "DYE CONCENTRATION",
+            {**params, "dt": float(dt), "cfl": 0.8},
+            "Upwind solution · height: concentration · dots: tracers carried by the flow",
+            [("Final peak", f"{frames[-1].max():.2f} (exact 1)"), ("CFL", "0.8")],
+            vectors=np.stack((u, v))[None],
+            steps=steps,
+            chart={
+                "x": times,
+                "series": [frames.max(axis=(1, 2)), exact],
+                "labels": ["Upwind peak", "Exact peak"],
+                "xlabel": "t (s)",
+                "ylabel": "peak",
+            },
+        )
     if key == "enhanced_heat_transfer_solver_2d":
         params = dict(
             n=64 if fine else 40, L=1.0, k=50.0, S=50000.0, boundary_temperature=100.0
