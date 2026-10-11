@@ -1,4 +1,6 @@
-## Filters and Algorithms
+# Filters and Algorithms
+
+[← Notes index](README.md)
 
 VTK’s filters and algorithms allow you to convert your data from “a static dataset” to a dynamic pipeline: you generate something, clean it up, extract meaning, and reshape it into a form that’s easier to analyze or visualize. Think of it like a workshop line: raw material comes in, tools operate on it, and what comes out is clearer, lighter, or more informative.
 
@@ -6,7 +8,7 @@ In real VTK projects you rarely render raw input directly. You almost always pro
 
 One of the major components of VTK is its extensive range of filters and algorithms, designed to process, manipulate, and generate data objects. The important part is not memorizing names, but recognizing what kind of change a filter is making and what assumptions it relies on.
 
-An algorithm is basically *anything that runs in the pipeline and does work when you call Update()*. A filter is just a very specific kind of algorithm: one that takes data in, changes it, and hands data back out. So `vtkSphereSource` is an algorithm but not a filter because it doesn’t transform anything, there’s no input, it just generates geometry from scratch. `vtkPolyDataMapper` is also an algorithm but not a filter because it consumes data and turns it into rendering instructions instead of producing new data for the pipeline. We will demonstrate below a custom `DistanceToPointFilter`, which on the other hand, is a filter because it sits in the middle, takes polydata, computes something new (distances), and outputs modified polydata. The useful gut check is: if you can logically put it between two other pipeline stages and say “this step modifies the data,” it’s a filter; if it creates data or consumes it for rendering, it’s an algorithm but not a filter.
+An algorithm is a pipeline component that executes when its output is requested, for example through `Update()`. A filter is just a very specific kind of algorithm: one that takes data in, changes it, and hands data back out. So `vtkSphereSource` is an algorithm but not a filter because it doesn’t transform anything, there’s no input, it just generates geometry from scratch. `vtkPolyDataMapper` is also an algorithm but not a filter because it consumes data and turns it into rendering instructions instead of producing new data for the pipeline. We will demonstrate below a custom `DistanceToPointFilter`, which on the other hand, is a filter because it sits in the middle, takes polydata, computes something new (distances), and outputs modified polydata. The useful gut check is: if you can logically put it between two other pipeline stages and say “this step modifies the data,” it’s a filter; if it creates data or consumes it for rendering, it’s an algorithm but not a filter.
 
 **Everything in the pipeline ultimately derives from `vtkAlgorithm`.** That’s the common base class. If something has `SetInputConnection`, `GetOutputPort`, participates in `Update()`, and runs `RequestData`, it’s coming from `vtkAlgorithm`.
 
@@ -16,7 +18,7 @@ There is **no single class called “vtkFilter”** in the sense people often ex
 * `vtkImageAlgorithm` → image/volume filters
 * `vtkUnstructuredGridAlgorithm`, etc.
 
-### Purpose and functionality
+## Purpose and functionality
 
 Filters and algorithms are primarily used for:
 
@@ -27,14 +29,14 @@ Filters and algorithms are primarily used for:
 
 A practical habit is to ask: is this step changing **geometry**, **topology**, **attributes**, or **time**?
 
-* When only the spatial coordinates are adjusted, *geometry* is affected because point positions move while cells continue to reference the same points, whereas omitting this type of operation leaves shapes unchanged; for example, a shrink or transform filter relocates vertices but keeps the original mesh connectivity intact.
-* In cases where the structure of the mesh itself must change, *topology* is involved because connections between points are altered, while skipping such processing preserves the original cell relationships; for instance, a clipping or triangulation filter can split cells and introduce new triangles that did not previously exist.
-* When derived data values are needed for analysis or visualization, modifying *attributes* is useful because new arrays are computed or existing scalars, vectors, or tensors are updated, whereas leaving attributes untouched limits what can be colored or analyzed; for example, computing normals or gradients adds vectors that can drive lighting or glyphs.
-* For datasets that evolve over time, handling *time* explicitly is beneficial because multiple timesteps can be interpolated, shifted, or summarized, while ignoring time reduces the data to a single static snapshot; for example, a temporal averaging filter can condense many simulation steps into one representative result.
+* **Geometry:** A transform filter changes point coordinates without changing which point IDs a cell references. A shrink filter is different: it can duplicate points so neighboring cells become disconnected.
+* **Topology:** Clipping and triangulation can split or replace cells and change their connectivity.
+* **Attributes:** Filters such as normal or gradient computation add arrays that can drive lighting, coloring, or glyphs.
+* **Time:** Temporal filters interpolate, shift, or summarize time steps; temporal statistics can combine a sequence into a representative result.
 
 That single question helps you predict what will break later, or why something that “should be the same shape” suddenly behaves differently.
 
-### Interaction with data connectivity
+## Interaction with data connectivity
 
 A significant part of many operations involves altering or depending on the dataset’s *connectivity*.
 
@@ -48,7 +50,7 @@ A practical way to phrase it:
 * Other filters explicitly rewrite the wiring.
 * Many filters do both, but one of those effects is usually the “main point.”
 
-### Understanding connectivity
+## Understanding connectivity
 
 Connectivity is one of those ideas that seems obvious right until it bites you. If you’ve ever smoothed a mesh and wondered why sharp features disappeared, triangulated polygons and got unexpected results, or extracted a region and got too many pieces, you’ve already seen connectivity in action.
 
@@ -94,7 +96,7 @@ Many meshes coming from certain file formats or pipelines duplicate vertices per
 
 This shows up immediately with filters that act per-cell (or per-face), especially shrink-like operations. You shrink each polygon toward its own center and suddenly the mesh “explodes” into detached tiles. The filter isn’t being random; it’s revealing the true connectivity.
 
-### Data flow
+## Data flow
 
 VTK’s pipeline is intentionally predictable: sources produce data, filters transform it, and outputs feed into the next step. That predictability is what makes large visualization workflows manageable. You can swap filters in and out without rewriting everything because the interfaces and execution model are consistent.
 
@@ -113,7 +115,7 @@ The flow typically looks like this:
 
 A small, practical note: when you’re not inside an active render loop, `Update()` is what forces a pipeline stage to execute. When you’re “just testing,” it’s very easy to forget `Update()` and accidentally inspect stale data.
 
-### vtkAlgorithm
+## vtkAlgorithm
 
 `vtkAlgorithm` is the standard interface that makes the pipeline work. If something is a `vtkAlgorithm`, it plays nicely in VTK: it has input ports, output ports, and can be connected into pipelines without special casing.
 
@@ -136,7 +138,7 @@ If you’re building VTK programs in C++ or Python, you’ll constantly see this
 
 The base class and its conventions are what let you create long, readable pipelines instead of one-off transformations.
 
-### Sources
+## Sources
 
 Sources are where your story begins: they generate data (procedural geometry) or read it from files. The reason sources matter isn’t just that they provide input; they define the initial *structure*, including connectivity, and that structure influences everything downstream.
 
@@ -147,7 +149,7 @@ Examples of sources include:
 
 For instance, `vtkSphereSource` produces `vtkPolyData` whose faces share points along edges. That means it’s already a welded surface. Many filters behave “cleanly” on it because the topology is consistent.
 
-### Geometric filters
+## Geometric filters
 
 Geometric filters are the “shape editors.” They change point coordinates (move, rotate, smooth, shrink, warp) while often preserving the existing connectivity graph.
 
@@ -162,7 +164,7 @@ Examples include:
 
 Even when connectivity is preserved, geometry changes still affect derived quantities such as normals, curvature, and measurements. That’s why geometric filters aren’t merely cosmetic.
 
-### Topological filters
+## Topological filters
 
 Topological filters are the “rewire the structure” tools. Instead of moving points, they change how points are connected, or generate entirely new cells from existing data.
 
@@ -176,7 +178,7 @@ Examples include:
 
 A normal sign that a topological filter did its job is that counts change: number of points, number of cells, cell types, or the number of connected components.
 
-### Scalars and attribute filters in VTK
+## Scalars and attribute filters in VTK
 
 Attribute filters make your data “smarter.” They add meaning by computing new arrays: gradients, curvature, magnitudes, and other derived quantities. This is where visualization turns into analysis: you’re not just looking at shape, you’re looking at computed properties of the shape.
 
@@ -193,7 +195,7 @@ One detail that comes up constantly: attributes can live on **points** or on **c
 
 If a filter outputs cell data but your mapper expects point data (or vice versa), the visualization can look wrong even though the numbers are fine.
 
-### Temporal filters in VTK
+## Temporal filters in VTK
 
 Temporal filters exist because time series data has its own problems: timesteps may have changing values, changing attributes, and sometimes changing geometry. Temporal filters help interpolate, normalize, or compute statistics across time without reinventing that logic manually.
 
@@ -203,7 +205,7 @@ Examples include:
 * `vtkTemporalShiftScale` (shifts and scales time values)
 * `vtkTemporalStatistics` (computes statistics over time, producing new attributes)
 
-### Example: Custom Distance Scalar Filter
+## Example: Custom Distance Scalar Filter
 
 This example matches the repo’s `example.py` and shows a full pipeline with a **custom attribute filter**. A sphere source feeds a Python-defined filter that computes a per-point distance to a target point and stores it as a scalar array. Those scalars then drive coloring in the mapper.
 
@@ -249,7 +251,7 @@ class DistanceToPointFilter(VTKPythonAlgorithmBase):
 
 ![output2-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/36fab8b5-e5dd-4b99-8584-669da9ad0c37)
 
-### Why “Shrink” Can Break a Mesh
+## Why “Shrink” Can Break a Mesh
 
 If you want to apply "shrink" filter on your mesh, you probably expect the whole object to scale inward smoothly, like a rubber model getting smaller. In VTK there’s a filter called vtkShrinkPolyData that sounds like it should do exactly that, but it behaves differently: it shrinks each polygon (cell) independently. This is great for inspecting cell structure, but it’s not a global scale.
 
@@ -259,7 +261,7 @@ What the filter actually does is take every cell in the mesh and move that cell�
 
 This pitfall is common because per‑cell operations are easy to implement and useful for debugging or visualizing topology. But if the goal is a “connected shrink” effect, where the object stays intact, you need a single global transform applied to the shared points, not per‑cell shrinking. That’s why global scaling about a chosen center (centroid or bounds center) is the go‑to solution for shrinking a mesh without visible cracks.
 
-### A practical “connected shrink” alternative (C++)
+## A practical “connected shrink” alternative (C++)
 
 If your goal is “make the whole mesh smaller toward its center” *without* breaking it into detached faces, a global transform is usually the cleanest solution. Unlike `vtkShrinkPolyData` / `vtkShrinkFilter` (which act per-cell), a transform acts on **points**. If your mesh is connected (adjacent cells share point ids), moving points with a single global transform keeps the surface connected automatically.
 
@@ -386,7 +388,7 @@ By contrast, cell-based shrink filters conceptually pull each cell toward its ow
 
 This transform approach is a good “first choice” when the mental model is “shrink the object” rather than “shrink each face.”
 
-### Summary
+## Summary
 
 This is a quick reference, but the more important takeaway is what each category *means*:
 
@@ -416,3 +418,39 @@ This is a quick reference, but the more important takeaway is what each category
 |                             | vtkTemporalShiftScale   | Shifts and scales time values.                                    |
 |                             | vtkTemporalStatistics   | Computes statistics over time (adds attributes).                  |
 | Other                       | vtkAlgorithm            | Base pipeline interface for algorithms (ports + execution model). |
+
+## Worked pipeline: source, topology and normals
+
+Connecting algorithms does **not** eagerly execute all stages. `Update()` requests downstream output and triggers upstream work as needed. Use `SetInputConnection` to preserve a live dependency on an upstream output port; `SetInputData` passes an existing data object.
+
+~~~python
+import vtk
+
+sphere = vtk.vtkSphereSource()
+sphere.SetThetaResolution(24)
+sphere.SetPhiResolution(16)
+
+triangles = vtk.vtkTriangleFilter()
+triangles.SetInputConnection(sphere.GetOutputPort())
+
+normals = vtk.vtkPolyDataNormals()
+normals.SetInputConnection(triangles.GetOutputPort())
+normals.Update()
+
+result = normals.GetOutput()
+assert result.GetNumberOfPolys() > 0
+assert result.GetPointData().GetNormals() is not None
+print(result.GetNumberOfPoints(), result.GetNumberOfPolys())
+~~~
+
+The sphere source generates geometry, the triangle filter normalizes polygon topology, and the normals filter creates an attribute needed for many lighting effects. These operations change different parts of the data model.
+
+### Debugging a multi-stage pipeline
+
+1. Start at the last data-producing filter and call `Update()`. Check the output class and point/cell counts.
+2. If empty, inspect each upstream stage in order. Some filters require explicit scalar selection or a specific dataset type.
+3. Look for arrays in `GetPointData()`, `GetCellData()` and `GetFieldData()`; the right name in the wrong association is still a mismatch.
+4. When a custom filter parameter changes, call `Modified()` so VTK knows cached output is stale.
+5. After clipping, decimation, shrink, or cleaning, recheck cell connectivity, IDs, and attribute tuple counts.
+
+A transform generally moves coordinates without rewiring cells. In contrast, `vtkShrinkFilter` can duplicate shared vertices so adjacent cells separate. These operations are not interchangeable when connectivity matters.

@@ -191,7 +191,7 @@ The browser example lives in [`vtk_js/basic`](vtk_js/basic/README.md). Follow it
 
 ## Notes
 
-The [`notes/`](notes/) directory contains guides on [data types and structures](notes/01_data_types_and_structures.md), [filters and algorithms](notes/02_filters_and_algorithms.md), [input and output](notes/03_input_and_output.md), [visualization techniques](notes/04_visualization_techniques.md), [interactivity](notes/05_interactivity.md), [animations](notes/06_animations.md), [performance](notes/07_performance_optimization_and_parallelism.md), [tool integration](notes/08_integration_with_other_tools.md), and [custom filters](notes/09_custom_filters_and_algorithms.md).
+The [`notes/`](notes/) directory contains guides on [data types and structures](notes/01_data_types_and_structures.md), [filters and algorithms](notes/02_filters_and_algorithms.md), [input and output](notes/03_input_and_output.md), [visualization techniques](notes/04_visualization_techniques.md), [interactivity](notes/05_interactivity.md), [animations](notes/06_animations.md), [performance](notes/07_performance_optimization_and_parallelism.md), [tool integration](notes/08_integration_with_other_tools.md), [custom filters](notes/09_custom_filters_and_algorithms.md), and a [complete hands-on case study](notes/10_end_to_end_case_study.md).
 
 ## Contributing
 

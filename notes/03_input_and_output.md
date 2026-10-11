@@ -1,6 +1,8 @@
-## Input and Output
+# Input and Output
 
-Input/output is where VTK starts being a tool you can actually plug into real workflows. Your data almost never starts life inside VTK, it comes from scanners, simulators, CAD tools, or research pipelines. So the ability to read reliably, preserve attributes, and write back out in the right format is what makes your visualizations reproducible and shareable.
+[← Notes index](README.md)
+
+Input/output is where VTK starts being a tool you can actually plug into real workflows. Data rarely originates inside VTK; it usually comes from scanners, simulators, CAD tools, or research pipelines. So the ability to read reliably, preserve attributes, and write back out in the right format is what makes your visualizations reproducible and shareable.
 
 VTK offers a comprehensive suite of tools for reading and writing a variety of data formats. This includes the native VTK file formats (legacy and XML-based), as well as numerous third-party formats.
 
@@ -9,16 +11,14 @@ A useful way to think about it: file formats are not just “containers,” they
 **Do** treat file I/O as part of your pipeline design, not a last-minute step.
 **Don’t** assume every format preserves every attribute (normals, scalars, materials, units, time steps, etc.) the same way.
 
-### Common File Formats
+## Common File Formats
 
-VTK supports an extensive range of data formats, including:
-
-Before diving into formats, here’s the big “why”: the *best* format depends on what you care about most, human readability, storage size, speed, compatibility, or rich metadata. That’s why VTK still supports both the old legacy format and the newer XML formats, plus popular third-party mesh standards.
+Before comparing formats, here’s the key question: the *best* format depends on what you care about most, human readability, storage size, speed, compatibility, or rich metadata. That’s why VTK still supports both the old legacy format and the newer XML formats, plus popular third-party mesh standards.
 
 **Do** pick the format that matches your goal (debugging vs production vs interoperability).
 **Don’t** default to the first one that loads, your future self will thank you for choosing intentionally.
 
-#### I. Legacy VTK File Format
+### I. Legacy VTK File Format
 
 * **Nature**: ASCII or binary.
 * **Features**: Supports various data structures and attributes.
@@ -50,7 +50,7 @@ POLYGONS 6 30
 ...
 ```
 
-#### II. XML-Based VTK File Format
+### II. XML-Based VTK File Format
 
 * **Nature**: ASCII or binary, offering enhanced flexibility and extensibility.
 * **Features**: Supports a diverse range of data structures and attributes.
@@ -84,7 +84,7 @@ Example:
 </VTKFile>
 ```
 
-#### III. Third-Party File Formats
+### III. Third-Party File Formats
 
 * **Scope**: VTK interfaces seamlessly with many popular 3D graphics and scientific visualization file formats.
 * **STL**: Predominantly used in 3D printing and CAD exchange. Stores only triangle geometry (no colors, normals arrays, or cell data). Available in ASCII and binary variants.
@@ -130,27 +130,27 @@ end_header
 ...
 ```
 
-### Reading and Writing Data
+## Reading and Writing Data
 
 I/O in VTK is designed to feel consistent: you pick a reader or writer class for a format, set the filename, connect the pipeline, and execute. That consistency is the real quality-of-life feature, once you learn one reader/writer pair, you’ve basically learned the pattern for dozens.
 
-There is a suite of subclasses derived from `vtkDataReader` and `vtkDataWriter`. These subclasses are specialized for handling various VTK data structures, emphasizing efficient and accurate data manipulation. The design ensures flexibility in reading and writing different types of data while maintaining the robustness of data integrity and format compatibility.
+VTK provides format-specific readers and writers. Legacy VTK formats use classes such as `vtkPolyDataReader` and `vtkPolyDataWriter`; XML formats use separate classes such as `vtkXMLPolyDataReader` and `vtkXMLPolyDataWriter`.
 
 The important “why” behind the subclass approach: different dataset types need different handling. Writing `vtkPolyData` is not the same as writing `vtkImageData`, and mixing them up tends to fail loudly, or worse, appear to work while silently dropping information.
 
 **Do** match the reader/writer to the dataset type you expect.
 **Don’t** ignore the output type, knowing whether you got `vtkPolyData` vs `vtkUnstructuredGrid` determines what filters you can apply next.
 
-#### Subclasses for Data Reading and Writing
+### Subclasses for Data Reading and Writing
 
-Each subclass under `vtkDataReader` and `vtkDataWriter` is tailored for specific data structures, facilitating precise and optimized read/write operations:
+Common legacy reader/writer pairs are:
 
 * **vtkPolyDataReader** and **vtkPolyDataWriter**: For handling polygonal data, commonly used in 3D graphics and modeling.
 * **vtkStructuredPointsReader** and **vtkStructuredPointsWriter**: Optimized for structured point datasets, where data is arranged in a regular grid.
 * **vtkStructuredGridReader** and **vtkStructuredGridWriter**: Suitable for structured grid data, a step above structured points in complexity, allowing for non-uniform grids.
 * **vtkUnstructuredGridReader** and **vtkUnstructuredGridWriter**: Designed for unstructured grid data, which is the most flexible, accommodating irregularly spaced data points.
 
-#### Example
+### Example
 
 This example is a great “real life” scenario: you get something common and portable (STL), but you want to bring it into the VTK world so you can run filters, add attributes, and keep a pipeline consistent. Converting to a VTK-native format is often the first step in building a repeatable workflow.
 
@@ -200,3 +200,52 @@ Tables like this are useful because they prevent a super common beginner mistake
 | Exodus II    | `vtkExodusIIReader`            | `vtkMultiBlockDataSet` | `vtkExodusIIWriter`            | `vtkMultiBlockDataSet` |
 | OpenFOAM     | `vtkOpenFOAMReader`            | `vtkMultiBlockDataSet` | N/A                            | N/A                    |
 | EnSight      | `vtkEnSightGoldReader`         | `vtkMultiBlockDataSet` | N/A                            | N/A                    |
+
+## Round-trip validation: VTP with a point attribute
+
+A successful write does not prove that reading the file will reconstruct the intended dataset. A useful check is to compare invariants: dataset type, point/cell counts, array names, component counts, and relevant bounds.
+
+~~~python
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import vtk
+
+source = vtk.vtkSphereSource()
+source.Update()
+mesh = source.GetOutput()
+
+intensity = vtk.vtkFloatArray()
+intensity.SetName("intensity")
+intensity.SetNumberOfTuples(mesh.GetNumberOfPoints())
+for i in range(mesh.GetNumberOfPoints()):
+    intensity.SetValue(i, float(i))
+mesh.GetPointData().AddArray(intensity)
+
+with TemporaryDirectory() as directory:
+    filename = str(Path(directory) / "surface.vtp")
+    writer = vtk.vtkXMLPolyDataWriter()
+    writer.SetFileName(filename)
+    writer.SetInputData(mesh)
+    assert writer.Write() == 1
+
+    reader = vtk.vtkXMLPolyDataReader()
+    reader.SetFileName(filename)
+    reader.Update()
+    loaded = reader.GetOutput()
+    assert loaded.GetNumberOfPoints() == mesh.GetNumberOfPoints()
+    values = loaded.GetPointData().GetArray("intensity")
+    assert values is not None
+    assert values.GetNumberOfTuples() == loaded.GetNumberOfPoints()
+~~~
+
+### Choose a format based on what must survive
+
+| Requirement | Typical choice | Limitation or check |
+| --- | --- | --- |
+| Polygonal surface and numeric attributes | `.vtp` | Verify point/cell arrays after reload |
+| Mixed volumetric elements | `.vtu` | Check cell types and connectivity |
+| Regularly sampled voxel grid | `.vti` | Record origin and spacing |
+| Surface interchange with 3D-printing tools | `.stl` | General VTK arrays are not preserved |
+| Multiple datasets in one collection | `.vtm` | Each block retains its own type |
+
+File extensions are not a substitute for checking the actual data type. In particular, STL is primarily a triangle-surface exchange format, not an attribute-rich CFD format. Document coordinate systems and physical units separately when the chosen format cannot store them reliably.

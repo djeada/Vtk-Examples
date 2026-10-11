@@ -1,4 +1,6 @@
-## Animations and Time-Varying Data
+# Animations and Time-Varying Data
+
+[← Notes index](README.md)
 
 VTK offers a set of tools to create animations and visualize time-varying data. This is particularly useful in scenarios such as:
 
@@ -6,20 +8,20 @@ VTK offers a set of tools to create animations and visualize time-varying data. 
 2. Temporal Data Visualization
 3. Animation Export
 
-Why you should care: **animation turns a static “look at this” into a guided “watch what changes.”** It’s how you show cause and effect, highlight progression, compare states, and keep viewers oriented as data evolves. And for time-varying datasets, animation isn’t decoration, it’s often the only way to truly understand trends, cycles, and transitions.
+Why you should care: **animation turns a static “look at this” into a guided “watch what changes.”** It’s how you show cause and effect, highlight progression, compare states, and keep viewers oriented as data evolves. For time-varying datasets, animation isn’t decoration; it can reveal trends, cycles, and transitions that a static view misses.
 
 A good rule of thumb:
 
 * **Do** use animation to reveal structure (what changes, when, and how fast).
 * **Don’t** animate just because you can, motion without intent can make analysis harder.
 
-### Keyframe Animation
+## Keyframe Animation
 
 Keyframe animation is a technique used to create smooth transitions between different states of a visualization. This approach is particularly beneficial for visual storytelling or creating explanatory visualizations, where the evolution of data over time needs to be clearly communicated.
 
-What makes keyframes so practical is that you don’t animate *every* moment manually, you define meaningful “poses” (keyframes), and the system fills in the in-between. That keeps your story intentional: you’re choosing the moments that matter (start state, mid state, end state) and letting interpolation handle smooth motion.
+Keyframes let you define meaningful “poses” at selected times rather than animate *every* moment manually; the system interpolates between them. That keeps your story intentional: you’re choosing the moments that matter (start state, mid state, end state) and letting interpolation handle smooth motion.
 
-#### Concepts
+### Concepts
 
 The core classes involved in keyframe animation using VTK (Visualization Toolkit) are:
 
@@ -32,7 +34,7 @@ A useful way to think about this:
 * A **cue** is a clip on that timeline (what changes during that time window).
 * A **callback** is the “hands” doing the work each tick (update radius, move camera, change opacity).
 
-#### Basic Workflow
+### Basic Workflow
 
 1. Set up the animation scene by creating an instance of `vtkAnimationScene`, and configuring its playback mode, loop setting, and frame rate.
 2. Create animation cues for each property you want to animate by making an instance of `vtkAnimationCue`, and defining the start and end times for each cue.
@@ -45,7 +47,7 @@ Do/don’t guidance that saves headaches:
 * **Do** separate “compute value” from “apply value” inside callbacks (easier to debug).
 * **Don’t** call `Render()` more than you need to, ideally once per tick, not multiple times per property.
 
-#### Example: Animating a Sphere's Radius
+### Example: Animating a Sphere's Radius
 
 Below is an example demonstrating how to animate a sphere's radius using VTK. This example sets up an animation scene, creates a cue for the sphere's radius, and defines the necessary callbacks to update the radius over time.
 
@@ -126,7 +128,7 @@ https://github.com/user-attachments/assets/dc1e2d17-3c1c-40ee-b23b-8def5a67116e
 
 Once you can animate one property (radius), you can animate almost anything, camera position, clipping planes, opacity ramps, color transfer functions, glyph scale, slice index, making it easy to build explainers and “guided tours” of a dataset.
 
-### Temporal Data Visualization
+## Temporal Data Visualization
 
 Temporal data visualization involves displaying data that varies over time. This technique is particularly useful for visualizing simulations, time-series data, or dynamic systems, providing insights into how data evolves and changes across different time steps.
 
@@ -137,7 +139,7 @@ Do/don’t guidance:
 * **Do** decide whether you want *step-by-step truth* (discrete timesteps) or *smooth playback* (interpolation).
 * **Don’t** interpolate blindly if your data represents events or discontinuities (e.g., sudden fractures, threshold triggers). Interpolation can “invent” states that never existed.
 
-#### Classes and Concepts
+### Classes and Concepts
 
 The main classes used for temporal data visualization in VTK (Visualization Toolkit) are:
 
@@ -146,14 +148,14 @@ The main classes used for temporal data visualization in VTK (Visualization Tool
 
 (Practical note: VTK’s time support is also strongly tied to the pipeline’s **time requests**, many readers/filters expose time steps and respond to requested update time. So the cleanest temporal workflows often come from letting the pipeline drive time, rather than manually “setting a timestep” on a reader that doesn’t support it.)
 
-#### Basic Workflow
+### Basic Workflow
 
 1. Load temporal data using appropriate readers to import the datasets.
 2. Set up data interpolation (optional) to ensure smooth transitions between time steps by configuring a temporal interpolator.
 3. Create a mapper and actor to visualize the data effectively.
 4. Render the scene and animate through the time steps to visualize the temporal data.
 
-### Example: Loading and Visualizing a Temporal Dataset
+## Example: Loading and Visualizing a Temporal Dataset
 
 Below is an example demonstrating how to load and visualize a temporal dataset using VTK. This example involves reading a temporal dataset, setting up a mapper and actor, and rendering the data.
 
@@ -247,7 +249,7 @@ https://github.com/user-attachments/assets/c00b6a01-832a-4dad-9ce2-3a38b5a5e244
 
 When you use the pipeline’s time keys, you’re working with VTK “the VTK way”, filters that understand time can cooperate, and you’re less likely to rely on reader-specific methods that don’t exist.
 
-### Animation Export
+## Animation Export
 
 Animation export involves saving an animation as a video or image sequence. This capability is crucial for sharing animations with others or for viewing them offline. It allows for easy distribution and playback of visualizations created in VTK (Visualization Toolkit).
 
@@ -258,20 +260,20 @@ Do/don’t guidance:
 * **Do** export image sequences when quality matters (then encode later).
 * **Don’t** assume video encoding is always available, some VTK builds lack FFMPEG support, so have a PNG-sequence fallback.
 
-#### Classes and Concepts
+### Classes and Concepts
 
 The main classes used for exporting animations in VTK are:
 
 * `vtkWindowToImageFilter`: Captures the contents of a render window as an image. This class is essential for converting the rendered scene into a format suitable for saving.
 * `vtkAVIWriter`, `vtkOggTheoraWriter`, `vtkFFMPEGWriter`: These classes save image sequences as video files in different formats. They provide the functionality to encode and write video files.
 
-#### Basic Workflow
+### Basic Workflow
 
 1. Capture the render window using `vtkWindowToImageFilter` to save the current state of the render window as an image.
 2. Set up a writer by choosing an appropriate one (`vtkAVIWriter`, `vtkOggTheoraWriter`, `vtkFFMPEGWriter`, etc.) to save the captured images as a video file.
 3. Write the images or compile them into a video file using the chosen writer.
 
-#### Example: Capturing a Render Window as an Image
+### Example: Capturing a Render Window as an Image
 
 Below is an example demonstrating how to capture the current render window as an image and save it using `vtkPNGWriter`.
 
@@ -307,7 +309,7 @@ writer.SetInputConnection(windowToImageFilter.GetOutputPort())
 writer.Write()
 ```
 
-#### Example: Exporting an Animation to a Video File
+### Example: Exporting an Animation to a Video File
 
 Below is an example demonstrating how to capture a series of frames and export them as a video file using `vtkFFMPEGWriter`.
 
@@ -358,3 +360,41 @@ In these examples:
 
 * The render window's contents are captured and saved as a PNG image.
 * A series of frames are captured while animating the scene, and these frames are compiled into an MP4 video file using `vtkFFMPEGWriter`.
+
+## Practical time series: deterministic geometry snapshots
+
+Scientific **simulation time**, VTK **animation/cue time**, and **video frame number** are different quantities. A moving camera does not prove the underlying data advanced in time. Define their relationship explicitly before exporting anything.
+
+This self-contained, headless script produces 11 separate datasets. It verifies that each state is written; the resulting `.vtp` files are **not** an MP4 or a set of images.
+
+~~~python
+from pathlib import Path
+import vtk
+
+directory = Path("animation_frames")
+directory.mkdir(exist_ok=True)
+sphere = vtk.vtkSphereSource()
+writer = vtk.vtkXMLPolyDataWriter()
+writer.SetInputConnection(sphere.GetOutputPort())
+
+for frame in range(11):
+    simulation_time = 0.1 * frame
+    sphere.SetRadius(0.5 + simulation_time)
+    writer.SetFileName(str(directory / f"frame_{frame:03d}.vtp"))
+    if writer.Write() != 1:
+        raise RuntimeError(f"Failed to export frame {frame}")
+~~~
+
+To make a video from these states, add a renderer and capture a rendered image for each state; encode the resulting image sequence separately. Keep the camera and scalar color range fixed if frames are intended for quantitative comparison.
+
+### Reproducibility checklist
+
+| Setting | Why it matters |
+| --- | --- |
+| Simulation timestamp | Real timesteps may not be equally spaced |
+| Rendered frame number | Exported frame rate does not set physical time |
+| Camera position and clipping range | Changes can make identical data appear different |
+| Scalar range and transfer function | Re-scaling each frame makes colors incomparable |
+| Output naming and manifest | Allows frames to be matched with original simulation states |
+
+**Exercise:** use nonlinear timestamps (`0, 0.01, 0.04, 0.1, ...`), then export at a uniform video frame rate. Decide whether you will interpolate in time or show the nearest available simulation sample; document the choice.

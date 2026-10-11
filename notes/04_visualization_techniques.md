@@ -1,8 +1,10 @@
-## Advanced Visualization Techniques
+# Advanced Visualization Techniques
+
+[← Notes index](README.md)
 
 Modern datasets don’t just have “more rows”, they have more *dimensions*: space, time, uncertainty, multiple physical variables, and often multiple scales of detail. In that world, visualization isn’t decoration; it’s how you *think*. VTK matters here because it doesn’t force you into one visualization style. It gives you a toolkit of techniques that all plug into the same pipeline model, so you can iterate quickly: try a contour, swap to volume rendering, add glyphs, seed streamlines, and keep the rest of your workflow intact.
 
-In modern data analysis, visual exploration often becomes the fastest ,  and sometimes the only ,  way to grasp relationships hidden in large, multi-dimensional datasets. VTK meets this challenge by bundling dozens of state-of-the-art algorithms behind a consistent, object-oriented API that can be combined like building blocks. Whether you need to probe scalar fields, interrogate complex vector-tensor interactions, or render time-varying simulations, the same pipeline abstractions apply, letting you mix and match mappers, filters, and interaction styles with minimal boilerplate.
+In modern data analysis, visual exploration is often the fastest—and sometimes the only—way to grasp relationships hidden in large, multi-dimensional datasets. VTK meets this challenge by bundling dozens of state-of-the-art algorithms behind a consistent, object-oriented API that can be combined like building blocks. Whether you need to probe scalar fields, interrogate complex vector-tensor interactions, or render time-varying simulations, the same pipeline abstractions apply, letting you mix and match mappers, filters, and interaction styles with minimal boilerplate.
 
 VTK offers a powerful array of advanced visualization techniques. These are essential for the effective representation and understanding of complex data types. VTK supports visualization of scalar, vector, and tensor fields, among others. The process typically involves mapping data elements to graphical primitives like points, lines, or polygons. These primitives are then rendered to produce a visual representation, enhancing understanding and analysis.
 
@@ -11,7 +13,7 @@ A good “reader promise” for this section is: each technique is a different a
 **Do** match the technique to the question (interior vs boundary vs flow vs local orientation).
 **Don’t** try to make one technique do everything, hybrid views (e.g., volume + isosurfaces + glyphs) are often the most informative.
 
-### Volume Rendering
+## Volume Rendering
 
 Volume rendering exists for the moments when “the surface” is not the story. If the interesting information lives *inside* the data, density gradients, soft tissue layers, temperature fields, shock structures, then extracting a single boundary can hide what matters. Volume rendering instead treats your dataset like a semi-transparent material and lets your eye integrate information through depth.
 
@@ -24,13 +26,13 @@ The “make it look good” secret here is the transfer functions: color and opa
 **Do** spend time on color/opacity transfer functions; they determine what becomes visible.
 **Don’t** expect default settings to reveal your feature of interest, volume rendering needs intent.
 
-#### Applications
+### Applications
 
 One of the primary applications of volume rendering is in the field of medical imaging. Here, it is used to visualize internal body structures, such as organs, tissues, and bones, in three dimensions. This can be critical for diagnostic purposes, treatment planning, and educational demonstrations. For example, MRI scans can be volume-rendered to show detailed views of the brain, allowing for the identification of abnormalities.
 
 Another significant application is in scientific visualization, where volume rendering helps researchers understand and analyze complex datasets from simulations, such as fluid dynamics, meteorological data, and more.
 
-#### Components
+### Components
 
 1. The `vtkVolume` class represents the volume to be rendered.
 2. The `vtkVolumeMapper` class defines how the volume data is mapped to visual properties like color and opacity. Various mappers can be used depending on the specific requirements, such as `vtkFixedPointVolumeRayCastMapper` or `vtkGPUVolumeRayCastMapper`.
@@ -45,7 +47,7 @@ A quick intuition:
 **Do** think “mapper = method, property = style.”
 **Don’t** mix them up, many bugs are just misconfigured properties attached to the wrong volume.
 
-#### Example: Creating a Volume
+### Example: Creating a Volume
 
 ```python
 import vtk
@@ -98,30 +100,30 @@ This simple example illustrates the basic setup needed for volume rendering usin
 
 ![volume](https://github.com/djeada/Vtk-Examples/assets/37275728/cec201b8-f89a-4791-a809-2aab6c796098)
 
-### Streamlines and Pathlines
+## Streamlines and Pathlines
 
 Flow fields are where visualization becomes detective work. You’re not just asking “what is the value here?”, you’re asking “where does this go?”, “what influences what?”, and “what patterns repeat?” Streamlines and pathlines turn a vector field into something your brain can follow.
 
-Flow visualization often requires answering both *what-if* and *how-did-it-get-here* questions. Streamlines provide an instantaneous “map” of flow direction for steady fields, while pathlines let you replay the history of moving parcels in unsteady simulations. By seeding the domain strategically ,  for example, around stagnation points or through boundary layers ,  engineers can diagnose recirculation zones, vortex shedding, and transport pathways at a glance.
+Flow visualization often requires answering both *what-if* and *how-did-it-get-here* questions. Streamlines provide an instantaneous “map” of flow direction for steady fields, while pathlines let you replay the history of moving parcels in unsteady simulations. By seeding the domain strategically—for example, around stagnation points or through boundary layers—engineers can diagnose recirculation zones, vortex shedding, and transport pathways at a glance.
 
 Streamlines and pathlines are essential techniques for visualizing fluid flow or other vector fields. These methods help in understanding the behavior and dynamics of the flow by providing a visual representation of the movement of particles within the field.
 
 The big idea to hold onto: **seeding is everything.** The same vector field can look “boring” or “revealing” depending on where you place seeds and how you integrate. That’s why flow visualization is part science, part art.
 
 **Do** choose seed locations intentionally (inlets, boundaries, near obstacles, high-gradient regions).
-**Don’t** interpret “no streamlines” as “no flow”, you might just have bad seeds or integration settings.
+**Don’t** interpret “no streamlines” as “no flow”; check seed placement and integration settings first.
 
-#### Streamlines
+### Streamlines
 
-Streamlines represent the flow within steady vector fields. They trace the paths that particles would follow if they were placed in the flow, providing a snapshot of the flow's structure at a particular instant. These lines are tangent to the velocity field at every point, giving a clear depiction of the direction and speed of the flow.
+Streamlines are tangent to the velocity field at a selected instant. In steady flow, they coincide with particle trajectories; in unsteady flow, they generally differ from pathlines, which track particles through time. These lines are tangent to the velocity field at every point, giving a clear depiction of the direction and speed of the flow.
 
-#### Pathlines
+### Pathlines
 
 Pathlines, on the other hand, are used for time-varying vector fields. They show the trajectories of particles over time, capturing the history of their movement through the field. This is particularly useful for visualizing the dynamics of unsteady flows, where the velocity field changes over time.
 
-#### Components
+### Components
 
-1. The `vtkStreamTracer` class generates streamlines or pathlines from a given vector field.
+1. `vtkStreamTracer` computes streamlines in a vector field at a selected time; it does not integrate particle histories through a time-varying field. For temporal particle trajectories, use a time-aware data source with classes such as `vtkParticleTracer` or `vtkParticlePathFilter`.
 2. To convert lines (such as streamlines) into ribbons, the `vtkRibbonFilter` class is used. This enhances the visualization by giving the lines thickness and orientation, which can indicate additional information such as vorticity or the direction of rotation.
 
 A helpful “do/don’t” distinction:
@@ -132,7 +134,7 @@ A helpful “do/don’t” distinction:
 **Do** add ribbons or tubes when you want depth and orientation cues.
 **Don’t** over-thicken them, visual clutter can hide the flow you’re trying to reveal.
 
-#### Example: Creating a Streamline
+### Example: Creating a Streamline
 
 ```python
 import vtk
@@ -191,7 +193,7 @@ render_window_interactor.Start()
 
 ![streamlines](https://github.com/djeada/Vtk-Examples/assets/37275728/afa95302-2dde-4892-aa19-9b52b79e07cd)
 
-### Glyphs and Oriented Glyphs
+## Glyphs and Oriented Glyphs
 
 Glyphs are the “dense information overlay” technique. When a dataset has thousands of sample points, drawing full geometry for each point is impossible, but drawing a tiny arrow or ellipsoid at each point can immediately reveal patterns: alignment, divergence, magnitude gradients, anisotropy.
 
@@ -204,15 +206,15 @@ The main risk with glyphs is also the main reason they’re powerful: it’s eas
 **Do** downsample points, cap glyph sizes, and use transparency if needed.
 **Don’t** plot every single vector in a huge dataset, readability beats completeness.
 
-#### Regular Glyphs
+### Regular Glyphs
 
 Regular glyphs are typically used for visualizing scalar data. They can represent quantities like temperature, pressure, or density at specific points in a dataset. By scaling the glyphs according to the scalar values, one can easily compare the relative magnitudes across different points.
 
-#### Oriented Glyphs
+### Oriented Glyphs
 
 Oriented glyphs, on the other hand, are aligned according to vector or tensor data, making them ideal for visualizing directionality in the field. These glyphs can depict flow direction, magnetic field lines, or any other vector field, providing a clear visual indication of both the magnitude and direction at each point.
 
-#### Components
+### Components
 
 1. The `vtkGlyph3D` class generates glyphs based on input data. This class can produce both regular and oriented glyphs depending on the provided scalar or vector data.
 2. To create oriented lines or spikes from vector data, the `vtkHedgeHog` class is specifically designed, making it useful for visualizing vector fields.
@@ -225,7 +227,7 @@ A good rule of thumb:
 **Do** start with HedgeHog when you want quick vector direction checks.
 **Don’t** jump straight to complex glyphs when you’re still validating the data.
 
-#### Example: Creating Glyphs
+### Example: Creating Glyphs
 
 ```python
 import vtk
@@ -286,11 +288,11 @@ render_window_interactor.Start()
 
 ![glyphs](https://github.com/djeada/Vtk-Examples/assets/37275728/b92cc007-f7d7-401c-9a38-b2974406dc2b)
 
-### Contouring and Isosurfaces
+## Contouring and Isosurfaces
 
 Contouring is the “make the invisible boundary visible” technique. When you have a scalar field (temperature, density, pressure, intensity), an isosurface answers the question: *where is this value exactly reached?* That turns an abstract field into a concrete surface you can measure, simplify, export, or compare across time steps.
 
-When analysts care about *where* a particular threshold is reached, say, the Mach 1 shock surface in a CFD run or the 50 % porosity boundary in a rock core, contouring extracts that implicit boundary as an explicit mesh. Marching algorithms turn scattered voxel samples into watertight polygonal “skins,” ready for further measurement, mesh reduction, or export to CAD/3-D printing pipelines.
+When analysts care about *where* a particular threshold is reached, say, the Mach 1 shock surface in a CFD run or the 50 % porosity boundary in a rock core, contouring extracts that implicit boundary as an explicit mesh. Contouring reconstructs approximate surfaces from sampled scalar fields. The output can be open or disconnected near domain boundaries, so watertightness must be checked before volume measurement or 3-D printing.
 
 Contouring is a technique for extracting surface representations from a scalar field. This method is used to identify and visualize surfaces within a 3D volume where the scalar field is equal to a specific value, known as the iso-value. The surfaces created through this process are called isosurfaces, which provide a clear visualization of areas within the scalar field that have the same value.
 
@@ -299,14 +301,14 @@ The practical reason people love isosurfaces: once you have a mesh, you can do m
 **Do** treat the iso-value as a scientific/analytic parameter, not just a slider to make it look cool.
 **Don’t** assume a single iso-value tells the whole story, often you want multiple surfaces or a sweep across thresholds.
 
-#### Applications
+### Applications
 
 * In **medical imaging**, they are used for visualizing organs, tumors, or other structures in CT or MRI scans.
 * **Geology** utilizes them to represent surfaces within the Earth, such as layers of different rock types or ore bodies.
 * For **engineering**, they are essential in analyzing stress and strain fields within materials.
 * In **scientific research**, these techniques are employed to study phenomena such as fluid dynamics, where isosurfaces can represent areas of constant pressure or temperature.
 
-#### Components
+### Components
 
 1. The `vtkContourFilter` class generates contour lines or surfaces from the scalar field.
 2. Using the marching cubes algorithm, the `vtkMarchingCubes` class computes isosurfaces efficiently and produces high-quality surfaces.
@@ -319,7 +321,7 @@ A quick mental map:
 **Do** use MarchingCubes when you’re specifically working with volumetric image-like data and want that classic behavior.
 **Don’t** skip post-processing, contours often benefit from smoothing, decimation, and normal generation depending on your use case.
 
-#### Example: Creating a Contour
+### Example: Creating a Contour
 
 ```python
 import vtk
@@ -368,3 +370,43 @@ render_window_interactor.Start()
 * Finally, a `vtkRenderer`, `vtkRenderWindow`, and `vtkRenderWindowInteractor` are set up to display the contour.
 
 ![isosurface](https://github.com/djeada/Vtk-Examples/assets/37275728/85cc591c-3abc-4759-b375-9f9a7f690b9a)
+
+## Worked isosurface: an analytically checkable scalar field
+
+An isosurface is a set of points where a scalar equals a chosen value. For `f(x,y,z) = x² + y² + z²`, the isosurface at `f = 0.5` approximates a sphere of radius `sqrt(0.5)`. That known answer provides a useful check of the contouring setup.
+
+~~~python
+import vtk
+
+volume = vtk.vtkImageData()
+volume.SetDimensions(21, 21, 21)
+volume.SetOrigin(-1, -1, -1)
+volume.SetSpacing(0.1, 0.1, 0.1)
+
+values = vtk.vtkFloatArray()
+values.SetName("radius_squared")
+values.SetNumberOfTuples(volume.GetNumberOfPoints())
+for i in range(volume.GetNumberOfPoints()):
+    x, y, z = volume.GetPoint(i)
+    values.SetValue(i, x * x + y * y + z * z)
+volume.GetPointData().SetScalars(values)
+
+contour = vtk.vtkFlyingEdges3D()
+contour.SetInputData(volume)
+contour.SetValue(0, 0.5)
+contour.Update()
+surface = contour.GetOutput()
+assert surface.GetNumberOfPolys() > 0
+print("Triangles:", surface.GetNumberOfPolys())
+~~~
+
+`vtkFlyingEdges3D` is specialized for 3D image data; `vtkContourFilter` supports a wider range of dataset types. If there is no output, check the active scalar array, its value range, the isovalue, and whether the input contains valid 3D cells.
+
+| Scientific question | Suitable technique | Main pitfall |
+| --- | --- | --- |
+| Where does a scalar reach a threshold? | Isosurface/contour | Incorrect isovalue or coarse sampling |
+| What happens inside the volume? | Volume rendering | Misleading opacity transfer function |
+| What is the local vector direction? | Oriented glyphs | Overplotting hides structure |
+| Where would seeded particles move? | Streamlines/pathlines | Poor seeds or time interpretation |
+
+An extracted contour is **sampled geometry**, not the exact analytical boundary. Grid spacing, interpolation, smoothing, and decimation can all affect measured area and curvature.

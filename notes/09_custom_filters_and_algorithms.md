@@ -1,4 +1,6 @@
-## Developing Custom Filters and Algorithms in VTK
+# Developing Custom Filters and Algorithms in VTK
+
+[← Notes index](README.md)
 
 Creating custom filters and algorithms opens up a world of possibilities for tailored data processing and visualization. By extending VTK's capabilities, specialized techniques can be introduced that meet the unique needs of scientific research, engineering, medical imaging, or data analysis.
 
@@ -18,7 +20,7 @@ What makes this approach powerful is that once an algorithm is wrapped as a filt
 
 Below, we’ll walk through the fundamentals of how VTK processes data, the steps for building a custom filter, and a detailed example that demonstrates how you might carry out a distance-to-point calculation for polygonal data.
 
-### Understanding the VTK Pipeline
+## Understanding the VTK Pipeline
 
 The VTK pipeline is the backbone of VTK’s data processing and visualization workflow. It’s designed around a demand-driven architecture, meaning that data flows through the pipeline when something downstream (like a renderer) requests it. The pipeline consists of sources, filters, and mappers, connected in a sequence where each filter takes data from its predecessor, processes it, and passes it on to the next stage.
 
@@ -33,17 +35,17 @@ Here’s a simple ASCII diagram illustrating the VTK pipeline:
 [Source] -> [Filter 1] -> [Filter 2] -> ... -> [Mapper] -> [Actor] -> [Renderer]
 ```
 
-* Generates initial data, such as procedural geometry (e.g., a sphere or cube) or data read from a file (e.g., a volume dataset).
-* Operate on the data to transform or compute new information (e.g., smoothing, contour extraction, feature detection).
-* Converts the processed data into a graphical representation that the rendering engine can understand.
-* Represents an object (geometry + properties) in the 3D scene.
-* Manages rendering the actor(s) onto the screen or into an off-screen buffer.
+* **Source:** Generates data, such as a sphere, or reads it from a file.
+* **Filter:** Transforms or enriches data through operations such as smoothing or contour extraction.
+* **Mapper:** Converts processed data into rendering primitives.
+* **Actor:** Holds an object's geometry mapping, appearance, and placement.
+* **Renderer:** Draws the actors into a window or off-screen buffer.
 
 A quick way to read those bullets in context is: a **source** creates data, **filters** change or enrich data, a **mapper** prepares it for drawing, an **actor** holds appearance and placement, and a **renderer** draws the scene. When a custom filter is inserted, it becomes “Filter N” in that chain and should feel no different from any built-in filter.
 
 When you create a custom filter, you add a new link in this pipeline. Your filter can accept data from upstream VTK filters or sources, perform specialized calculations, and pass new or modified data downstream. By following VTK’s design patterns, your custom filter remains interoperable with any other VTK component, preserving the modular, pipeline-oriented architecture that makes VTK powerful and flexible.
 
-### Steps to Create a Custom Filter
+## Steps to Create a Custom Filter
 
 Building a custom filter in VTK is a multi-step process that ensures your new filter integrates seamlessly with the existing framework. Below is an outline of the typical steps you’ll follow:
 
@@ -64,10 +66,10 @@ VTK provides several base classes for filters, each tailored for different data 
 | ----------------------- | ------------------------------------------------------------------------------------------------------- |
 | `vtkAlgorithm`          | A general-purpose class capable of handling multiple inputs and outputs of various data types.          |
 | `vtkPolyDataAlgorithm`  | Specialized for polygonal data, such as meshes or surfaces, making it ideal for 3D models.              |
-| `vtkImageDataAlgorithm` | Specialized for image-based data, commonly used in medical imaging or 2D/3D grid-based data operations. |
+| `vtkImageAlgorithm` | Specialized for image-based data, commonly used in medical imaging or 2D/3D grid-based data operations. |
 
 * If your algorithm needs to process polygonal meshes (e.g., STL files, surfaces), `vtkPolyDataAlgorithm` is usually the go-to choice.
-* For image data (like DICOM or 2D images), `vtkImageDataAlgorithm` provides convenient methods for working with pixel/voxel grids.
+* For image data (like DICOM or 2D images), `vtkImageAlgorithm` provides convenient methods for working with pixel/voxel grids.
 * `vtkAlgorithm` is the most general and flexible if you have an unusual data structure or want to support multiple data types.
 
 Choosing the right base class is mostly about correctness and convenience. It reduces boilerplate and ensures that input/output expectations match the dataset type. That makes the filter easier to use and harder to misuse.
@@ -103,7 +105,7 @@ VI. Compile and Use
 * You’ll typically add your custom filter files to your project, update your CMakeLists, and compile them into a library or as part of your executable.
 * You can use it directly once you’ve defined the subclass in your script or module. Just import your custom class and insert it into the pipeline.
 
-### Example: Creating a Custom Filter to Compute Point Distances
+## Example: Creating a Custom Filter to Compute Point Distances
 
 Let’s say you have a 3D model (e.g., a sphere, a mesh from a CT scan, or a CAD object), and you need to calculate how far each vertex on the model is from a specific point in 3D space. This is a common operation in fields like:
 
@@ -121,7 +123,7 @@ When the distance for each point is computed, it’s often stored in a scalar ar
 * Color mapping (to visually inspect where distances are small or large).
 * Further calculations, such as thresholding or contouring the distance field.
 
-#### Implementing the Custom Filter
+### Implementing the Custom Filter
 
 Below is an example demonstrating how to carry out this custom distance filter for polygonal data. We’ll subclass `vtkPolyDataAlgorithm` and override the `RequestData()` method, where we do all our distance computations.
 
@@ -228,7 +230,7 @@ Here’s a breakdown of what’s happening in `RequestData()`:
 * The calculated distance array is attached to the output as part of the point data.
 * The distance array is set as the active scalar to enable use in coloring or further pipeline processing.
 
-#### Using the Custom Distance Filter
+### Using the Custom Distance Filter
 
 This custom VTK filter calculates the Euclidean distance from each point in a vtkPolyData to a specified target point. Below is an example demonstrating how to use it with a sphere visualization.
 
@@ -294,3 +296,63 @@ The output will look similar to the following:
 * Adjust the target point location to highlight different distance patterns
 * Modify the lookup table's hue range for different color schemes
 * Use the orientation widget to better understand spatial relationships
+
+## Complete custom filter: distance from a reference point
+
+A useful custom filter must integrate with VTK's demand-driven pipeline, not just execute a Python function once. The helper `VTKPythonAlgorithmBase` provides the port and execution framework. This example accepts polygonal data and adds a named point-data array.
+
+~~~python
+import vtk
+from vtkmodules.util.vtkAlgorithm import VTKPythonAlgorithmBase
+
+class DistanceFromOrigin(VTKPythonAlgorithmBase):
+    def __init__(self):
+        super().__init__(
+            nInputPorts=1, inputType="vtkPolyData",
+            nOutputPorts=1, outputType="vtkPolyData"
+        )
+        self._origin = (0.0, 0.0, 0.0)
+
+    def SetOrigin(self, x, y, z):
+        self._origin = (float(x), float(y), float(z))
+        self.Modified()
+
+    def RequestData(self, request, inInfo, outInfo):
+        input_data = vtk.vtkPolyData.GetData(inInfo[0], 0)
+        output_data = vtk.vtkPolyData.GetData(outInfo, 0)
+        output_data.ShallowCopy(input_data)
+
+        distance = vtk.vtkDoubleArray()
+        distance.SetName("distance")
+        distance.SetNumberOfTuples(input_data.GetNumberOfPoints())
+        ox, oy, oz = self._origin
+        for i in range(input_data.GetNumberOfPoints()):
+            x, y, z = input_data.GetPoint(i)
+            distance.SetValue(
+                i, ((x - ox)**2 + (y - oy)**2 + (z - oz)**2)**0.5
+            )
+        output_data.GetPointData().AddArray(distance)
+        return 1
+
+source = vtk.vtkSphereSource()
+source.SetRadius(2.0)
+filter_ = DistanceFromOrigin()
+filter_.SetInputConnection(source.GetOutputPort())
+filter_.Update()
+
+result = filter_.GetOutputDataObject(0)
+values = result.GetPointData().GetArray("distance")
+assert values is not None
+assert values.GetNumberOfTuples() == result.GetNumberOfPoints()
+print("Distance range:", values.GetRange())
+~~~
+
+### Why the implementation behaves like a VTK filter
+
+- The constructor declares the input/output type and port counts.
+- `RequestData` receives the current pipeline input and populates the output data object.
+- `ShallowCopy` retains the existing geometry and arrays without copying every buffer. This example adds a **new** array rather than modifying shared input arrays.
+- Calling `Modified()` in a setter invalidates cached output after parameter changes.
+- The resulting distance array remains available to other filters, writers, and mappers.
+
+**Test the contract:** empty point sets, repeated `Update()` calls, changed origin, wrong input type, unexpected array-name collisions, and input immutability. Use `DeepCopy` when you need to mutate upstream-owned geometry or arrays. Profile before replacing a simple implementation with complex parallelism.

@@ -1,8 +1,10 @@
-## Performance Optimization and Parallelism
+# Performance Optimization and Parallelism
+
+[← Notes index](README.md)
 
 When working with complicated datasets and sophisticated visualization pipelines, performance optimization and parallelism become important for delivering real-time or near-real-time insights. VTK (Visualization Toolkit) supports a variety of performance-enhancing techniques and offers a strong framework for parallel processing, allowing you to scale your visualization workflows to handle massive datasets or highly detailed 3D scenes.
 
-If your visualization is smooth, people stay curious: they rotate, zoom, slice, compare, and discover. If it stutters, they stop interacting, and your “tool” quietly turns into a static screenshot generator. So performance work isn’t polishing, it’s enabling the entire experience.
+If your visualization is smooth, people stay curious: they rotate, zoom, slice, compare, and discover. If it stutters, they stop interacting, and your “tool” quietly turns into a static screenshot generator. Performance work is therefore essential to the interactive experience.
 
 This section covers several key strategies to help optimize VTK-based applications:
 
@@ -12,9 +14,9 @@ This section covers several key strategies to help optimize VTK-based applicatio
 
 A useful way to think about these is: **LOD reduces the detail you draw, culling avoids drawing what you can’t see, and parallelism shares the remaining work across more compute.** The best results usually come from combining them instead of betting everything on one technique.
 
-You can make sure your visualization pipeline remains responsive and efficient, even in demanding scenarios such as medical imaging, large-scale simulations, or interactive 3D modeling.
+Together, these approaches can help keep visualization pipelines responsive in medical imaging, large-scale simulations, and interactive 3D modeling.
 
-### Level of Detail (LOD)
+## Level of Detail (LOD)
 
 Level of Detail (LOD) is a common technique in computer graphics aimed at reducing the rendering load by simplifying objects based on their importance or visual impact. In large scenes or interactive applications, rendering the highest-quality version of every single object can become extremely expensive.
 
@@ -28,11 +30,11 @@ LOD solves this by dynamically selecting an appropriate representation depending
 A practical do/don’t mindset helps:
 
 * **Do** treat LOD as a “protect the interaction” feature (orbit/pan/zoom should stay smooth).
-* **Don’t** let LOD permanently degrade the result, often the best pattern is “low detail while moving, high detail when the camera stops.”
+* **Don’t** let LOD permanently degrade the result; a useful pattern is “low detail while moving, high detail when the camera stops.”
 
 LOD strategies help maintain smooth rendering and interactive frame rates even when dealing with very large or complicated 3D environments.
 
-#### Classes Associated with LOD
+### Classes Associated with LOD
 
 VTK provides specialized classes to carry out LOD functionalities out of the box.
 
@@ -59,7 +61,7 @@ II. `vtkLODProp3D`
 
 One more “why you should care” note: **LOD is one of the easiest optimizations to ship safely** because it’s reversible. You can always fall back to high detail when the system has time. That makes it a great first win before you start deeper refactors.
 
-#### Example of Creating a `vtkLODActor`
+### Example of Creating a `vtkLODActor`
 
 Below is a simple example that demonstrates how to create and configure a `vtkLODActor` to handle different levels of detail:
 
@@ -109,7 +111,7 @@ To make this feel “real” in practice, a good pattern is:
 * **Do** make LOD0 your “final quality” representation and LOD1/LOD2 your “interaction-safe” representations.
 * **Don’t** create ten LODs unless you’ve measured a need. Two or three levels often cover most cases.
 
-### Culling
+## Culling
 
 Culling is another powerful method for optimizing rendering performance by removing objects or parts of objects that do not contribute to the final image.
 
@@ -129,7 +131,7 @@ A practical do/don’t here:
 * **Do** start with frustum culling, it’s typically cheap and broadly effective.
 * **Don’t** assume occlusion culling is always beneficial; sometimes it adds overhead that only pays off in very dense scenes with lots of overdraw.
 
-#### Classes for Culling
+### Classes for Culling
 
 I. `vtkFrustumCuller`
 
@@ -145,7 +147,7 @@ II. `vtkVisibilityCuller`
 * Depth testing and related approaches can be used to detect and exclude hidden geometry (depending on the configured culler strategy).
 * Resource savings are achieved, particularly in densely populated scenes where many objects overlap or block each other, reducing rendering workload.
 
-#### Example of Using `vtkFrustumCuller`
+### Example of Using `vtkFrustumCuller`
 
 Below is an example showcasing how to integrate `vtkFrustumCuller` into a simple VTK pipeline:
 
@@ -191,7 +193,7 @@ interactor.Start()
 * Geometry setup involves placing multiple spheres along the x-axis, with those outside the camera's default frustum being culled to conserve rendering resources.
 * After configuring the renderer with the culler, objects outside the frustum are automatically excluded from the rendering pipeline, enhancing performance.
 
-### Parallel Rendering and Processing
+## Parallel Rendering and Processing
 
 As datasets grow in size and complexity, single-threaded or single-processor visualization pipelines can become bottlenecks. To tackle this, VTK offers parallel rendering and parallel processing capabilities that harness the power of multiple CPUs, multiple GPUs, or clusters of networked machines.
 
@@ -199,7 +201,7 @@ The “why” that makes this exciting: **parallelism lets you keep interactivit
 
 These methods are necessary for high-end data visualization tasks, such as astrophysical simulations, seismic data interpretation, or climate modeling, where interactivity and real-time feedback are important yet challenging to achieve.
 
-#### Parallel Rendering
+### Parallel Rendering
 
 Parallel rendering splits the rendering workload across multiple processors or GPUs:
 
@@ -213,7 +215,7 @@ A useful “do/don’t” here:
 * **Do** treat compositing as a first-class cost (network + blending can become the bottleneck).
 * **Don’t** expect perfect scaling automatically; you usually need good partitioning and load balance to avoid “one slow node holds everyone back.”
 
-#### Parallel Processing
+### Parallel Processing
 
 While parallel rendering focuses on visual output, parallel processing addresses data computation itself:
 
@@ -229,7 +231,7 @@ Parallel processing is important for:
 
 A reader-friendly checkpoint: **if your bottleneck is “drawing pixels,” parallel rendering helps. If your bottleneck is “computing the data to draw,” parallel processing helps.** Many real apps need both.
 
-#### Example of Parallel Rendering in VTK (No MPI)
+### Example of Parallel Rendering in VTK (No MPI)
 
 Below is a **baseline “parallel-ready”** VTK setup that focuses on the kinds of configuration you typically put in place *before* you step into multi-process or cluster rendering. It does **not** create distributed rendering by itself, but it *does* show how to structure a render window and scene so you can later scale the workload (multi-window compositing, multi-layer rendering, offscreen capture, or integration into a larger parallel workflow).
 
@@ -307,7 +309,7 @@ III. **How this connects to scalability (without claiming MPI):**
 * On a single machine, you can already benefit from this structure for **clean compositing, offscreen capture, or multi-pass rendering**.
 * In larger setups, the same “separate layers / separate responsibilities” approach makes it easier to distribute work (different passes, different viewports, or different render targets) and merge results into a final frame.
 
-#### Concepts of MPI
+### Concepts of MPI
 
 [MPI (Message Passing Interface)](https://www.mpi-forum.org/) is a standardized, portable, and language-independent message-passing system designed to function on a wide variety of parallel computing architectures. It is widely used in high-performance computing (HPC) to enable multiple processes to coordinate and share workloads across distributed systems or multi-core architectures. This section provides an overview of the core MPI concepts and highlights how they relate to VTK (Visualization Toolkit) and parallel rendering strategies.
 
@@ -379,7 +381,7 @@ MPI includes error-handling mechanisms to manage or ignore errors gracefully:
 
 A quick reality check for readers: **MPI programs can feel “strict” at first** because you must think about who owns data, who sends what, and when everyone is allowed to move forward. The payoff is huge: you get real scaling across nodes instead of hoping threads will save you.
 
-#### A Simple `mpi4py` Example in Python
+### A Simple `mpi4py` Example in Python
 
 While MPI is available for C, C++, and Fortran, Python developers often use `mpi4py`, a Pythonic interface to MPI. Here is a minimal example illustrating basic MPI usage:
 
@@ -412,7 +414,7 @@ MPI.Finalize()
 
 (Heads-up for advanced readers: `mpi4py` can auto-initialize depending on configuration, but explicit `Init/Finalize` is still a clear teaching example and can be valid in many setups.)
 
-#### Primary Classes in VTK for Parallelism
+### Primary Classes in VTK for Parallelism
 
 When integrating MPI with VTK to tackle large-scale visualization problems, two necessary classes often come into play:
 
@@ -517,7 +519,7 @@ A practical “do/don’t” when readers try this for real:
 * **Do** run these programs with an MPI launcher (`mpirun`, `mpiexec`) so multiple ranks are actually created.
 * **Don’t** judge parallel rendering from a single-rank run; you won’t see the “distributed” behavior if there’s only one process.
 
-#### Contextual Configuration and Use Cases
+### Contextual Configuration and Use Cases
 
 Whether or not you need MPI-based parallel rendering in VTK depends on your deployment context:
 
@@ -529,18 +531,18 @@ Whether or not you need MPI-based parallel rendering in VTK depends on your depl
 
 This table is where the reader often has the “aha” moment: **parallelism isn’t one thing.** A workstation, a multi-core server, and a cluster each need different strategies. Knowing your context early saves you from building something too complicated (or too weak) for the environment you actually have.
 
-#### Practical Considerations
+### Practical Considerations
 
 When scaling your application to multiple nodes or a large number of processes, pay attention to:
 
-##### Load Balancing
+#### Load Balancing
 
 * **Static load balancing** assigns tasks or data subsets to processes before execution, ensuring each node gets a predetermined workload (e.g., a simple block-based decomposition of a mesh). This approach is straightforward to carry out and works well when the workload is uniformly distributed or predictable. However, it might lead to underutilized nodes if the actual workload deviates significantly from the initial estimate.
 * **Dynamic load balancing** continuously or periodically monitors each node’s workload during runtime and redistributes tasks if some nodes finish earlier or encounter less complicated geometry. This can help maintain balanced use of resources across the cluster, improving overall throughput. However, dynamic approaches often introduce additional overhead for monitoring and redistributing work, so they should be used judiciously, especially when the cost of redistribution may outweigh its benefits.
 
 A reader-friendly framing: **load balancing is about preventing “the one slow rank” problem.** If one process gets stuck with a heavier chunk, everyone else waits at the next barrier or collective operation. So good balancing doesn’t just improve speed, it improves predictability.
 
-##### Data Distribution
+#### Data Distribution
 
 * **Partitioning** involves dividing the dataset (e.g., a volume or mesh) into smaller logical or spatial subsets. The goal is to reduce the amount of inter-process communication needed while still allowing each node to work efficiently on its portion of the data. Careful partitioning can significantly improve scalability, but poor partition strategies can lead to load imbalance or increased network traffic.
 * **Replication** stores the entire dataset on each node, drastically reducing communication overhead since all the necessary data is local. However, this method is memory-intensive, making it feasible only for smaller datasets or systems with very large memory capacities.
@@ -549,7 +551,7 @@ A reader-friendly framing: **load balancing is about preventing “the one slow 
 
 This is where systems thinking pays off: **moving data is often more expensive than computing on it.** If you design your pipeline so that ranks constantly ship big arrays around, the network becomes your bottleneck. If you design it so that each rank mostly works on its own data and only shares what’s necessary, you scale cleanly.
 
-##### Synchronization
+#### Synchronization
 
 * **Barriers** (e.g., `MPI_Barrier`) make sure that all processes reach a certain point in the code before proceeding. This can be useful for maintaining consistent states across processes, such as at important algorithm phases or before collective I/O. Overusing barriers, however, can degrade performance by forcing faster processes to wait for slower ones.
 * **Collective Operations** (e.g., `MPI_Bcast`, `MPI_Reduce`) provide coordinated and efficient ways to share or aggregate data among all processes. These operations are heavily optimized in most MPI implementations, but must be used carefully to avoid excessive synchronization overhead.
@@ -560,14 +562,14 @@ A simple “do/don’t” that saves pain:
 * **Do** minimize barriers and global collectives inside tight loops.
 * **Don’t** synchronize “just to be safe.” Synchronize because the algorithm truly requires it.
 
-##### Error Handling
+#### Error Handling
 
 * **Default Error Handler** in MPI typically aborts the entire job if an error occurs in any process. This ensures fast failure recognition but offers no opportunity for partial recovery or logging intermediate results.
 * **Custom Error Handlers** can be set to catch and handle errors more gracefully. They allow you to log the error, attempt partial computations, or even dynamically reassign tasks if a process fails. This can be important in large-scale systems where maintaining some level of progress is preferable to aborting the entire job due to a single failure.
 
 In real deployments, this is where “toy demos” become “production systems.” **A single failing rank can kill the whole job**, so logging, checkpoints, and graceful shutdown matter if you’re running expensive workloads.
 
-#### Detailed Example with Tasks, Distribution, and Rendering
+### Detailed Example with Tasks, Distribution, and Rendering
 
 Below is a more in-depth illustrative example combining MPI for both task distribution and VTK parallel rendering:
 
@@ -702,3 +704,39 @@ MPI.Finalize()
 * Rank 0 has the option to save a screenshot of the rendered scene after the parallel rendering process.
 * Synchronization between processes is achieved using `controller.Barrier()` to ensure all ranks proceed together at critical points.
 * Closing of MPI is scheduled after rendering to gracefully terminate the parallel environment.
+
+## Performance diagnosis: separate pipeline cost from drawing cost
+
+Rendering and filtering are different bottlenecks. A pipeline may spend time computing normals, contouring, copying arrays, transferring data, or drawing the final scene. Reducing triangles only addresses some of these costs.
+
+This benchmark measures **processing time only**. Source resolution changes on each pass to force recomputation instead of timing an already cached pipeline.
+
+~~~python
+from time import perf_counter
+import vtk
+
+source = vtk.vtkSphereSource()
+source.SetPhiResolution(128)
+triangles = vtk.vtkTriangleFilter()
+triangles.SetInputConnection(source.GetOutputPort())
+
+for resolution in (128, 160, 192, 224):
+    source.SetThetaResolution(resolution)
+    start = perf_counter()
+    triangles.Update()
+    elapsed_ms = (perf_counter() - start) * 1000
+    mesh = triangles.GetOutput()
+    print(resolution, mesh.GetNumberOfPolys(), round(elapsed_ms, 2))
+~~~
+
+Do not compare a cold execution with an unchanged second `Update()` and claim a computational speedup: the second call may only traverse caches. Repeat measurements, record dataset size, and separate CPU processing from GPU draw time.
+
+| Symptom | Measure first | Possible action |
+| --- | --- | --- |
+| Slow `Update()` | Input/output cells and processing time | More suitable filter, simplification, selective extraction |
+| Choppy camera rotation | Render time and actors in view | Level of detail, culling, reducing actor count |
+| High memory usage | Array sizes, duplicates, dataset types | Implicit grids, fewer copies, smaller array precision if valid |
+| Slow initial load | Reader and initial filter time | Cache intermediates or change file format |
+| Poor parallel scaling | Partition balance and scheduling overhead | Repartition and profile before adding more workers |
+
+Do not assume Python threads accelerate arbitrary VTK filters. Parallel execution depends on the algorithm, VTK build, and data partitioning. Any optimization should preserve the quantities the visualization is meant to explain.
