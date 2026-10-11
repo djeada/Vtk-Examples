@@ -1,4 +1,6 @@
-## Interactivity and User Interface
+# Interactivity and User Interface
+
+[← Notes index](README.md)
 
 By combining low-level access to rendering primitives with high-level interactor and widget frameworks, VTK enables you to build applications where users can drill into complex datasets, modify display parameters in real time, and receive immediate visual feedback. These capabilities not only enhance user engagement but also accelerate the discovery of patterns and anomalies that might otherwise remain hidden in static views.
 
@@ -9,7 +11,7 @@ A practical do/don’t mindset for this entire section:
 * **Do** design interactions around questions users actually ask (“What is that?”, “What’s inside?”, “How does it change?”).
 * **Don’t** add UI for everything. Too many controls can make a tool feel intimidating instead of empowering.
 
-### Picking and Selection
+## Picking and Selection
 
 Picking is the mechanism by which you map a screen-space event—such as a mouse click or drag—back to an element in your 3D scene, be it a point, cell, actor, or even a rendering layer. Selection builds upon picking by allowing you to extract or highlight subsets of data based on those picks or on more abstract criteria (e.g., cells whose scalar values fall within a given range). This dual capability gives users both precision ("Which vertex did I click?") and breadth ("Show me all cells above threshold X").
 
@@ -26,7 +28,7 @@ One small but important “do/don’t” here:
 * **Do** pick the picker based on what you need (exact cell vs. approximate world coordinate).
 * **Don’t** assume a single picker solves every interaction mode. Many apps combine pickers: one for precise hits, another for free-space placement.
 
-For example, to pick and report the ID of a cell under the cursor:
+For example, assuming `interactor` and `renderer` are already configured, this snippet reports the ID of the cell under the cursor (`-1` means no cell was picked):
 
 ```python
 picker = vtk.vtkCellPicker()
@@ -39,14 +41,14 @@ print(f"User picked cell ID: {picked_cell_id}")
 
 ![picker](https://github.com/djeada/Vtk-Examples/assets/37275728/51f7b6ed-9086-4fae-b976-8ac0dc139be2)
 
-After picking, you can feed the result into a pipeline filter like `vtkExtractSelection` to visually outline the selection, compute statistics on the chosen subset, or export it for further analysis. By tuning the picker tolerance and combining multiple pick events, you can implement lasso-style or multi-object selection strategies that feel intuitive to end users.
+After picking, construct a VTK selection from the chosen IDs and pass it to `vtkExtractSelection` to obtain a subset for further analysis or export. By tuning the picker tolerance and combining multiple pick events, you can implement lasso-style or multi-object selection strategies that feel intuitive to end users.
 
 A useful way to keep selection “fun” instead of frustrating is to give clear feedback:
 
 * **Do** highlight what was picked (outline, color change, glow, label).
 * **Don’t** leave users guessing whether the click did anything—silent picks feel broken.
 
-### Cutting Planes
+## Cutting Planes
 
 Cutting planes allow users to slice through volumetric or surface datasets interactively, revealing internal features that would otherwise be occluded. By defining a geometric plane and intersecting it with your dataset, you can generate cross-sectional contours, expose hidden structures, and better understand spatial relationships. This technique is invaluable in fields like medical imaging (to inspect anatomical slices) and computational fluid dynamics (to examine interior flow patterns).
 
@@ -81,7 +83,7 @@ A do/don’t that helps performance and clarity:
 * **Don’t** update heavy cutting operations on every tiny mouse movement unless needed—sometimes you update continuously while dragging, and refine on release.
 
 
-### 3D Widgets
+## 3D Widgets
 
 VTK 3D widgets are self-contained interactive objects that encapsulate both representation (how they look) and behavior (how they respond to user actions). Unlike generic actors, widgets maintain their own event handling and state, making it straightforward to build UI controls directly into the 3D scene. Common use cases include manipulating clipping planes, adjusting lighting directions, or tuning scalar thresholds.
 
@@ -118,7 +120,7 @@ A small UX tip that makes widgets feel professional:
 * **Do** show the current value (e.g., slider value text) and make the range meaningful (units, min/max that match the data).
 * **Don’t** make users “hunt” for the control—place widgets where the eye naturally goes and avoid blocking the data.
 
-### Event Handling and Callbacks
+## Event Handling and Callbacks
 
 At the core of VTK’s interactivity is its event-driven architecture, where user inputs and render events generate notifications that you can intercept with callbacks. This model decouples application logic from the rendering loop, so you can inject your own code—whether to modify the camera, update data, or trigger external processes—whenever a specific event occurs.
 
@@ -134,7 +136,7 @@ A key do/don’t for stability:
 * **Do** keep callbacks small and predictable—compute what you need, update state, request a render.
 * **Don’t** do heavy computation inside high-frequency events (like `MouseMoveEvent`) unless you throttle or optimize, or your UI will stutter.
 
-#### Mouse Events
+### Mouse Events
 
 Mouse events are central to navigation and selection in 3D scenes. The interactor translates low-level OS events into high-level VTK events (e.g., `LeftButtonPressEvent`, `MouseMoveEvent`). By adding observers on these events, you can implement custom behaviors such as drag‐to‐rotate, point annotation, or dynamic slicing. Interactor styles like `vtkInteractorStyleTrackballCamera` provide built-in camera controls, but you can layer additional observers for tasks like picking or drawing overlays:
 
@@ -156,7 +158,7 @@ A practical “feel good” improvement many apps use:
 * **Do** differentiate click vs drag (users hate accidental picks while rotating).
 * **Don’t** bind expensive logic to `MouseMoveEvent` without guarding it (e.g., only act when a button is pressed, or sample every N milliseconds).
 
-#### Keyboard Input Events
+### Keyboard Input Events
 
 Keyboard events let you offer shortcuts for common operations—toggling visibility, stepping through time series, adjusting scalar thresholds, or switching interaction modes. VTK generates `KeyPressEvent` and `KeyReleaseEvent`, reporting the symbolic name of the key pressed. You can bind callbacks to these events to streamline workflows:
 
