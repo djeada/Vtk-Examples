@@ -1,7 +1,5 @@
 # End-to-end VTK case study: build, export, and validate a mesh
 
-[← Notes index](README.md)
-
 This small project connects the main ideas from the notes: generate geometry, produce triangles, attach a named scalar array, export to VTP, read the result back, validate it, and configure color mapping. The workflow uses **VTK and the Python standard library only**. It runs without opening a rendering window, making it useful in CI or on a headless workstation.
 
 ## Problem and expected output
