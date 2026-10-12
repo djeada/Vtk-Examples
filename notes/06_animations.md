@@ -1,7 +1,5 @@
 # Animations and Time-Varying Data
 
-[← Notes index](README.md)
-
 VTK offers a set of tools to create animations and visualize time-varying data. This is particularly useful in scenarios such as:
 
 1. Keyframe Animation
