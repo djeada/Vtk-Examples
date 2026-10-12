@@ -1,7 +1,5 @@
 # Advanced Visualization Techniques
 
-[← Notes index](README.md)
-
 Modern datasets don’t just have “more rows”, they have more *dimensions*: space, time, uncertainty, multiple physical variables, and often multiple scales of detail. In that world, visualization isn’t decoration; it’s how you *think*. VTK matters here because it doesn’t force you into one visualization style. It gives you a toolkit of techniques that all plug into the same pipeline model, so you can iterate quickly: try a contour, swap to volume rendering, add glyphs, seed streamlines, and keep the rest of your workflow intact.
 
 In modern data analysis, visual exploration is often the fastest—and sometimes the only—way to grasp relationships hidden in large, multi-dimensional datasets. VTK meets this challenge by bundling dozens of state-of-the-art algorithms behind a consistent, object-oriented API that can be combined like building blocks. Whether you need to probe scalar fields, interrogate complex vector-tensor interactions, or render time-varying simulations, the same pipeline abstractions apply, letting you mix and match mappers, filters, and interaction styles with minimal boilerplate.
