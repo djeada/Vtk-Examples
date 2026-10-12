@@ -1,7 +1,5 @@
 # Interactivity and User Interface
 
-[← Notes index](README.md)
-
 By combining low-level access to rendering primitives with high-level interactor and widget frameworks, VTK enables you to build applications where users can drill into complex datasets, modify display parameters in real time, and receive immediate visual feedback. These capabilities not only enhance user engagement but also accelerate the discovery of patterns and anomalies that might otherwise remain hidden in static views.
 
 The real reason interactivity matters is that it turns visualization from “presentation” into “investigation.” When users can poke, slice, select, and tweak parameters instantly, they stop guessing and start *testing hypotheses*. That’s when VTK becomes more than a renderer—it becomes a lab bench for your data.
