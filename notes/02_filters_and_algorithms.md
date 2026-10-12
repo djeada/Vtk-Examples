@@ -1,7 +1,5 @@
 # Filters and Algorithms
 
-[← Notes index](README.md)
-
 VTK’s filters and algorithms allow you to convert your data from “a static dataset” to a dynamic pipeline: you generate something, clean it up, extract meaning, and reshape it into a form that’s easier to analyze or visualize. Think of it like a workshop line: raw material comes in, tools operate on it, and what comes out is clearer, lighter, or more informative.
 
 In real VTK projects you rarely render raw input directly. You almost always process it first: remove noise, compute derived quantities, simplify meshes, extract surfaces, reorganize time steps, or convert data into a representation that downstream steps can handle. Filters are the verbs of VTK. They’re how you *do things* to data.
