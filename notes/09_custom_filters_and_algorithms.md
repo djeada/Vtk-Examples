@@ -1,7 +1,5 @@
 # Developing Custom Filters and Algorithms in VTK
 
-[← Notes index](README.md)
-
 Creating custom filters and algorithms opens up a world of possibilities for tailored data processing and visualization. By extending VTK's capabilities, specialized techniques can be introduced that meet the unique needs of scientific research, engineering, medical imaging, or data analysis.
 
 The reason custom filters matter is that real projects rarely fit perfectly inside “stock” tooling. Built-in filters cover the common cases, but the moment a workflow needs a domain-specific metric, a bespoke feature extractor, or a new way to manipulate geometry, a custom filter turns that requirement into a reusable pipeline block instead of a one-off script.
