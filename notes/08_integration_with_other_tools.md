@@ -1,7 +1,5 @@
 # Integration of VTK with Other Tools and Libraries
 
-[← Notes index](README.md)
-
 Integration of VTK with a variety of tools and libraries provides flexibility and power that can significantly broaden the scope of visualization projects. These integrations allow you to combine VTK’s 3D rendering capabilities with platforms that excel at data analysis, computational processing, and user-friendly interfaces. This discussion explores popular tools like ParaView, VisIt, and ITK, along with examples that showcase how to blend VTK with Python-based visualization libraries such as Matplotlib in order to achieve interactive and intuitive graphical outputs.
 
 These integrations often require format conversion and coordinate-system checks. The workflow below is illustrative: use only the tools your application needs.
