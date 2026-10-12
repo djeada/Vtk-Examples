@@ -1,7 +1,5 @@
 # Performance Optimization and Parallelism
 
-[← Notes index](README.md)
-
 When working with complicated datasets and sophisticated visualization pipelines, performance optimization and parallelism become important for delivering real-time or near-real-time insights. VTK (Visualization Toolkit) supports a variety of performance-enhancing techniques and offers a strong framework for parallel processing, allowing you to scale your visualization workflows to handle massive datasets or highly detailed 3D scenes.
 
 If your visualization is smooth, people stay curious: they rotate, zoom, slice, compare, and discover. If it stutters, they stop interacting, and your “tool” quietly turns into a static screenshot generator. Performance work is therefore essential to the interactive experience.
