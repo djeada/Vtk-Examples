@@ -1,7 +1,5 @@
 # Input and Output
 
-[← Notes index](README.md)
-
 Input/output is where VTK starts being a tool you can actually plug into real workflows. Data rarely originates inside VTK; it usually comes from scanners, simulators, CAD tools, or research pipelines. So the ability to read reliably, preserve attributes, and write back out in the right format is what makes your visualizations reproducible and shareable.
 
 VTK offers a comprehensive suite of tools for reading and writing a variety of data formats. This includes the native VTK file formats (legacy and XML-based), as well as numerous third-party formats.
