@@ -14,6 +14,7 @@ These notes explain VTK's data model, pipelines, visualization techniques, and i
 8. [Integration with other tools](08_integration_with_other_tools.md) — ParaView, VisIt, ITK, Python, and HPC.
 9. [Custom filters and algorithms](09_custom_filters_and_algorithms.md) — extending VTK's pipeline.
 10. [End-to-end case study](10_end_to_end_case_study.md) — build, annotate, export, reload and validate a mesh.
+11. [Short YouTube project ideas](11_short_youtube_projects.md) — ten quick, visual VTK builds with filming hooks and starter pipelines.
 
 ## Using these notes
 
