@@ -535,7 +535,7 @@ IV. Visualize:
 - Use color maps to highlight high-population or high-pollution regions.
 - Interactively rotate, zoom, or slice through the data to identify hotspots or patterns that might require further investigation.
 
-The ![script](https://github.com/djeada/Vtk-Examples/blob/main/src/08_integration_with_ui/geospatial_data.py) includes several key components:
+The [script](https://github.com/djeada/Vtk-Examples/blob/main/src/08_integration_with_ui/geospatial_data.py) includes several key components:
 
 1. Data Generation and Processing:
 
