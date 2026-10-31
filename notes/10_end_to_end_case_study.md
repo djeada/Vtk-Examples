@@ -103,7 +103,7 @@ In this script, the mesh is updated before directly attaching the elevation arra
 2. Attach a value to every **cell** rather than every point. Change the mapper's scalar mode accordingly.
 3. Increase sphere resolution. Compare triangle count, VTP file size, and export time; note what each metric measures.
 4. Export STL instead of VTP. Reload it and check whether the elevation array survived.
-5. Add a renderer and actor using the mapper, then give users a fixed camera and color legend; see [interactivity](05_interactivity.md).
+5. Add a renderer and actor using the mapper, then give users a fixed camera and color legend; see [interactivity](https://github.com/djeada/Vtk-Examples/blob/main/notes/05_interactivity.md).
 
 ## Troubleshooting checklist
 
@@ -111,6 +111,6 @@ In this script, the mesh is updated before directly attaching the elevation arra
 - **Missing colors:** check scalar name, point/cell association, mapper scalar selection, and scalar range.
 - **Unexpected geometry:** print `GetBounds()` and ensure source units/coordinates are correct.
 - **Different data after reload:** compare types, cells, points, and arrays—not just a screenshot.
-- **Slow processing:** profile source, filter, write, and render stages separately as discussed in [performance](07_performance_optimization_and_parallelism.md).
+- **Slow processing:** profile source, filter, write, and render stages separately as discussed in [performance](https://github.com/djeada/Vtk-Examples/blob/main/notes/07_performance_optimization_and_parallelism.md).
 
 This is an intentionally small validation target: it exercises the complete data path without conflating file correctness with GUI setup.
